@@ -613,6 +613,14 @@ coverage_gap_closures:
 - gap: console_entry_point_alignment
   resolution: Root console script target is yaml-editor=yaml_editor.interfaces.cli:main
     and G-008/T-010 owns alignment verification with G-001 metadata coordination.
+- gap: editor_core_separated_from_yaml
+  resolution: G-009 owns the format-independent editor core, dynamic buffer registry,
+    file-backed/unsaved buffers, dirty state, and open/save/save_as/close/copy/cut/paste
+    orchestration.
+- gap: buffer_formatter_and_format_aware_clipboard
+  resolution: G-010 owns initial text and yaml formatter backends and the formatter
+    compatibility rules for clipboard payloads, including CLIPBOARD_FORMAT_MISMATCH
+    and CLIPBOARD_SOURCE_STALE behavior.
 workflow_clipboard:
   purpose: Runtime workflow property for copying YAML nodes, YAML blocks, and text
     fragments between checked editing steps without adding clipboard data to plan_task_v1
