@@ -133,12 +133,15 @@ stable_id_contract:
     or tree rebuilds.
   storage: stable_id is stored in TreeNodeMetadata.stable_id and persisted in sidecar
     metadata_map.
-  survival_across_mutations: 'After any mutation _build_tree_index is called with
-    previous_metadata_map. For each rebuilt node: stable_id is copied from previous_metadata_map
-    by exact_key (start_line, start_col, end_line, end_col, type) matching. For nodes
-    that moved position, previous_obj_to_id (id(libcst_object) -> node_id) is used
-    as secondary lookup. New nodes get stable_id = node_id (fresh UUID). No inline
-    comment transport.'
+  survival_across_mutations: 'Primary: snapshot previous_metadata_map before mutation;
+    after mutation call _build_tree_index with previous_metadata_map + previous_obj_to_id;
+    stable_id restored via exact_key (start_line, start_col, end_line, end_col, type)
+    matching. Supplementary for structural mutations (insert/delete/move) where nodes
+    shift position: before mutation embed stable_id as ''# @node-id: <uuid>'' leading_lines
+    comment in FunctionDef/ClassDef via set_stable_id(); after mutation recover via
+    get_stable_id(); strip all @node-id comments via strip_inline_node_id_lines_from_source(module.code)
+    before final index build. New nodes: stable_id = node_id (fresh UUID). Comments
+    never reach render() output or disk.'
 sidecar_contract:
   path_pattern: '{py_dir}/.cst/{py_stem}.tree'
   purpose: Persist node identity (stable_id, metadata_map) and checksums so the tree
