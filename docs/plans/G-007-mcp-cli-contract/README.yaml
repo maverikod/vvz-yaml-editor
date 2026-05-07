@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-007
 step_name: transaction_writer
 title: Atomic transaction writer and checked write orchestration subsystem
@@ -13,18 +13,18 @@ why_this_block_exists: 'Lower-level writer tasks must understand the entire pers
   failed operations leave files unchanged, and successful writes must report hashes,
   backups, changed paths, and validation results.'
 owned_code_paths:
-- yaml_editor/transaction_writer/
+- ai_editor/transaction_writer/
 - tests/transaction_writer/
 owned_docs_paths:
 - docs/transaction_writer.md
 forbidden_code_paths:
-- yaml_editor/contracts/
-- yaml_editor/document_io/
-- yaml_editor/path_language/
-- yaml_editor/reader/
-- yaml_editor/mutations/
-- yaml_editor/validation/
-- yaml_editor/interfaces/
+- ai_editor/contracts/
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/interfaces/
 - .venv
 - venv
 - site-packages
@@ -157,3 +157,19 @@ branch_self_containment_policy:
 - Maximizing tactical steps means maximizing independent steps inside G-007 only;
   no T step under G-007 may include work from parser internals, mutation internals,
   validation internals, interfaces, CLI, MCP wrappers, or unrelated branches.
+persistence_safety_policy:
+  detection: check git rev-parse --is-inside-work-tree in file directory at write
+    time
+  git_available:
+    before_write: create git commit with pre-write snapshot; tag optional per caller
+      policy
+    on_failure: git state is not rolled back by transaction_writer; caller (e.g. G-014)
+      owns rollback via git checkout
+    rationale: git is the canonical versioning mechanism; backups are a fallback only
+  git_not_available:
+    before_write: create file backup per existing backup_stage policy
+    on_failure: restore from backup
+    rationale: backup is the fallback when git is not available
+  invariant: Exactly one safety mechanism is active per write. Transaction writer
+    never runs a real write without either a git snapshot or a file backup preceding
+    it.
