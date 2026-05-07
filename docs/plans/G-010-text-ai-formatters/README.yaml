@@ -236,7 +236,7 @@ formatter_contract_extensions:
     must_raise_on:
     - structurally invalid or corrupt content that cannot produce a valid document
       model
-    - YAML parse failure for ai formatter
+    - YAML parse failure for yaml formatter
     - LibCST parse failure for cst formatter (see G-013)
     exception_type: raises FORMAT_VALIDATION_FAILED or formatter-specific error (YAML_PARSE_FAILED,
       CST_PARSE_FAILED)
