@@ -243,9 +243,12 @@ model_assignment_spec:
     re-parse via CSTFormatter and rebuild sidecar; if parse error skip and record
     in skipped_files. Use CST structural node matching not text search. dry_run=True
     discovers references and builds preview RenameJobResult without writing files,
-    creating git tags, or creating backups. Do not implement editor core, formatter
-    internals, search layer, document_io, path_language, validation, transaction_writer,
-    interfaces, CLI, MCP wrappers, .venv, venv, or site-packages.'
+    creating git tags, or creating backups. Command class RenameCommand must follow
+    docs/metadatastd.md: separate rename_command.py, rename_schema.py, rename_metadata.py;
+    registered via ai_editor/hooks_register.py with reg.register(RenameCommand, ''custom'').
+    Do not implement editor core, formatter internals, search layer, document_io,
+    path_language, validation, transaction_writer, interfaces, CLI, MCP wrappers,
+    .venv, venv, or site-packages.'
 observations_template:
 - command: ''
   expected: ''
