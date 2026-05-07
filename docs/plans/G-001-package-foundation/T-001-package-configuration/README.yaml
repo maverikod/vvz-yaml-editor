@@ -379,7 +379,8 @@ verification:
   - build-system.build-backend is hatchling.build.
   - 'Required runtime dependencies are in project.dependencies: ruamel.yaml>=0.18,
     jsonschema>=4, jsonpath-ng>=1.6, libcst>=1.1, lark>=1.1.'
-  - Required runtime dependencies are in project.dependencies.
+  - libcst>=1.1 and lark>=1.1 are in project.dependencies as mandatory runtime dependencies
+    for the built-in CSTFormatter (G-013).
   - jsonpath-ng is in project.dependencies as a mandatory runtime dependency, not
     in project.optional-dependencies.experimental.
   - Metadata-only tests do not require README.md, package root, or py.typed to exist.
