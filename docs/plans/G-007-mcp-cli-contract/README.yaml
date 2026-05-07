@@ -1,0 +1,145 @@
+format: global_package_step_v2
+plan_id: yaml_editor_pip_package_for_mcp
+step_id: G-007
+step_name: transaction_writer
+title: Atomic transaction writer and checked write orchestration subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+global_intent: Own the checked write transaction subsystem. This layer orchestrates
+  document_io, mutations, and validation to implement safe persistence, but it does
+  not own their internal logic, CLI commands, or MCP server wrappers.
+why_this_block_exists: 'Lower-level writer tasks must understand the entire persistence
+  task from this global block: all writes are transactions, every write is checked,
+  failed operations leave files unchanged, and successful writes must report hashes,
+  backups, changed paths, and validation results.'
+owned_code_paths:
+- yaml_editor/transaction_writer/
+- tests/transaction_writer/
+owned_docs_paths:
+- docs/transaction_writer.md
+forbidden_code_paths:
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - G-002-document-io
+  - G-005-mutation-operations
+  - G-006-validation-rules
+  may_be_used_by:
+  - G-008-interfaces-and-release
+public_contracts_provided:
+- yaml_write_checked(file_path, operations, validate_schema, dry_run)
+- CheckedWriteRequest
+- CheckedWriteResult
+- BackupRecord
+- FileHashPair
+core_responsibilities:
+- Implement read -> parse -> patch in memory -> validate -> render -> validate rendered
+  YAML -> write.
+- Provide dry_run behavior that never changes file bytes or creates backups.
+- Create backups before real writes.
+- Write atomically and verify written bytes.
+- Return old_hash, new_hash, backup_uuid, changed_paths, validation_result, and diagnostics.
+- Ensure failed validation, mutation, render, backup, or write stages return success=false.
+write_pipeline:
+- read_file_bytes
+- compute_old_hash
+- load_document_with_document_io
+- apply_operations_with_mutations
+- validate_document_with_validation
+- render_with_document_io
+- validate_rendered_output_with_validation
+- create_backup_if_not_dry_run
+- atomic_replace_if_not_dry_run
+- reread_and_compute_new_hash
+- return_checked_write_result
+safety_rules:
+- dry_run=true must never write, backup, or change file bytes.
+- Mutation failure must prevent write.
+- Validation failure must prevent write.
+- Render failure must prevent write.
+- Backup failure must prevent write.
+- Atomic replace failure must return success=false.
+- success=true is allowed only after all requested stages complete.
+subsystem_independence_rules:
+- This subsystem must not implement YAML parser configuration; use document_io.
+- This subsystem must not implement mutation internals; use mutations.
+- This subsystem must not implement schema or semantic validation internals; use validation.
+- This subsystem must not implement CLI or MCP wrappers; interfaces layer owns those.
+- This subsystem may orchestrate other subsystems only through public contracts.
+implementation_outline:
+- Create transaction_writer package with request, backup, hashing, atomic_write, and
+  orchestration modules.
+- Add tests for dry-run no-op behavior, successful writes, failed validation, failed
+  mutation, backup failure, and read-back verification.
+- Ensure checked write result is JSON-serializable through G-001 contracts.
+verification:
+  commands:
+  - python -m pytest tests/transaction_writer
+  expected:
+  - dry_run=true reports would_change without byte changes.
+  - successful write changes only expected paths.
+  - failed validation leaves original file byte-for-byte unchanged.
+  - failed mutation leaves original file byte-for-byte unchanged.
+  - separate read after successful write confirms expected document state.
+acceptance_criteria:
+- transaction_writer is the only normal persistence subsystem.
+- It contains orchestration, not duplicated parser, mutation, or validation internals.
+- Every write result is truthful and machine-readable.
+- Lower-level writer tasks can be decomposed without editing other subsystem directories.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only the checked transaction writer. Do not edit parser,
+    path, reader, mutation, validation, interface, .venv, venv, or site-packages files.
+    All behavior must be verified by actual write attempts and separate read-back
+    checks.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+tactical_decomposition:
+- tactical_step_id: T-001
+  tactical_step_name: transaction_writer_package_boundary
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-001-transaction-writer-package-boundary/README.yaml
+  purpose: Define transaction writer package boundary and public surface.
+- tactical_step_id: T-002
+  tactical_step_name: checked_write_contracts
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-002-checked-write-contracts/README.yaml
+  purpose: Define checked write request, result, backup, hash, and stage diagnostics
+    contracts.
+- tactical_step_id: T-003
+  tactical_step_name: read_and_hashing_stage
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-003-read-and-hashing-stage/README.yaml
+  purpose: Own file byte read and content hash calculation policy.
+- tactical_step_id: T-004
+  tactical_step_name: dry_run_semantics
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-004-dry-run-semantics/README.yaml
+  purpose: Own dry-run no-write and no-backup semantics.
+- tactical_step_id: T-005
+  tactical_step_name: backup_stage
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-005-backup-stage/README.yaml
+  purpose: Own backup creation and backup failure policy for real writes.
+- tactical_step_id: T-006
+  tactical_step_name: atomic_replace_and_readback
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-006-atomic-replace-and-readback/README.yaml
+  purpose: Own atomic byte replace and post-write read-back verification.
+- tactical_step_id: T-007
+  tactical_step_name: checked_write_orchestration
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-007-checked-write-orchestration/README.yaml
+  purpose: Own yaml_write_checked orchestration and truthful stage failure semantics.
+- tactical_step_id: T-008
+  tactical_step_name: transaction_writer_docs_and_integration_verification
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-008-transaction-writer-docs-and-integration-verification/README.yaml
+  purpose: Own transaction writer documentation and integration verification planning
+    without production edits.
