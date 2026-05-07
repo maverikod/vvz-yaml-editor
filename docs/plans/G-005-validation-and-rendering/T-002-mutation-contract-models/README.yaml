@@ -1,0 +1,159 @@
+format: tactical_step_v1
+parent_step_id: G-005
+parent_step_name: mutation_operations
+tactical_step_id: T-002
+tactical_step_name: mutation_contract_models
+title: Mutation operation and result contract models
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-005-validation-and-rendering/README.yaml
+intent: Own the typed request, result, error, diagnostics, and changed-path contracts
+  for all pure in-memory mutation operations. This tactical step defines shapes shared
+  by set, replace_block, append, delete, move, batch rollback, and changed path aggregation,
+  but does not apply mutations itself.
+self_contained_context:
+  global_goal: G-005 owns structural in-memory mutation operations over already loaded
+    YAML document objects.
+  required_operations:
+  - set replaces a scalar or structured value at a structural path.
+  - replace_block replaces a complete mapping or sequence block at a structural path.
+  - append appends a value to a sequence and can dedupe.
+  - delete removes a mapping key or sequence item.
+  - move reorders an item inside a sequence.
+  contract_requirements:
+  - Contracts must be usable by future MCP-facing code as JSON-serializable response
+    payloads.
+  - Contracts must report success or typed failure truthfully.
+  - Contracts must carry normalized structural changed_paths, never line ranges.
+  - Contracts must be independent from file loading, rendering, validation, writing,
+    CLI, and MCP layers.
+  required_error_topics:
+  - path parse failure propagated from path_language
+  - path not found
+  - path not unique
+  - target type mismatch
+  - invalid operation payload
+  - changed path mismatch
+  - batch rollback after operation failure
+owned_code_paths:
+- yaml_editor/mutations/contracts.py
+owned_test_paths:
+- tests/mutations/test_mutation_contracts.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/mutations/replace_ops.py
+- yaml_editor/mutations/append_ops.py
+- yaml_editor/mutations/delete_ops.py
+- yaml_editor/mutations/move_ops.py
+- yaml_editor/mutations/engine.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/validation/
+- tests/transaction_writer/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 in-memory YAML document model concepts
+  - G-003 normalized structural path concepts
+  may_be_used_by:
+  - all later G-005 operation tactical steps
+  - G-007 checked write pipeline
+public_contracts_provided:
+- MutationOperation
+- MutationResult
+- MutationBatchResult
+- mutation error or diagnostic payload shape
+- supported operation name set
+contract_policy:
+  operation_names:
+  - set
+  - replace_block
+  - append
+  - delete
+  - move
+  operation_payload_fields:
+  - op
+  - path
+  - value
+  - dedupe
+  - from_path
+  - to_index
+  result_fields:
+  - success
+  - operation
+  - changed_paths
+  - error_code
+  - message
+  - diagnostics
+  batch_result_fields:
+  - success
+  - results
+  - changed_paths
+  - failed_operation_index
+  - rolled_back
+  - error_code
+  - message
+responsibilities:
+- Define mutation request contracts for all operations listed by G-005.
+- Define per-operation and batch result contracts.
+- Define typed error and diagnostics fields suitable for later MCP serialization.
+- Define changed_paths as normalized structural YAML paths.
+implementation_notes:
+- This step must not resolve paths or mutate document objects.
+- This step must not import implementation modules for set, append, delete, move,
+  or engine dispatch.
+- Contract tests should verify plain-data or JSON-compatible conversion without depending
+  on production operation behavior.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/mutations/test_mutation_contracts.py
+  expected:
+  - All G-005 operation names are represented.
+  - Operation and result contracts expose the fields required by parent G-005.
+  - Contract instances or payloads can be converted to JSON-compatible data.
+  - No file I/O, validation, rendering, writer, CLI, MCP, or operation implementation
+    import is required.
+acceptance_criteria:
+- Contracts are sufficient for set, replace_block, append, delete, move, batch rollback,
+  and changed path aggregation.
+- Typed errors can be returned without leaking internal exceptions.
+- No mutation algorithm is implemented in this step.
+- No forbidden path is edited.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/mutations/contracts.py and tests/mutations/test_mutation_contracts.py.
+    Define typed, JSON-serializable mutation operation, result, batch result, and
+    diagnostics contracts for the G-005 in-memory mutation subsystem. Do not apply
+    mutations, resolve paths, read files, validate schemas, render YAML, write files,
+    create backups, implement CLI or MCP wrappers, or edit sibling-owned operation
+    modules. Do not edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-005/T-002
+  problem: Tactical README did not exist for mutation contract models.
+  action: Created a self-contained tactical README constrained to one parent global
+    step and planning-only deliverables.
+  status: fixed
