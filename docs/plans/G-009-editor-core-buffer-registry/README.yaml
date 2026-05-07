@@ -72,6 +72,8 @@ abstract_buffer_contract:
     formatter.
   - Own pre-save validation by calling formatter.validate_document(document) before
     render and write.
+  - 'Own file edit lock: on open acquire editing_pid in files table; on close release
+    it. Return BUFFER_LOCKED if another live process holds the lock.'
   - Delegate parse/render to the buffer formatter.
   - Delegate address interpretation and fragment editing to the buffer formatter.
   - Delegate search/query behavior to AbstractSearch.
