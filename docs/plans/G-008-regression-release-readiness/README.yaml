@@ -290,10 +290,15 @@ mcp_proxy_adapter_integration:
     write settings to config root if they are server-wide. SimpleConfig.load() reads
     the full JSON; ai_editor reads its own section from config_data.
   hooks_registration: 'ai_editor registers commands in ai_editor/hooks_register.py
-    (one file, split to part1/part2 if many commands). Pattern: def register_ai_editor_commands(reg):
-    reg.register(BufferOpenCommand, ''custom''); reg.register(BufferCloseCommand,
-    ''custom''); ... In code_analysis/hooks.py (or equivalent adapter entry point):
-    from ai_editor.hooks_register import register_ai_editor_commands; hooks.register_custom_commands_hook(register_ai_editor_commands)'
+    (or split to part1/part2 if many commands). Pattern: ''def register_ai_editor_commands(reg):
+    from ai_editor.commands.buf_open_command import BufOpenCommand; reg.register(BufOpenCommand,
+    "custom"); ...'' Then in the adapter entry point (e.g. adapter main.py or hooks_entry.py):
+    ''from mcp_proxy_adapter.commands.hooks import register_custom_commands_hook;
+    from ai_editor.hooks_register import register_ai_editor_commands; register_custom_commands_hook(register_ai_editor_commands)''.
+    For queue commands with use_queue=True: also call register_auto_import_module(''ai_editor.commands.<module>'')
+    for spawn-mode child processes. The register_custom_commands_hook function stores
+    module path and function name so hooks can be reconstructed in child processes
+    without pickle.'
   metadata_standard: 'Every command must follow docs/metadatastd.md. Required: name,
     version, description, category, author, email, detailed_description, parameters,
     return_value, usage_examples, error_cases, best_practices. Schema (get_schema)
