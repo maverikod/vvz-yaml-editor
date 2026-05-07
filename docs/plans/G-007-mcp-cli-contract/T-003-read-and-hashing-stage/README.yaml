@@ -1,0 +1,96 @@
+format: tactical_step_v1
+parent_step_id: G-007
+parent_step_name: transaction_writer
+tactical_step_id: T-003
+tactical_step_name: read_and_hashing_stage
+title: Checked writer read and file hashing stage
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-007-mcp-cli-contract/README.yaml
+intent: Own the read-file-bytes and hash calculation stage used by checked write orchestration.
+  This tactical step defines how the writer captures old_hash before mutation and
+  new_hash after write verification, without owning document parsing, mutation, validation,
+  rendering, backup, atomic replace, CLI, or MCP wrappers.
+self_contained_context:
+  global_goal: G-007 owns checked write transaction orchestration and must report
+    old_hash and new_hash truthfully.
+  pipeline_scope:
+  - read_file_bytes
+  - compute_old_hash
+  - reread_and_compute_new_hash after write verification
+  boundaries:
+  - Do not parse YAML documents.
+  - Do not apply mutations.
+  - Do not validate documents.
+  - Do not render YAML.
+  - Do not create backups or replace files.
+owned_code_paths:
+- yaml_editor/transaction_writer/hashing.py
+owned_test_paths:
+- tests/transaction_writer/test_read_and_hashing_stage.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/document_io/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/backup.py
+- yaml_editor/transaction_writer/atomic_write.py
+- yaml_editor/transaction_writer/orchestrator.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-007/T-002 checked write contracts
+  may_be_used_by:
+  - G-007 backup and atomic write stages
+  - G-007 orchestration
+public_contracts_provided:
+- read_file_bytes(file_path)
+- compute_file_hash(bytes)
+- FileHashPair population policy
+hashing_policy:
+  old_hash: computed from bytes read before parsing or mutation
+  new_hash: computed from bytes reread after successful atomic replace
+  dry_run: dry_run paths may compute old_hash but must not compute new_hash from a
+    write that did not happen
+responsibilities:
+- Read file bytes for the transaction pipeline.
+- Compute deterministic content hashes.
+- Return typed read/hash diagnostics without claiming write success.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/transaction_writer/test_read_and_hashing_stage.py
+  expected:
+  - old_hash is computed from initial bytes.
+  - new_hash is computed only from reread bytes after a write verification stage.
+  - Read failures are represented as success=false diagnostics.
+  - No parser, mutation, validation, render, backup, atomic write, CLI, or MCP behavior
+    is introduced.
+acceptance_criteria:
+- Hashing stage is independent from parsing, patching, validation, rendering, and
+  writing.
+- Hash results are compatible with CheckedWriteResult contracts.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/transaction_writer/hashing.py and tests/transaction_writer/test_read_and_hashing_stage.py.
+    Implement read-byte and hash helpers for checked writer orchestration. Do not
+    implement parsing, mutation, validation, rendering, backup, atomic replace, orchestration,
+    CLI, or MCP wrappers. Do not edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-007/T-003
+  problem: Tactical README did not exist for read and hashing stage.
+  action: Created a self-contained tactical README constrained to G-007 hashing responsibilities.
+  status: fixed
