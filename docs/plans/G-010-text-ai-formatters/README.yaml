@@ -42,6 +42,7 @@ allowed_dependencies:
   - G-009 editor core and buffer registry
   - G-011 universal search layer
   - G-008 public interfaces and CLI adapter
+  - G-013 cst formatter (depends on AbstractFormatter contract defined here)
 public_contracts_provided:
 - AbstractFormatter
 - text formatter backend
