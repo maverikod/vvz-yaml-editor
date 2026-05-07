@@ -194,8 +194,7 @@ project_metadata:
   - jsonschema>=4
   - jsonpath-ng>=1.6
   optional_dependencies:
-    experimental:
-    - jsonpath-ng>=1.6
+    experimental: []
     dev:
     - pytest>=8
     - pytest-cov>=5
