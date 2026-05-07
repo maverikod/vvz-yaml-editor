@@ -1,0 +1,103 @@
+format: tactical_step_v1
+parent_step_id: G-007
+parent_step_name: transaction_writer
+tactical_step_id: T-002
+tactical_step_name: checked_write_contracts
+title: Checked write request, result, backup, and hash contracts
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-007-mcp-cli-contract/README.yaml
+intent: Own the data contracts for checked write orchestration. This tactical step
+  defines CheckedWriteRequest, CheckedWriteResult, BackupRecord, FileHashPair, stage
+  diagnostics, and truthful success/failure payloads without reading files, applying
+  mutations, validating documents, rendering YAML, writing files, or exposing CLI/MCP
+  wrappers.
+self_contained_context:
+  global_goal: G-007 owns checked write transaction orchestration and must return
+    old_hash, new_hash, backup_uuid, changed_paths, validation_result, and diagnostics.
+  required_public_contracts:
+  - CheckedWriteRequest
+  - CheckedWriteResult
+  - BackupRecord
+  - FileHashPair
+  result_truthfulness:
+  - success=true is allowed only after all requested stages complete.
+  - mutation failure must return success=false.
+  - validation failure must return success=false.
+  - render failure must return success=false.
+  - backup failure must return success=false.
+  - atomic replace failure must return success=false.
+  boundaries:
+  - This step defines shapes only.
+  - Do not implement hashing, backups, atomic writes, or orchestration algorithms.
+owned_code_paths:
+- yaml_editor/transaction_writer/contracts.py
+owned_test_paths:
+- tests/transaction_writer/test_checked_write_contracts.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/hashing.py
+- yaml_editor/transaction_writer/backup.py
+- yaml_editor/transaction_writer/atomic_write.py
+- yaml_editor/transaction_writer/orchestrator.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public contracts and error envelope concepts
+  may_be_used_by:
+  - all later G-007 writer tactical steps
+  - G-008 interfaces and release
+public_contracts_provided:
+- CheckedWriteRequest
+- CheckedWriteResult
+- BackupRecord
+- FileHashPair
+- writer stage diagnostics contract
+responsibilities:
+- Define request fields for file_path, operations, validate_schema, and dry_run.
+- Define result fields for success, would_change, old_hash, new_hash, backup_uuid,
+  changed_paths, validation_result, render_preview, diagnostics, and error_code.
+- Define backup and hash payload contracts.
+- Keep contracts JSON-compatible for downstream interface exposure.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/transaction_writer/test_checked_write_contracts.py
+  expected:
+  - Request and result contracts represent dry-run and real-write outcomes.
+  - Failure stages can be represented with success=false and diagnostics.
+  - Contracts are JSON-compatible.
+  - No file I/O, mutation, validation, render, write, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- Contracts cover all parent G-007 public payloads.
+- Contracts encode truthful failure semantics.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/transaction_writer/contracts.py and tests/transaction_writer/test_checked_write_contracts.py.
+    Define checked writer request, result, backup, hash, and stage diagnostics contracts.
+    Do not implement hashing, backups, atomic writes, orchestration, parser, mutations,
+    validation, rendering, CLI, or MCP wrappers. Do not edit .venv, venv, site-packages,
+    or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-007/T-002
+  problem: Tactical README did not exist for checked write contracts.
+  action: Created a self-contained tactical README constrained to G-007 writer contracts.
+  status: fixed
