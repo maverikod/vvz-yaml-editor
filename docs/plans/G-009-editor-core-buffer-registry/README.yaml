@@ -184,6 +184,14 @@ verification:
     or key uses defaults.
   - 0 value for threshold disables size-based fallback; structural formatter always
     attempted.
+  - 'open() checks files.editing_pid: if live process holds lock -> return BUFFER_LOCKED
+    error, no buffer created.'
+  - 'open() acquires lock atomically: UPDATE files SET editing_pid = os.getpid() WHERE
+    (editing_pid IS NULL OR editing_pid = <dead_pid>). 0 affected rows -> BUFFER_LOCKED.'
+  - 'close() releases lock: UPDATE files SET editing_pid = NULL WHERE editing_pid
+    = os.getpid(). Called in finally block.'
+  - save/save_as verify lock still held (editing_pid = os.getpid()) before writing.
+    Mismatch -> BUFFER_STALE.
 acceptance_criteria:
 - AbstractBuffer owns file/buffer lifecycle and does not implement formatter semantics.
 - Editor core has no YAML-specific path, text range, or search query logic.
