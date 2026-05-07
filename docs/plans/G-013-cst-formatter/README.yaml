@@ -123,9 +123,14 @@ stable_id_contract:
   no_inline_markers: The @node-id leading_lines comment mechanism (node_stable_id.py
     set_stable_id/get_stable_id) is NOT used as mutation transport. It is legacy.
     Do not call set_stable_id or get_stable_id as part of mutation flow.
-  node_stable_id_py_usage: node_stable_id.py is kept only for strip_inline_node_id_lines_from_source
-    — a defensive read-time cleaner for files that may contain legacy @node-id comments.
-    It does NOT write any comments to source.
+  node_stable_id_py_usage: 'node_stable_id.py provides: (1) set_stable_id(node, stable_id)
+    — embed stable_id as leading_lines comment in FunctionDef/ClassDef before structural
+    mutation; (2) get_stable_id(node) — recover stable_id from leading_lines after
+    structural mutation; (3) strip_inline_node_id_lines_from_source(source) — remove
+    all @node-id comment lines from source after recovery. These are used ONLY for
+    structural mutations (insert/delete/move). NOT used for replace/replace_docstring.
+    NOT used during parse (only strip is used defensively at load time for legacy
+    files).'
   resolution: find_by_stable_id(stable_id) -> TreeNodeMetadata -> node_id -> libcst
     object
   rule: stable_id is a field in TreeNodeMetadata. Assigned once at first _build_tree_index
