@@ -619,29 +619,34 @@ model_assignment_spec:
   - Do not return completed or success when validation failed.
 regression_commands:
   local:
-  - python -m pytest
+  - python -m pytest tests/editor_core tests/formatters tests/search tests/interfaces
+    tests/integration
   - python -m ruff check .
   - python -m mypy yaml_editor
   - python -m build
   - python -m twine check dist/*
   mcp_level:
   - Import yaml_editor.api in the target MCP server.
-  - Register wrapper commands for yaml_load, yaml_get, yaml_write_checked, yaml_validate_plan_task,
-    yaml_clipboard_copy, yaml_clipboard_get, yaml_clipboard_list, yaml_clipboard_clear,
-    and yaml_clipboard_paste.
-  - Execute yaml_load against a real plan YAML fixture.
-  - Execute yaml_write_checked with dry_run=true and verify no file change.
-  - Execute yaml_clipboard_copy against an existing YAML path and verify the item
-    through yaml_clipboard_get.
-  - Execute yaml_clipboard_list and verify the copied item appears without reading
-    or mutating a plan YAML document.
-  - Execute yaml_clipboard_paste with dry_run=true and verify no file change.
-  - Execute yaml_clipboard_paste with dry_run=false and verify the result through
-    a separate yaml_get or yaml_load call.
-  - Execute yaml_clipboard_clear and verify yaml_clipboard_get returns CLIPBOARD_ITEM_NOT_FOUND
-    for the cleared item.
-  - Execute yaml_write_checked with dry_run=false and verify the result through a
-    separate yaml_get or yaml_load call.
+  - Register wrapper commands for open, new, save, save_as, close, copy, cut, paste,
+    find, find_one, list_units, and validate.
+  - Open a real YAML plan fixture with formatter=yaml and verify buffer_id, formatter,
+    dirty=false, and revision.
+  - Open a real text fixture with formatter=text and verify buffer_id, formatter,
+    dirty=false, and revision.
+  - Execute find_one against the YAML buffer and verify it returns a formatter-provided
+    address.
+  - Execute copy with source BufferAddress from the YAML buffer and verify clipboard
+    item records source_formatter=yaml and source_address.
+  - Execute paste into a YAML target BufferAddress and verify target buffer becomes
+    dirty without writing the file.
+  - Execute save on the dirty YAML buffer and verify the result through a separate
+    open/find_one or formatter read-back flow.
+  - Execute copy from YAML and paste to text only with explicit rendered-text mode;
+    verify incompatible paste returns CLIPBOARD_FORMAT_MISMATCH.
+  - Execute find_one with no match and multiple matches; verify SEARCH_NO_MATCH and
+    SEARCH_NOT_UNIQUE.
+  - Execute legacy yaml_get/yaml_write_checked compatibility wrappers only as wrappers
+    over open/search/formatter/save, not as independent architecture.
 observations_template:
 - command: ''
   expected: ''
