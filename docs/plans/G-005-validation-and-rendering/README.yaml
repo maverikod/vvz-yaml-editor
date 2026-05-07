@@ -1,0 +1,134 @@
+format: global_package_step_v2
+plan_id: yaml_editor_pip_package_for_mcp
+step_id: G-005
+step_name: mutation_operations
+title: In-memory mutation operations subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+global_intent: Own the pure in-memory YAML mutation subsystem. This block defines
+  structural edit operations over already-loaded YAML documents and returns changed
+  paths and diagnostics without reading files, validating schemas, rendering final
+  output, or writing to disk.
+why_this_block_exists: 'Lower-level mutation tasks must understand the complete mutation
+  responsibility: apply deterministic structural operations to a YamlDocument through
+  path_language and report exact changes. This must stay separate from validation
+  and transaction writing.'
+owned_code_paths:
+- yaml_editor/mutations/
+- tests/mutations/
+owned_docs_paths:
+- docs/mutation_operations.md
+forbidden_code_paths:
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - G-002-document-io
+  - G-003-path-language
+  may_be_used_by:
+  - G-007-transaction-writer
+public_contracts_provided:
+- MutationOperation
+- MutationBatchResult
+- apply_mutation(document, operation)
+- apply_mutation_batch(document, operations)
+- collect_changed_paths(operation_result)
+core_responsibilities:
+- Implement set, replace_block, append, delete, and move operations.
+- Apply operations only to in-memory YAML document objects.
+- Use path_language to resolve mutation targets and parents.
+- Track changed_paths using normalized structural paths.
+- Provide all-or-nothing in-memory batch mutation behavior.
+mutation_operations:
+- op: set
+  purpose: Replace scalar or structured value at a structural path.
+- op: replace_block
+  purpose: Replace an entire mapping or sequence block.
+- op: append
+  purpose: Append a value to a sequence, optionally with dedupe.
+- op: delete
+  purpose: Delete a mapping key or sequence item.
+- op: move
+  purpose: Move a sequence item to a new index.
+subsystem_independence_rules:
+- This subsystem must not read files from disk.
+- This subsystem must not render YAML text for persistence.
+- This subsystem must not validate plan_task_v1 schema or semantics.
+- This subsystem must not create backups or perform atomic writes.
+- This subsystem must not expose CLI or MCP commands.
+- Transaction writer must call this subsystem instead of reimplementing mutations.
+implementation_outline:
+- Define mutation operation DTOs or typed dict contracts inside mutations package.
+- Implement single-operation mutation functions.
+- Implement batch application with rollback on failure.
+- Implement dedupe semantics for append.
+- Add tests for exact changed paths and no side effects outside selected nodes.
+verification:
+  commands:
+  - python -m pytest tests/mutations
+  expected:
+  - set modifies only the selected node.
+  - append with dedupe=true is idempotent.
+  - delete removes only the selected key or item.
+  - move changes only sequence ordering.
+  - failed batch leaves original in-memory document unchanged.
+acceptance_criteria:
+- Mutation code is independent from reader, validation, writer, and interfaces.
+- Every operation reports exact changed_paths.
+- Invalid target types return typed errors.
+- Lower-level mutation tasks can be decomposed without touching other subsystems.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only pure in-memory mutation operations. Do not read or write
+    files, validate schemas, implement CLI/MCP wrappers, or modify other subsystem
+    directories. All cross-subsystem usage must go through document_io and path_language
+    public contracts.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+tactical_decomposition:
+- tactical_step_id: T-001
+  tactical_step_name: mutations_package_boundary
+  readme_path: docs/plans/G-005-validation-and-rendering/T-001-mutations-package-boundary/README.yaml
+  purpose: Define the mutations package boundary and public surface.
+- tactical_step_id: T-002
+  tactical_step_name: mutation_contract_models
+  readme_path: docs/plans/G-005-validation-and-rendering/T-002-mutation-contract-models/README.yaml
+  purpose: Define mutation operation, result, diagnostics, and changed-path contracts.
+- tactical_step_id: T-003
+  tactical_step_name: set_and_replace_block_operations
+  readme_path: docs/plans/G-005-validation-and-rendering/T-003-set-and-replace-block-operations/README.yaml
+  purpose: Own set and replace_block replacement-style in-memory mutation behavior.
+- tactical_step_id: T-004
+  tactical_step_name: append_operation
+  readme_path: docs/plans/G-005-validation-and-rendering/T-004-append-operation/README.yaml
+  purpose: Own append and dedupe sequence mutation behavior.
+- tactical_step_id: T-005
+  tactical_step_name: delete_operation
+  readme_path: docs/plans/G-005-validation-and-rendering/T-005-delete-operation/README.yaml
+  purpose: Own mapping-key and sequence-item delete behavior.
+- tactical_step_id: T-006
+  tactical_step_name: move_operation
+  readme_path: docs/plans/G-005-validation-and-rendering/T-006-move-operation/README.yaml
+  purpose: Own sequence item move/reordering behavior.
+- tactical_step_id: T-007
+  tactical_step_name: dispatch_batch_rollback
+  readme_path: docs/plans/G-005-validation-and-rendering/T-007-dispatch-batch-rollback/README.yaml
+  purpose: Own operation dispatch, batch rollback, and changed path aggregation.
+- tactical_step_id: T-008
+  tactical_step_name: mutation_docs_and_integration_verification
+  readme_path: docs/plans/G-005-validation-and-rendering/T-008-mutation-docs-and-integration-verification/README.yaml
+  purpose: Own mutation documentation and integration verification planning without
+    production edits.
