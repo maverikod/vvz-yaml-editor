@@ -113,10 +113,13 @@ model_assignment_spec:
     This step is about package identity and import boundaries only, not YAML editor
     behavior.
 observations_template:
-- command: ''
-  expected: ''
-  actual: ''
+- actual: ''
+  command: ''
   error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
   status: ''
 quality_loop_observations:
 - iteration: 1
