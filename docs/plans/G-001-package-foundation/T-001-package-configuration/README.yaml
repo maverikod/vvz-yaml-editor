@@ -241,6 +241,7 @@ expected_pyproject_shape:
     dependencies:
     - ruamel.yaml>=0.18
     - jsonschema>=4
+    - jsonpath-ng>=1.6
   project.optional-dependencies:
     experimental:
     - jsonpath-ng>=1.6
