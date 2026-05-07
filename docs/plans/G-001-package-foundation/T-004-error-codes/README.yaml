@@ -1,0 +1,186 @@
+format: tactical_step_v1
+parent_step_id: G-001
+parent_step_name: package_contracts_and_distribution
+tactical_step_id: T-004
+tactical_step_name: error_codes
+title: Shared ErrorCode contract
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-001-package-foundation/README.yaml
+intent: Define the canonical error code namespace used by all future subsystems so
+  failures are truthful, stable, machine-readable, and safe for MCP callers.
+owned_code_paths:
+- yaml_editor/contracts/errors.py
+owned_test_paths:
+- tests/contracts/test_error_codes.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- yaml_editor/__init__.py
+- yaml_editor/contracts/result.py
+- yaml_editor/contracts/diagnostics.py
+- yaml_editor/contracts/validation.py
+- yaml_editor/contracts/operations.py
+- yaml_editor/contracts/__init__.py
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on: []
+  may_be_used_by:
+  - T-003-result-envelope
+  - T-008-contracts-public-index
+  - future_subsystems
+public_contracts_provided:
+- ErrorCode
+error_code_contract:
+  representation_policy:
+    allowed_shapes:
+    - string constants grouped in a class or namespace
+    - enum-like class whose values are strings
+    required_value_format: UPPER_SNAKE_CASE strings
+    forbidden_shapes:
+    - integer codes
+    - localized message strings as code values
+    - exception classes as the public error code contract
+    - values that require importing YAML implementation subsystems
+    - values that require importing editor core, formatter, search, clipboard, writer,
+      CLI, MCP wrapper, or foreign formatter implementation modules
+  required_error_codes:
+  - BUFFER_NOT_FOUND
+  - BUFFER_ALREADY_OPEN
+  - BUFFER_HAS_UNSAVED_CHANGES
+  - BUFFER_STALE
+  - BUFFER_INVALID
+  - FORMATTER_NOT_FOUND
+  - FORMATTER_UNSUPPORTED
+  - FORMATTER_COMMAND_DISCOVERY_FAILED
+  - FORMATTER_COMMAND_SCHEMA_INVALID
+  - FORMATTER_COMMAND_UNSUPPORTED
+  - FORMAT_VALIDATION_FAILED
+  - FOREIGN_FORMATTER_FAILED
+  - FOREIGN_FORMATTER_TIMEOUT
+  - FOREIGN_FORMATTER_CONTRACT_VIOLATION
+  - ADDRESS_INVALID
+  - ADDRESS_NOT_FOUND
+  - ADDRESS_NOT_UNIQUE
+  - SEARCH_QUERY_INVALID
+  - SEARCH_NO_MATCH
+  - SEARCH_NOT_UNIQUE
+  - SEARCH_SCOPE_INVALID
+  - FORMATTER_SEARCH_UNSUPPORTED
+  - CLIPBOARD_EMPTY
+  - CLIPBOARD_ITEM_NOT_FOUND
+  - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_FORMAT_MISMATCH
+  - CLIPBOARD_SOURCE_STALE
+  - CLIPBOARD_INVALID_MODE
+  - YAML_PARSE_FAILED
+  - PATH_PARSE_FAILED
+  - PATH_NOT_FOUND
+  - PATH_NOT_UNIQUE
+  - TARGET_TYPE_MISMATCH
+  - VALIDATION_FAILED
+  - SCHEMA_VALIDATION_FAILED
+  - SEMANTIC_VALIDATION_FAILED
+  - RENDER_NOT_DETERMINISTIC
+  - CHANGED_PATH_MISMATCH
+  - BACKUP_FAILED
+  - WRITE_FAILED
+  - SAVE_TARGET_EXISTS
+  - SAVE_TARGET_MISSING
+  invariants:
+  - Every public error code value is a JSON-safe string.
+  - Error code values are unique.
+  - Error code names and values match exactly unless a documented alias policy is
+    added by a later owner.
+  - ErrorCode must not import parser, path, reader, mutation, validation, writer,
+    editor core, formatter, search, clipboard, CLI, MCP wrapper, foreign formatter,
+    or filesystem behavior.
+  - The contract must include the full typed error namespace from docs/tech_spec.md
+    and the root implementation plan, not only the YAML compatibility subset.
+  source_alignment_policy:
+    tech_spec_sources:
+    - docs/tech_spec.md typed error sections
+    - docs/plans/create_pip_package_for_mcp.yaml error_model.typed_errors
+    coverage_rule: required_error_codes is the union of YAML compatibility, editor
+      core, formatter, foreign formatter, search, clipboard, validation, and persistence
+      error codes named by the source chain.
+    alias_policy: No aliases are allowed in T-004; later owners may add alias metadata
+      only without removing canonical values.
+required_error_code_groups:
+  yaml_parse:
+  - YAML_PARSE_FAILED
+  path:
+  - PATH_PARSE_FAILED
+  - PATH_NOT_FOUND
+  - PATH_NOT_UNIQUE
+  - TARGET_TYPE_MISMATCH
+  validation:
+  - VALIDATION_FAILED
+  - SCHEMA_VALIDATION_FAILED
+  - SEMANTIC_VALIDATION_FAILED
+  - RENDER_NOT_DETERMINISTIC
+  - CHANGED_PATH_MISMATCH
+  persistence:
+  - BACKUP_FAILED
+  - WRITE_FAILED
+responsibilities:
+- Define stable error code values referenced by the technical specification.
+- Separate parse, path, validation, render, backup, and write errors.
+- Keep error codes as JSON-safe UPPER_SNAKE_CASE string values.
+- Keep the contract independent from YAML implementation subsystems and recovery behavior.
+implementation_notes:
+- Do not decide recovery behavior in this contract step.
+- Do not implement validators, parser behavior, path resolution, writer behavior,
+  CLI, or MCP wrappers.
+- Prefer names and values that match future MCP responses exactly.
+- Do not introduce error codes that are not required by docs/tech_spec.md unless a
+  later plan step explicitly owns that expansion.
+verification:
+  commands:
+  - python -m pytest tests/contracts/test_error_codes.py
+  expected:
+  - All required error codes exist.
+  - Error code values are unique.
+  - Error code values are JSON-safe UPPER_SNAKE_CASE strings.
+  - ErrorCode imports no forbidden subsystem modules.
+acceptance_criteria:
+- ErrorCode contract covers every typed error listed in docs/tech_spec.md.
+- ErrorCode values are stable, unique, JSON-safe strings.
+- No YAML subsystem code is imported or implemented.
+- Later subsystems can reference error codes without editing this file.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only the shared ErrorCode contract and tests. Do not edit
+    result, diagnostics, validation, operation, public index, package root, or subsystem
+    files. This task defines stable machine-readable names, not behavior, recovery,
+    messages, exceptions, parser logic, validator logic, writer logic, CLI, or MCP
+    wrappers.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-001/T-004
+  problem: ErrorCode representation was under-specified as constants or enum-like
+    values without exact value rules
+  action: added error_code_contract representation_policy, required values, and invariants
+  status: fixed
+- iteration: 1
+  point: G-001/T-004
+  problem: acceptance criterion used ambiguous wording about the technical-spec minimum
+    interface
+  action: replaced it with explicit coverage of every typed error listed in docs/tech_spec.md
+  status: fixed
