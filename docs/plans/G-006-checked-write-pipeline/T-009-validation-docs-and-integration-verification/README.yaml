@@ -1,0 +1,177 @@
+format: tactical_step_v1
+parent_step_id: G-006
+parent_step_name: validation_rules
+tactical_step_id: T-009
+tactical_step_name: validation_docs_and_integration_verification
+title: Validation subsystem documentation and integration verification
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-006-checked-write-pipeline/README.yaml
+intent: Own documentation and integration verification planning for the complete G-006
+  validation subsystem. This tactical step documents validation scope, public contracts,
+  schema checks, semantic checks, rendered YAML checks, determinism checks, diagnostics,
+  and subsystem non-goals, and defines integration verification without modifying
+  production modules owned by earlier tactical steps.
+self_contained_context:
+  global_goal: G-006 owns all validation logic for YAML documents and plan_task_v1
+    semantics.
+  complete_validation_scope:
+  - validation package boundary and public surface
+  - ValidationReport and diagnostics contract
+  - generic parsed YAML document structure validation
+  - JSON Schema loading and schema validation
+  - plan_task_v1 semantic validation rules
+  - rendered YAML parse and structural equivalence validation
+  - render determinism validation
+  - validation orchestration entry points
+  parent_boundaries:
+  - Validation must not parse structural YAML paths.
+  - Validation must not apply mutations.
+  - Validation must not perform backups or atomic writes.
+  - Validation must not implement CLI or MCP wrappers.
+  - Validation documentation must not claim writer behavior is implemented by G-006.
+owned_code_paths: []
+owned_test_paths:
+- tests/validation/test_validation_integration.py
+owned_docs_paths:
+- docs/validation_rules.md
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/validation/__init__.py
+- yaml_editor/validation/package_boundary.py
+- yaml_editor/validation/report.py
+- yaml_editor/validation/document.py
+- yaml_editor/validation/schema.py
+- yaml_editor/validation/semantic.py
+- yaml_editor/validation/render_check.py
+- yaml_editor/validation/determinism.py
+- yaml_editor/validation/orchestrator.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/mutations/
+- tests/transaction_writer/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-006/T-001 validation package boundary
+  - G-006/T-002 validation report contract
+  - G-006/T-003 parsed YAML document validation
+  - G-006/T-004 schema validation
+  - G-006/T-005 plan_task_v1 semantic validation
+  - G-006/T-006 rendered YAML validation
+  - G-006/T-007 render determinism validation
+  - G-006/T-008 validation orchestration
+  may_be_used_by:
+  - G-007 checked write pipeline
+  - G-008 interfaces and release
+public_contracts_provided:
+- docs/validation_rules.md
+- tests/validation/test_validation_integration.py
+documentation_policy:
+  required_sections:
+  - validation subsystem scope and non-goals
+  - public validation contracts
+  - ValidationReport and diagnostics shape
+  - generic YAML document validation
+  - plan_task_v1 JSON Schema validation
+  - plan_task_v1 semantic validation rules
+  - rendered YAML parse and equivalence validation
+  - render determinism validation
+  - orchestration and downstream writer usage
+  - forbidden mutation, writer, CLI, and MCP behavior
+  forbidden_claims:
+  - G-006 applies mutations.
+  - G-006 reads YAML files directly as its primary responsibility.
+  - G-006 performs backups or atomic writes.
+  - G-006 owns CLI or MCP commands.
+  - G-006 owns structural YAML path parsing.
+integration_verification_policy:
+  required_coverage:
+  - package boundary exports from T-001
+  - ValidationReport diagnostics from T-002
+  - generic document validation from T-003
+  - schema validation from T-004
+  - semantic validation from T-005
+  - rendered YAML validation from T-006
+  - render determinism validation from T-007
+  - orchestration behavior from T-008
+  - forbidden imports from mutations, transaction_writer, interfaces, CLI, and MCP
+    layers
+  failure_routing_policy:
+  - This step may add docs and integration tests that reveal defects in T-001 through
+    T-008 outputs.
+  - This step must not modify production modules or sibling-owned tests.
+  - If a defect is found, document the owning tactical step in observations and route
+    the fix to that step.
+responsibilities:
+- Document G-006 validation behavior truthfully and completely.
+- Provide integration verification planning that shows G-006 tactical outputs compose
+  as one validation subsystem.
+- Guard against boundary leaks into mutation, writer, interface, CLI, or MCP behavior.
+implementation_notes:
+- Documentation must be understandable from docs/tech_spec.md, parent G-006 README.yaml,
+  and this T-009 README.yaml without reading sibling T README files.
+- Integration tests should use public G-006 entry points and contracts, not private
+  implementation details.
+- Do not patch production modules here; route discovered defects to their owning tactical
+  step.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/validation/test_validation_integration.py
+  optional_cross_step_commands:
+  - python -m pytest tests/validation
+  expected:
+  - docs/validation_rules.md documents scope, contracts, checks, diagnostics, orchestration,
+    and non-goals.
+  - Integration coverage composes T-001 through T-008 outputs through public G-006
+    entry points.
+  - Forbidden downstream subsystem imports are not introduced.
+  - Any discovered defect is routed to the owning tactical step instead of patched
+    here.
+acceptance_criteria:
+- Validation documentation is truthful for G-006 scope and does not describe writer,
+  CLI, or MCP behavior as implemented by G-006.
+- Integration test file is owned solely by this step.
+- Integration coverage includes boundary, report, document validation, schema validation,
+  semantic validation, rendered YAML validation, determinism, orchestration, and forbidden
+  imports.
+- This step edits only docs/validation_rules.md and tests/validation/test_validation_integration.py
+  during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on docs/validation_rules.md and tests/validation/test_validation_integration.py.
+    Document the complete G-006 validation subsystem and add integration verification
+    over public G-006 entry points. Do not modify production modules owned by T-001
+    through T-008. Do not implement or document mutation, transaction writer, CLI,
+    or MCP wrappers as part of G-006. If integration reveals a defect, record the
+    owning tactical step and route the fix there. Do not edit .venv, venv, site-packages,
+    installed dependencies, or sibling-owned files.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  owning_step: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-006/T-009
+  problem: Tactical README did not exist for validation documentation and integration
+    verification.
+  action: Created a self-contained tactical README constrained to G-006 documentation
+    and integration verification.
+  status: fixed
