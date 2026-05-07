@@ -164,11 +164,18 @@ verification:
 acceptance_criteria:
 - AbstractBuffer owns file/buffer lifecycle and does not implement formatter semantics.
 - Editor core has no YAML-specific path, text range, or search query logic.
-- Every buffer has exactly one formatter.
+- Every buffer has exactly one active formatter.
 - Buffer registry enforces one open buffer per file_path.
 - Save/save_as are the only operations that write files.
 - Copy/cut require source BufferAddress and paste requires target BufferAddress.
 - Search behavior is delegated to G-011, not implemented inside buffer lifecycle.
+- open(file_path, formatter=auto, open_as_text=False) supports explicit text fallback
+  via open_as_text.
+- Parse exception from structural formatter triggers automatic fallback to text formatter;
+  buffer status reflects format_fallback.
+- validate(buffer_id) exposes in-buffer structure check without writing files.
+- save and save_as call validate as first pipeline stage and abort on failure.
+- fallback buffers use text formatter for validate, render, and all subsequent operations.
 model_assignment_spec:
   performer: coding_agent
   instruction: Implement only AbstractBuffer and the format-independent editor core
