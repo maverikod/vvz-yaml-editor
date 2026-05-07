@@ -71,6 +71,12 @@ public_api_surface:
   - yaml_move
   - yaml_update_command
   - yaml_append_verification
+  clipboard_functions:
+  - yaml_clipboard_copy
+  - yaml_clipboard_get
+  - yaml_clipboard_list
+  - yaml_clipboard_clear
+  - yaml_clipboard_paste
 cli_surface:
   executable: yaml-editor
   commands:
