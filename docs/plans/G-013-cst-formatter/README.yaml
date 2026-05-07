@@ -352,16 +352,42 @@ verification:
   - delete removes node and all descendants
   - move is atomic (no partial state on failure)
 acceptance_criteria:
-- CSTFormatter implements AbstractFormatter contract in full
-- document model is CSTTree; address is stable_id; both are opaque to editor core
-- stable_id never changes across any number of mutations
-- no persistence markers of any kind appear in .py files or render() output
-- sidecar is the only persistence mechanism for node identity
-- all five mutation operations work correctly with stable_id addressing
-- skeleton view is the default read mode for models consuming .py files
-- cst_query XPath search is available as a specific_command
-- validate_content returns LibCST syntax diagnostics usable by validate_file
-- node_id_markers.py and all trailing marker block code is absent from this subsystem
+- CSTFormatter implements AbstractFormatter contract in full.
+- document model is CSTTree; public address is stable_id; node_id is internal only.
+- stable_id is stored in TreeNodeMetadata.stable_id and survives any number of mutations
+  via previous_metadata_map exact_key matching in _build_tree_index.
+- stable_id is never transported via @node-id inline comments during mutation. No
+  set_stable_id/get_stable_id calls in mutation flow.
+- 'Sidecar has two checksums: source_sha256 (SHA-256 of logical Python source) and
+  tree_sha256 (SHA-256 of sidecar JSON body). Both validated on load.'
+- 'If either checksum fails or sidecar is missing: tree built from scratch via libcst.parse_module
+  + _build_tree_index.'
+- Sidecar is written only from save orchestration (buffer.save / buffer.save_as),
+  not from parse.
+- parse(raw_content) receives string content from editor core. Editor core owns disk
+  I/O. file_path is optional and used only to locate sidecar.
+- render(document) produces clean Python source with no markers of any kind.
+- 'Default read format is declarative: skeleton() / build_declarative_overview().
+  Full source available via get_unit(stable_id).'
+- 'skeleton() shows: file docstring, imports, class headers+docstrings+properties+method
+  signatures+method docstrings, function signatures+docstrings. Every element prefixed
+  with [stable_id].'
+- get_unit(stable_id) returns full source code of a single node including body.
+- list_units() returns flat list of all nodes with stable_id, type, kind, name, qualname,
+  start_line, end_line. No bodies.
+- cst_query results presented in declarative format (signature + docstring, no bodies).
+  Full body via get_unit(stable_id).
+- CSTFormatter has no global state (_trees, TTL loop). Tree lifetime managed by editor
+  core buffer registry.
+- 'No .py file ever contains @node-id comments or # cst-node-ids blocks after any
+  formatter operation.'
+- 'validate_content: libcst.parse_module raises -> FORMAT_VALIDATION_FAILED + CST_PARSE_FAILED
+  diagnostic.'
+- 'validate_document: compile(tree.module.code) -> diagnostics on SyntaxError.'
+- node_id_markers.py write-side functions (append_persisted_node_ids, render_marker_block)
+  absent from adapted code.
+- All five mutation operations (insert, delete, replace, move, replace_docstring)
+  work correctly with stable_id addressing.
 model_assignment_spec:
   performer: coding_agent
   instruction: Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
