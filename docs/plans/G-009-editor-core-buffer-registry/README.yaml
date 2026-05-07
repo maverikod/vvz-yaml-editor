@@ -236,8 +236,10 @@ formatter_fallback_policy:
       from config
     behavior: use text formatter immediately without attempting structural parse
     buffer_status: small_file
-    rationale: 'avoid heavy structural parsing on small files; conserves RAM in constrained
-      environments (target: 1-2GB free)'
+    rationale: small files fit entirely in model context window without structural
+      overhead; no need to build CST or YAML tree. For larger files, structural formatter
+      + skeleton view reduces VRAM pressure by sending only declarative structure
+      to the model context instead of full implementation.
   open_as_text_option:
     param: open_as_text=True on buffer.open
     behavior: bypass formatter auto-detection and size threshold; always use text
