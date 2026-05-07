@@ -255,3 +255,44 @@ observations_template:
   fix: ''
   post_fix_verification: ''
   status: ''
+mcp_proxy_adapter_integration:
+  adapter_generates_api: mcp-proxy-adapter automatically generates help, OpenAPI,
+    and MCP tool surface from command class attributes and get_schema()/metadata().
+    ai_editor/project_refactor must NEVER implement external API routes manually.
+    Register rename command only. The adapter owns the external surface.
+  command_file_layout: ai_editor/commands/rename_command.py, ai_editor/commands/rename_schema.py,
+    ai_editor/commands/rename_metadata.py. Large metadata may split further into rename_metadata_descr_params.py,
+    rename_metadata_errors_return.py, rename_metadata_examples.py.
+  command_shape: 'class RenameCommand(BaseMCPCommand): name=''rename'', version=''1.0.0'',
+    descr=''Project-wide symbol rename with git safety checkpoint and automatic rollback'',
+    category=''custom'', author=''Vasiliy Zdanovskiy'', email=''vasilyvz@gmail.com'';
+    classmethod get_schema() -> Dict; validate_params(params) -> Dict (call super
+    first, then validate new_name is Python identifier); execute(...) -> Dict with
+    job_id; classmethod metadata() -> Dict.'
+  queue_dispatch: 'rename execute() must enqueue the job via mcp-proxy-adapter queue
+    (never run inline) and return {success: true, job_id: <str>} immediately. Result
+    is delivered via WebSocket per ws_job_result_policy in G-008.'
+  hooks_registration: 'Register in ai_editor/hooks_register.py: reg.register(RenameCommand,
+    ''custom''). Entry point in adapter hooks: from ai_editor.hooks_register import
+    register_ai_editor_commands; hooks.register_custom_commands_hook(register_ai_editor_commands).'
+  metadata_standard: 'RenameCommand metadata() must follow docs/metadatastd.md. Required:
+    name, version, description, category, author, email, detailed_description, parameters
+    (target, new_name, update_references, dry_run, scope), return_value (success shape:
+    job_id; error shapes: RENAME_TARGET_NOT_FOUND, RENAME_INVALID_IDENTIFIER, RENAME_GIT_CHECKPOINT_FAILED),
+    usage_examples (at least: dry_run preview, real rename), error_cases, best_practices
+    (always dry_run first; verify via rename_status(job_id); check skipped_files;
+    git tag created before any write).'
+  registration_checklist:
+  - RenameCommand has name, version, descr, category, author, email.
+  - Registered with reg.register(RenameCommand, 'custom') in hooks_register.py.
+  - get_schema() has type=object, properties for target (object), new_name (string),
+    update_references (boolean, default true), dry_run (boolean, default false), scope
+    (array of strings, nullable).
+  - 'required: [target, new_name]. additionalProperties: false.'
+  - validate_params() calls super first, then validates new_name is valid Python identifier.
+  - execute() enqueues job and returns job_id immediately without blocking.
+  - metadata() includes all required fields per metadatastd.md.
+  - rename_status command (or queue_get_job_status) is the read-back verification
+    step documented in best_practices.
+  - Command appears in adapter help after restart.
+  - dry_run=true executes without writing files, creating git tags, or creating backups.
