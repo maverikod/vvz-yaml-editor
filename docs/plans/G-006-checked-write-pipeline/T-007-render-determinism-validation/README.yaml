@@ -1,0 +1,104 @@
+format: tactical_step_v1
+parent_step_id: G-006
+parent_step_name: validation_rules
+tactical_step_id: T-007
+tactical_step_name: render_determinism_validation
+title: Render determinism validation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-006-checked-write-pipeline/README.yaml
+intent: Own validation that rendering the same supported in-memory YAML document is
+  deterministic. This tactical step implements validate_render_determinism(document)
+  using public document_io rendering contracts and G-006 diagnostics, without owning
+  rendered YAML parse-equivalence, schema validation, semantic validation, mutations,
+  writer behavior, CLI, or MCP wrappers.
+self_contained_context:
+  global_goal: G-006 owns validation logic for rendered YAML checks and deterministic
+    rendering checks.
+  technical_basis:
+  - Rendering must be deterministic for the same input tree.
+  - Non-deterministic render cases must report RENDER_NOT_DETERMINISTIC when applicable.
+  - Validation reports must be machine-readable through ValidationReport.
+  boundaries:
+  - Do not perform file writes or backups.
+  - Do not apply mutations.
+  - Do not run schema or plan_task_v1 semantic validation.
+  - Do not own rendered YAML parse-equivalence validation.
+  - Do not implement CLI or MCP wrappers.
+owned_code_paths:
+- yaml_editor/validation/determinism.py
+owned_test_paths:
+- tests/validation/test_render_determinism.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/validation/schema.py
+- yaml_editor/validation/semantic.py
+- yaml_editor/validation/render_check.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 document_io rendering public contracts
+  - G-006/T-002 validation report contract
+  may_be_used_by:
+  - G-007 checked write pipeline
+public_contracts_provided:
+- validate_render_determinism(document)
+determinism_policy:
+  render_count: 2
+  comparison_basis: Compare rendered text bytes or strings produced from the same
+    in-memory document using the same renderer settings.
+  failure_code: RENDER_NOT_DETERMINISTIC
+  non_goals:
+  - Do not decide schema validity.
+  - Do not decide semantic validity.
+  - Do not write rendered output to disk.
+  - Do not create backups or render previews for writer responses.
+responsibilities:
+- Render the same in-memory document through public rendering contracts in a controlled
+  way.
+- Compare repeated render outputs deterministically.
+- Return ValidationReport diagnostics for deterministic and non-deterministic cases.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/validation/test_render_determinism.py
+  expected:
+  - Stable render output passes determinism validation.
+  - Non-deterministic render output fails with RENDER_NOT_DETERMINISTIC.
+  - No schema, semantic, mutation, writer, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- Render determinism validation is independent from rendered YAML parse-equivalence
+  validation.
+- Determinism failures use RENDER_NOT_DETERMINISTIC diagnostics.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/validation/determinism.py and tests/validation/test_render_determinism.py.
+    Implement validate_render_determinism(document) using public document_io rendering
+    contracts and G-006 ValidationReport diagnostics. Do not implement rendered YAML
+    parse-equivalence validation, schema validation, semantic validation, mutations,
+    transaction writing, backups, CLI, or MCP wrappers. Do not edit .venv, venv, site-packages,
+    or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-006/T-007
+  problem: Tactical README did not exist for render determinism validation.
+  action: Created a self-contained tactical README constrained to G-006 render determinism
+    checks.
+  status: fixed
