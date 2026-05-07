@@ -170,10 +170,22 @@ acceptance_criteria:
   subsystem files.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only the public interface, CLI, MCP documentation, integration
+  instruction: 'Implement only the public interface, CLI, MCP documentation, integration
     tests, and release readiness assets. Do not edit internal subsystem directories.
-    If a behavior fails because of internals, document the failing contract and route
-    the fix to the owning global subsystem instead of patching it here.
+    ADAPTER INTEGRATION: All ai_editor MCP commands inherit from mcp_proxy_adapter.commands.base.Command
+    (NOT FastAPI routes). Register commands via ai_editor/hooks_register.py + mcp_proxy_adapter.commands.hooks.register_custom_commands_hook.
+    Adapter generates help, OpenAPI, MCP tools automatically from get_schema() + metadata().
+    NEVER write HTTP routes, JSON-RPC handlers, or OpenAPI YAML manually. CONFIG:
+    Reader = SimpleConfig.load() from adapter. ai_editor owns AiEditorConfig dataclass
+    (config/config_section.py), AiEditorConfigGenerator (config/config_generator.py
+    extends SimpleConfigGenerator), AiEditorConfigValidator (config/config_validator.py
+    extends BaseValidator). Settings in ''ai_editor'' section of config.json. database
+    section from server''s config.json. Passwords from .env. COMMAND LAYOUT per metadatastd.md:
+    ai_editor/commands/<cmd>_command.py + <cmd>_schema.py + <cmd>_metadata.py. MAIN
+    PATTERN: SimpleConfig.load() -> AiEditorConfigValidator.validate() -> AiEditorConfig.from_config_json()
+    -> create_app() -> register_all_commands() -> engine.run_server(). If a behavior
+    fails because of internals, document the failing contract and route the fix to
+    the owning global subsystem instead of patching it here.'
 observations_template:
 - command: ''
   expected: ''
