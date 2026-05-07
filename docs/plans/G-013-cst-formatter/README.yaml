@@ -202,11 +202,16 @@ render_contract:
   output: tree.module.code
   guarantee: clean Python source, no markers of any kind
 save_orchestration:
-  owner: editor core (buffer.save)
+  owner: editor core (buffer.save / buffer.save_as)
   steps:
-  - render(document) -> python_source string
-  - write .py file
-  - write_sidecar_atomic() -> .cst/<stem>.tree
+  - 1. validate_document(document) -> ValidationResult. Failure -> abort, return error.
+  - 2. render(document) -> python_source string.
+  - 3. Editor core writes .py file atomically.
+  - '4. CSTFormatter.write_sidecar(py_path, tree): compute source_sha256 = SHA-256(tree.module.code);
+    serialise metadata_map to JSON body; compute tree_sha256 = SHA-256(json_body_bytes);
+    write ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>'' as header
+    line, then JSON body, atomically to .cst/<stem>.tree.'
+  - 5. tree.disk_source_sha256_hex = source_sha256.
 mutation_operations:
   note: all operations receive and return stable_id as address; node_id is internal
   operations:
