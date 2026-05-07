@@ -1,0 +1,113 @@
+format: tactical_step_v1
+parent_step_id: G-006
+parent_step_name: validation_rules
+tactical_step_id: T-005
+tactical_step_name: plan_task_semantic_validation
+title: plan_task_v1 semantic validation rules
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-006-checked-write-pipeline/README.yaml
+intent: Own semantic validation for plan_task_v1 documents after generic YAML document
+  validation and structural schema validation. This tactical step implements validate_plan_task_v1(document)
+  semantic checks and returns machine-readable ValidationReport diagnostics without
+  reading files, applying mutations, rendering YAML, writing files, or exposing CLI/MCP
+  wrappers.
+self_contained_context:
+  global_goal: G-006 owns validation logic for YAML documents and plan_task_v1 semantics.
+  semantic_rules:
+  - format must equal plan_task_v1.
+  - node_id must match file-level conventions used by the plans repository.
+  - kind must be one of spec, global, tactical, atomic.
+  - depends_on must be a list of strings.
+  - commands must be a list of objects.
+  - commands[].name values must be unique.
+  - commands[].schema.required must reference only existing properties.
+  - read_model.sees_live_tmpfs_worktree must be false for read-only plan_* disk commands.
+  - buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
+      no merge, lock retained.
+  - verification must be a non-empty list.
+  - status must be one of draft, ready_for_review, ready_for_implementation, blocked.
+  boundaries:
+  - Do not own JSON Schema loading or structural schema checks.
+  - Do not render YAML text or check render determinism.
+  - Do not apply mutations or parse structural YAML paths.
+  - Do not perform writes, backups, CLI, or MCP wrappers.
+owned_code_paths:
+- yaml_editor/validation/semantic.py
+owned_test_paths:
+- tests/validation/test_plan_task_semantic_validation.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/validation/schema.py
+- yaml_editor/validation/render_check.py
+- yaml_editor/validation/determinism.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 in-memory YAML document model concepts
+  - G-006/T-002 validation report contract
+  - G-006/T-003 generic YAML document validation
+  - G-006/T-004 schema validation
+  may_be_used_by:
+  - G-007 checked write pipeline
+public_contracts_provided:
+- validate_plan_task_v1(document)
+semantic_policy:
+  execution_order:
+  - assume caller has already parsed YAML and may have run schema validation
+  - run semantic checks over the in-memory document structure
+  - return SEMANTIC_VALIDATION_FAILED for semantic failures
+  diagnostics:
+  - report each failed semantic rule separately
+  - include relevant structural key path when available
+  - do not use line ranges as primary diagnostics
+responsibilities:
+- Implement all parent G-006 plan_task_v1 semantic rules.
+- Return ValidationReport diagnostics for valid and invalid documents.
+- Keep semantic validation independent from writer and interface behavior.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/validation/test_plan_task_semantic_validation.py
+  expected:
+  - Valid plan_task_v1 fixture passes semantic validation.
+  - Invalid status fails semantic validation.
+  - Empty verification fails semantic validation.
+  - Duplicate command names fail semantic validation.
+  - Invalid required references fail semantic validation.
+  - Read-only plan_* disk command with sees_live_tmpfs_worktree=true fails semantic
+    validation.
+acceptance_criteria:
+- All semantic rules listed by parent G-006 are represented.
+- Semantic failures use SEMANTIC_VALIDATION_FAILED diagnostics.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/validation/semantic.py and tests/validation/test_plan_task_semantic_validation.py.
+    Implement plan_task_v1 semantic validation using the G-006 ValidationReport contract
+    and semantic rules from this README. Do not implement JSON Schema loading, rendered
+    YAML checks, determinism checks, mutations, writer behavior, CLI, or MCP wrappers.
+    Do not edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-006/T-005
+  problem: Tactical README did not exist for plan_task_v1 semantic validation.
+  action: Created a self-contained tactical README constrained to G-006 semantic rules.
+  status: fixed
