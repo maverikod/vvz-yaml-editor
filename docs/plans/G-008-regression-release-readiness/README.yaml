@@ -85,15 +85,20 @@ public_api_surface:
 cli_surface:
   executable: yaml-editor
   commands:
-  - load
+  - open
+  - new
+  - save
+  - save-as
+  - close
   - validate
-  - get
-  - clipboard-copy
-  - clipboard-get
-  - clipboard-list
-  - clipboard-clear
-  - clipboard-paste
-  - write-checked
+  - validate-file
+  - copy
+  - cut
+  - paste
+  - find
+  - find-one
+  - list-units
+  - yaml-compat
   - version
 mcp_contract_rules:
 - MCP wrappers must import interfaces/public_api only, not internal subsystem modules.
