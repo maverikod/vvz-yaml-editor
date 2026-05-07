@@ -252,7 +252,7 @@ formatter_contract_extensions:
       validate(buffer_id); must not write files or change document state
     text_formatter_behavior: always returns success=true; text formatter imposes no
       structural constraints
-    ai_formatter_behavior: validates YAML structure, semantic constraints, and deterministic
+    yaml_formatter_behavior: validates YAML structure, semantic constraints, and deterministic
       render; returns diagnostics on failure
     cst_formatter_behavior: compiles tree.module.code; returns syntax diagnostics
       on failure
