@@ -1,0 +1,132 @@
+format: tactical_step_v1
+parent_step_id: G-007
+parent_step_name: transaction_writer
+tactical_step_id: T-009
+tactical_step_name: changed_path_mismatch_gate
+title: Expected changed path mismatch gate
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-007-mcp-cli-contract/README.yaml
+intent: Own the checked writer gate that rejects persistence when actual mutation
+  changed_paths do not match expected paths derived from requested operations. This
+  closes the CHANGED_PATH_MISMATCH requirement from the technical specification and
+  prevents writes when patch effects are wider, narrower, or different than requested.
+self_contained_context:
+  global_goal: G-007 owns safe checked persistence for structural YAML edits.
+  technical_spec_requirement: No write command may modify a file if changed path does
+    not match the expected operation path after patching.
+  root_plan_requirement: Write must be rejected if changed paths differ from expected
+    operation paths, with CHANGED_PATH_MISMATCH as the typed error code.
+  expected_path_sources:
+  - set operation path
+  - replace_block operation path
+  - append operation path
+  - delete operation path
+  - move operation from_path and affected sequence path according to mutation contract
+  boundaries:
+  - Do not implement mutation internals.
+  - Do not decide changed_paths inside operation modules.
+  - Do not render, backup, or write bytes here.
+  - Do not expose CLI or MCP wrappers.
+owned_code_paths:
+- yaml_editor/transaction_writer/changed_path_gate.py
+owned_test_paths:
+- tests/transaction_writer/test_changed_path_mismatch_gate.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/hashing.py
+- yaml_editor/transaction_writer/backup.py
+- yaml_editor/transaction_writer/atomic_write.py
+- yaml_editor/transaction_writer/orchestrator.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/mutations/
+- tests/validation/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 error code contracts including CHANGED_PATH_MISMATCH
+  - G-005 mutation operation changed_paths contracts
+  - G-007/T-002 checked write contracts
+  may_be_used_by:
+  - G-007/T-007 checked write orchestration
+  - G-008 public interfaces and release verification
+public_contracts_provided:
+- validate_changed_paths(expected_paths, actual_changed_paths)
+- CHANGED_PATH_MISMATCH writer gate policy
+changed_path_policy:
+  comparison_basis: Compare normalized structural YAML paths, never line ranges.
+  failure_code: CHANGED_PATH_MISMATCH
+  failure_behavior:
+  - return success=false
+  - prevent backup creation
+  - prevent atomic replace
+  - preserve original file bytes
+  rejected_cases:
+  - actual path is missing
+  - unexpected extra actual path exists
+  - normalized path differs from expected path
+  - operation reports no changed path while expected change exists
+responsibilities:
+- Derive expected changed paths from checked write operations according to mutation
+  contracts.
+- Compare expected paths with actual changed_paths returned by mutation results.
+- Return a typed CHANGED_PATH_MISMATCH failure before any backup or write stage runs.
+implementation_notes:
+- This gate should be called by orchestration after mutation and before backup or
+  atomic replace.
+- If mutation contracts define no-change success, this gate must respect those explicit
+  semantics and not invent changes.
+- This step must not patch operation modules when actual changed_paths are wrong;
+  route such defects to G-005.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/transaction_writer/test_changed_path_mismatch_gate.py
+  expected:
+  - Matching expected and actual normalized paths pass.
+  - Missing, extra, or different actual changed paths fail with CHANGED_PATH_MISMATCH.
+  - Failure prevents backup and atomic write stages.
+acceptance_criteria:
+- CHANGED_PATH_MISMATCH from the root plan is explicitly owned and testable.
+- Checked write orchestration has a clear gate to call before persistence.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/transaction_writer/changed_path_gate.py and
+    tests/transaction_writer/test_changed_path_mismatch_gate.py. Implement the expected-vs-actual
+    changed path comparison gate for checked writes. Return CHANGED_PATH_MISMATCH
+    and prevent persistence when paths do not match. Do not implement mutation internals,
+    validation, rendering, backups, atomic writes, CLI, or MCP wrappers. Do not edit
+    .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-007/T-009
+  problem: CHANGED_PATH_MISMATCH was required by the technical specification and root
+    plan but had no tactical owner.
+  action: Created a self-contained tactical README constrained to the G-007 writer
+    changed path gate.
+  status: fixed
