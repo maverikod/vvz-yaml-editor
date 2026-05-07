@@ -446,3 +446,16 @@ observations_template:
   fix: ''
   post_fix_verification: ''
   status: ''
+coverage_gap_closures:
+- gap: unsafe_line_fallback_owner
+  resolution: G-008/T-008 owns yaml_read_lines and yaml_write_lines_unsafe as emergency-only
+    fallback APIs.
+- gap: changed_path_mismatch_gate
+  resolution: G-007/T-009 owns expected-vs-actual changed path comparison and CHANGED_PATH_MISMATCH
+    rejection before persistence.
+- gap: model_friendly_write_helpers
+  resolution: G-008/T-009 owns yaml_update_command, yaml_append_verification, and
+    yaml_validate_plan_task helper semantics.
+- gap: console_entry_point_alignment
+  resolution: Root console script target is yaml-editor=yaml_editor.interfaces.cli:main
+    and G-008/T-010 owns alignment verification with G-001 metadata coordination.
