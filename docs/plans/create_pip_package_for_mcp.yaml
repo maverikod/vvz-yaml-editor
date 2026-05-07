@@ -519,9 +519,15 @@ regression_commands:
   - python -m twine check dist/*
   mcp_level:
   - Import yaml_editor.api in the target MCP server.
-  - Register wrapper commands for yaml_load, yaml_get, yaml_write_checked, and yaml_validate_plan_task.
+  - Register wrapper commands for yaml_load, yaml_get, yaml_write_checked, yaml_validate_plan_task,
+    yaml_clipboard_copy, and yaml_clipboard_paste.
   - Execute yaml_load against a real plan YAML fixture.
   - Execute yaml_write_checked with dry_run=true and verify no file change.
+  - Execute yaml_clipboard_copy against an existing YAML path and verify the item
+    through yaml_clipboard_get.
+  - Execute yaml_clipboard_paste with dry_run=true and verify no file change.
+  - Execute yaml_clipboard_paste with dry_run=false and verify the result through
+    a separate yaml_get or yaml_load call.
   - Execute yaml_write_checked with dry_run=false and verify the result through a
     separate yaml_get or yaml_load call.
 observations_template:
