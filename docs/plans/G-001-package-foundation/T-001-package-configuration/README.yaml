@@ -121,9 +121,8 @@ dependency_inclusion_policy:
   - libcst>=1.1
   - lark>=1.1
   project_optional_dependencies_experimental: []
-  reason: The root implementation plan and tech spec require jsonpath-ng as a runtime
-    dependency for structural filter support, so T-001 must include it in project.dependencies
-    rather than treating it as experimental optional.
+  reason: Put ruamel.yaml, jsonschema, jsonpath-ng, libcst>=1.1, and lark>=1.1 in
+    project.dependencies as mandatory runtime dependencies with lower bounds.
 dev_dependencies:
   group_name: dev
   required_packages:
