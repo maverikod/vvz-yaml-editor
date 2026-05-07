@@ -26,7 +26,7 @@ self_contained_context:
   - Regular operation behavior is owned by separate operation modules; this step must
     orchestrate, not reimplement.
   parent_boundaries:
-  - Dispatch supported operations: set, replace_block, append, delete, move.
+  - Dispatch supported operations are set, replace_block, append, delete, and move.
   - Use mutation contracts for request, result, diagnostics, and changed path shapes.
   - Delegate operation-specific behavior to sibling G-005 operation modules.
   - Do not validate plan_task_v1 schema or semantics.
