@@ -895,3 +895,78 @@ workflow_clipboard:
   - CLIPBOARD_INVALID_MODE
   - ADDRESS_INVALID
   - ADDRESS_NOT_FOUND
+planning_prompt_application:
+  prompt_template_type: readme_plan_quality_loop_prompt
+  prompt_version: 10
+  applied_to_project: yaml_editor
+  applied_to_project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+  technical_spec_path: docs/tech_spec.md
+  plans_root: docs/plans
+  default_target_step_ref: G1T1
+  default_chain_scope: remaining_plan_chain
+  authoritative_step_file: README.yaml
+  forbidden_plan_files:
+  - implementation_plan.yaml
+  planning_only_enforcement:
+    allowed_reads:
+    - README.yaml files under docs/plans
+    - technical specification files referenced by source_documents
+    - parent plan README.yaml files
+    - root/master plan YAML files explicitly referenced by the current step
+    allowed_writes:
+    - README.yaml files under resolved plan step directories
+    - new README.yaml files under newly created tactical step directories
+    - root plan YAML only for prompt-application metadata and coverage ownership alignment
+    forbidden_actions:
+    - read production code files
+    - read test code files
+    - create or edit production code files
+    - create or edit test code files
+    - run tests, linters, type checkers, formatters, builds, installs, scripts, CLIs,
+      or runtime verification commands
+    - patch .venv, venv, site-packages, installed packages, or dependency internals
+    - create implementation_plan.yaml
+  strict_quality_loop:
+    required: true
+    max_iterations_per_step: 50
+    clean_step_definition: A clean step README.yaml has no unresolved ambiguity, source-chain
+      contradiction, ownership conflict, forbidden-path leak, weak implementer handoff,
+      or verification/acceptance mismatch.
+    read_back_after_every_write: true
+    do_not_trust_previous_completion_claims: true
+  coverage_gap_audit_loop:
+    required_after_chain_completion: true
+    max_iterations: 50
+    scope: 'Planning files only: docs/tech_spec.md, docs/plans/create_pip_package_for_mcp.yaml,
+      global README.yaml files, and tactical README.yaml files under docs/plans.'
+    coverage_chain: Technical Specification -> root plan -> parent G README.yaml ->
+      one or more T README.yaml files.
+    final_status_values:
+    - coverage_clean
+    - coverage_blocked
+    - coverage_failed_read_back
+    - coverage_max_iterations_reached
+  tactical_decomposition_policy:
+    local_to_parent_global_step: true
+    prefer_many_independent_tactical_steps: true
+    do_not_create_fake_independence: true
+    each_tactical_readme_must_be_self_contained: true
+  self_contained_branch_context_policy:
+    required: true
+    rule: Technical Specification -> parent global README.yaml -> current tactical
+      README.yaml must provide the complete implementation picture without requiring
+      sibling tactical branches or other global branches.
+    model_assignment_spec_must_be_standalone: true
+  problem_reporting_policy:
+    point_format: G-XXX/T-YYY for tactical steps; G-XXX for global steps
+    required_fields_per_problem:
+    - point
+    - field_or_section
+    - problem
+    - expected
+    - actual
+    - classification
+    - action
+    classification_values:
+    - auto_fixable
+    - requires_human_decision
