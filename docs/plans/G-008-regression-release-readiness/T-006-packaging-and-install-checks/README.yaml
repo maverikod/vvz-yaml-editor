@@ -1,0 +1,107 @@
+format: tactical_step_v1
+parent_step_id: G-008
+parent_step_name: interfaces_release
+tactical_step_id: T-006
+tactical_step_name: packaging_and_install_checks
+title: Packaging, wheel build, install, and import checks
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-008-regression-release-readiness/README.yaml
+intent: Own release-readiness packaging verification for source distributions, wheels,
+  installation, importability, and console command availability. This tactical step
+  records build and install checks without changing internal subsystem logic or implementing
+  public APIs.
+self_contained_context:
+  global_goal: G-008 owns public interfaces and release verification for the package.
+  quality_gates:
+    static_checks:
+    - python -m ruff check .
+    - python -m mypy yaml_editor
+    tests:
+    - python -m pytest
+    - python -m pytest --cov=yaml_editor
+    packaging:
+    - python -m build
+    - python -m twine check dist/*
+    install:
+    - python -m pip install dist/*.whl
+    - python -c "import yaml_editor; print(yaml_editor.__version__)"
+  release_artifacts:
+  - dist/*.whl
+  - dist/*.tar.gz
+  boundaries:
+  - Do not edit package internals to make checks pass from this step.
+  - Do not edit internal subsystem directories.
+  - Route failures to the owning global or tactical step.
+owned_code_paths: []
+owned_test_paths: []
+owned_docs_paths:
+- docs/release_checklist.md
+forbidden_paths:
+- yaml_editor/
+- tests/
+- pyproject.toml
+- README.md
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 package contracts and distribution
+  - G-008/T-001 public API boundary
+  - G-008/T-002 CLI adapter
+  - G-008/T-005 end-to-end regression suite
+  may_be_used_by:
+  - final release readiness decision
+public_contracts_provided:
+- packaging verification checklist section
+- install verification checklist section
+responsibilities:
+- Specify build, twine check, install, import, and console command verification.
+- Record command outcomes in release checklist during implementation.
+- Route failures to owning steps instead of patching implementation here.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m build
+  - python -m twine check dist/*
+  - python -m pip install dist/*.whl
+  - python -c "import yaml_editor; print(yaml_editor.__version__)"
+  - yaml-editor --help
+  - yaml-editor version
+  expected:
+  - Package builds successfully.
+  - Built distributions pass twine check.
+  - Wheel installs successfully.
+  - Installed package imports and reports version.
+  - Installed console command is available.
+acceptance_criteria:
+- Packaging checks are documented as release gates.
+- Install checks verify import and console command behavior.
+- Failures are routed to owning steps in observations.
+- This step edits only release checklist documentation during implementation.
+model_assignment_spec:
+  performer: release_agent
+  instruction: Work only on docs/release_checklist.md. Record packaging, wheel build,
+    twine check, wheel install, import, and console command verification gates and
+    outcomes. Do not edit yaml_editor code, tests, pyproject.toml, README.md, .venv,
+    venv, site-packages, or installed dependencies. If a gate fails, record the owning
+    subsystem or tactical step instead of patching implementation here.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-008/T-006
+  problem: Tactical README did not exist for packaging and install checks.
+  action: Created a self-contained tactical README constrained to G-008 release packaging
+    verification.
+  status: fixed
