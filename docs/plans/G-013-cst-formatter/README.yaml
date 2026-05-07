@@ -263,27 +263,47 @@ libcst_constraints_and_workarounds:
   workaround: node_map holds pre-mutation objects; find_parent_in_module_by_position
     resolves post-mutation
 read_operations:
-  skeleton:
-    method: skeleton(document) -> str
+  default_buffer_format: declarative. When editor core opens a .py file via CSTFormatter
+    the view returned to the caller is the declarative overview, not full source.
+    Full source available on demand via get_unit(stable_id).
+  declarative:
+    alias_function: build_declarative_overview(tree) -> (text, outline_nodes)
+    default: true
     description: Declarative view of file structure without implementation bodies.
-      Returns file docstring, class definitions with docstrings and properties, method
-      signatures with docstrings, decorators. Every element carries its stable_id
-      so callers can request full node code.
-    shows:
-    - file_docstring
-    - class_def_header
-    - class_docstring
-    - class_properties
-    - decorators
-    - method_signature
-    - method_docstring
+      Every element carries its stable_id prefixed as [stable_id] in the signature
+      line.
     hides:
-    - method_bodies
-    - function_bodies
-    - complex_initializers
-  get_node:
-    method: get_unit(document, stable_id) -> unit
-    description: full source code of the node including implementation
+    - method bodies
+    - function bodies
+    - complex initializers
+    method: 'skeleton(document: CSTTree) -> str'
+    placeholder: 'Function and method bodies show: # Implementation hidden; request
+      node by node_id for full code'
+    shows:
+    - file docstring
+    - import statements with stable_id
+    - class definition header with stable_id
+    - class docstring
+    - class properties (Assign / AnnAssign) with stable_id and first line
+    - method signatures with stable_id
+    - method docstrings
+    - function signatures with stable_id
+    - function docstrings
+    stable_id_in_output: Every visible element prefixed with [stable_id] so caller
+      can address nodes directly for get_unit or mutation.
+  get_unit:
+    description: Returns full source code of the node identified by stable_id, including
+      implementation body.
+    method: 'get_unit(document: CSTTree, stable_id: str) -> unit'
+  iter_units:
+    description: Iterates over visible units for search layer (G-011). Each unit carries
+      stable_id and declarative metadata.
+    method: 'iter_units(document: CSTTree, scope: str | None) -> Iterator[unit]'
+  list_units:
+    description: Returns flat list of all nodes with stable_id, type, kind, name,
+      qualname, start_line, end_line. No source bodies included. Used for navigation
+      and as cst_query result metadata.
+    method: 'list_units(document: CSTTree) -> List[unit]'
 specific_commands:
   cst_query:
     description: XPath-like search over document nodes using Lark-based selector parser
