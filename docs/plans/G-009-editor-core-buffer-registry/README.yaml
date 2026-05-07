@@ -2,32 +2,33 @@ format: global_package_step_v2
 plan_id: yaml_editor_pip_package_for_mcp
 step_id: G-009
 step_name: editor_core_buffer_registry
-title: Editor core and buffer registry subsystem
+title: AbstractBuffer, editor core, and buffer registry subsystem
 status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
-global_intent: 'Own the format-independent editor core: dynamic buffer registry, file-backed
-  and unsaved buffers, dirty/revision/hash state, open/save/save_as/close lifecycle,
-  and editor-level copy/cut/paste orchestration. This subsystem must not contain YAML
-  path logic or text range logic; it delegates format-specific behavior to buffer
-  formatter backends.'
-why_this_block_exists: 'The technical specification now separates the editor object
-  from YAML. The editor must feel like a normal editor for users and models: open,
-  save, save_as, close, copy, cut, paste. YAML is only one formatter attached to a
-  buffer, not the editor core itself.'
+global_intent: 'Own AbstractBuffer and the format-independent editor core: dynamic
+  buffer registry, file-backed and unsaved buffers, dirty/revision/hash state, open/new/save/save_as/close/reload
+  lifecycle, stale checks, and atomic persistence orchestration. This subsystem must
+  not know YAML paths, text line ranges, search query semantics, or formatter internals.'
+why_this_block_exists: The technical specification separates file/buffer lifecycle
+  from formatter editing and universal search. File open/save/close behavior is not
+  a formatter responsibility. The editor core must provide familiar user/model commands
+  while delegating all address, fragment, validation, and unit semantics to the attached
+  formatter and search layer.
 owned_code_paths:
 - yaml_editor/editor_core/
 - tests/editor_core/
 owned_docs_paths:
 - docs/editor_core.md
 forbidden_code_paths:
-- yaml_editor/formatters/yaml/
-- yaml_editor/formatters/text/
+- yaml_editor/formatters/
+- yaml_editor/search/
 - yaml_editor/path_language/
 - yaml_editor/mutations/
 - yaml_editor/validation/
 - yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
 - .venv
 - venv
 - site-packages
@@ -35,29 +36,41 @@ allowed_dependencies:
   may_depend_on:
   - G-010 formatter backends public contracts
   may_be_used_by:
+  - G-011 universal search layer
   - G-008 public interfaces and CLI adapter
   - external MCP wrappers
 public_contracts_provided:
+- AbstractBuffer
 - editor buffer registry
-- editor buffer lifecycle API
-- format-independent copy/cut/paste orchestration
-- editor-level dirty/stale/unsaved state model
-core_commands:
-  buffer_level:
-  - open
-  - save
-  - save_as
-  - close
-  node_or_fragment_level:
-  - copy
-  - cut
-  - paste
+- file-backed and unsaved buffer lifecycle
+- checked save/save_as orchestration
+- format-independent copy/cut/paste orchestration over BufferAddress
+abstract_buffer_contract:
+  methods:
+  - open(file_path, formatter=auto) -> buffer_id
+  - new(formatter, display_name=New file) -> buffer_id
+  - save(buffer_id)
+  - save_as(buffer_id, file_path, overwrite=false)
+  - close(buffer_id, save=false|true|error_if_dirty)
+  - reload(buffer_id)
+  - get_state(buffer_id)
+  - get_formatter(buffer_id)
+  responsibilities:
+  - Own file_path binding and one-open-buffer-per-file rule.
+  - Own unsaved/New file buffers.
+  - Own original_hash, current_hash, dirty, revision, and status.
+  - Own stale disk checks before save/save_as.
+  - Own backup and atomic write orchestration through persistence helpers.
+  - Delegate parse/render/validate to the buffer formatter.
+  - Delegate address interpretation and fragment editing to the buffer formatter.
+  - Delegate search/query behavior to AbstractSearch.
 buffer_model:
   file_backed_buffer:
     required_fields:
     - buffer_id
     - file_path
     - formatter
+    - document
     - original_hash
     - current_hash
     - dirty
@@ -69,6 +82,7 @@ buffer_model:
     - file_path: null
     - display_name
     - formatter
+    - document
     - original_hash: null
     - current_hash
     - dirty: true
@@ -77,37 +91,46 @@ buffer_model:
   invariants:
   - One file_path must not have two open buffers.
   - Reopening an already open file returns the existing buffer_id.
+  - Formatter is stored on the buffer and determines address semantics.
   - Copy does not change any buffer.
   - Cut changes the source buffer and sets dirty=true.
   - Paste changes the target buffer and sets dirty=true.
   - Save and save_as are the only editor operations that write files.
   - Save rejects stale file-backed buffers when disk_hash differs from original_hash.
-clipboard_policy:
-  purpose: Store copied or cut fragments as formatter-aware snapshots that can be
-    pasted only when the source formatter and target formatter are compatible.
+buffer_address_contract:
   required_fields:
-  - item_id
-  - source_buffer_id
-  - source_formatter
-  - payload_kind
-  - payload
-  - source_path
-  - source_revision
-  compatibility_rules:
-  - text -> text paste is allowed.
-  - yaml -> yaml paste is allowed.
-  - yaml -> text paste is allowed only as rendered text when explicitly requested.
-  - text -> yaml paste is rejected by default unless explicit parse_as_yaml mode is
-    requested.
-  - Incompatible paste returns CLIPBOARD_FORMAT_MISMATCH.
-responsibilities:
-- Implement buffer registry and buffer identity rules.
-- Implement file-backed and unsaved buffer lifecycle.
-- Implement dirty, revision, hash, stale, and invalid state transitions.
-- Implement editor-level open, save, save_as, close, copy, cut, and paste semantics.
-- Delegate parse/render/validate/path/copy_fragment/cut_fragment/paste_fragment to
-  formatter backends.
-- Keep public model-facing commands small and familiar.
+  - buffer_id
+  - address
+  rules:
+  - address is opaque to editor core.
+  - address is interpreted only by the buffer formatter.
+  - copy and cut require source BufferAddress.
+  - paste requires target BufferAddress.
+copy_cut_paste_orchestration:
+  copy:
+    required_input:
+      source: BufferAddress
+    behavior:
+    - Resolve source buffer.
+    - Ask source formatter to copy_fragment(document, source.address).
+    - Store formatter-aware clipboard item without changing buffer dirty state.
+  cut:
+    required_input:
+      source: BufferAddress
+    behavior:
+    - Resolve source buffer.
+    - Ask source formatter to cut_fragment(document, source.address).
+    - Store formatter-aware clipboard item.
+    - Replace buffer document with returned document and set dirty=true.
+  paste:
+    required_input:
+      target: BufferAddress
+      mode: formatter-specific string
+    behavior:
+    - Resolve target buffer.
+    - Check clipboard item source_formatter against target formatter compatibility.
+    - Ask target formatter to paste_fragment(document, target.address, fragment, mode).
+    - Replace buffer document with returned document and set dirty=true.
 verification:
   scope: global_completion_gate
   commands:
@@ -119,22 +142,23 @@ verification:
   - Cut and paste mark the correct buffers dirty.
   - Save/save_as delegate validation and rendering to the attached formatter.
   - Stale file-backed buffers are rejected before disk write.
+  - Editor core never parses YAML addresses or text line ranges directly.
 acceptance_criteria:
-- Editor core has no YAML-specific path or mutation logic.
+- AbstractBuffer owns file/buffer lifecycle and does not implement formatter semantics.
+- Editor core has no YAML-specific path, text range, or search query logic.
 - Every buffer has exactly one formatter.
 - Buffer registry enforces one open buffer per file_path.
 - Save/save_as are the only operations that write files.
-- Clipboard items record source formatter and enforce compatibility on paste.
-- The model-facing editor API is limited to open, save, save_as, close, copy, cut,
-  and paste for normal workflows.
+- Copy/cut require source BufferAddress and paste requires target BufferAddress.
+- Search behavior is delegated to G-011, not implemented inside buffer lifecycle.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only the format-independent editor core under yaml_editor/editor_core
-    and tests/editor_core. Provide buffer registry, file-backed and unsaved buffer
-    lifecycle, dirty/revision/hash state, open/save/save_as/close, and copy/cut/paste
-    orchestration that delegates all format-specific behavior to formatter backends.
-    Do not implement YAML path logic, text range internals, formatter parsing, CLI,
-    MCP wrappers, .venv, venv, site-packages, or installed dependencies.
+  instruction: Implement only AbstractBuffer and the format-independent editor core
+    under yaml_editor/editor_core and tests/editor_core. Provide buffer registry,
+    file-backed and unsaved buffer lifecycle, dirty/revision/hash state, open/new/save/save_as/close/reload,
+    and copy/cut/paste orchestration over BufferAddress. Do not implement YAML path
+    logic, text range internals, formatter parsing, search/query semantics, CLI, MCP
+    wrappers, .venv, venv, site-packages, or installed dependencies.
 observations_template:
 - command: ''
   expected: ''
