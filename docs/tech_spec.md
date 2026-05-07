@@ -655,8 +655,167 @@ BUFFER_ALREADY_OPEN
 BUFFER_HAS_UNSAVED_CHANGES
 BUFFER_STALE
 BUFFER_INVALID
+validate
+validate_file
+```
+
+## validate_file: проверка формата файла или буфера
+
+Нужна отдельная API-команда:
+
+```text
+validate_file
+```
+
+Назначение: проверить файл или уже открытый буфер на предмет ошибок формата. Это не поиск, не редактирование и не сохранение. Это форматная проверка документа.
+
+Команда нужна менеджеру проектов, чтобы по имени файла проверять узлы плана реализации и другие документы без ручного выбора форматтера.
+
+Семантика:
+
+```text
+validate_file(file_path, formatter=auto, buffer_id=null, schema=null, options=null) -> validation_result
+```
+
+Правила:
+
+```text
+- если указан buffer_id, проверяется document из буфера в памяти;
+- если указан file_path и buffer_id не указан, файл читается как raw_content;
+- formatter=auto выбирает форматтер по расширению файла;
+- выбранный formatter выполняет проверку формата через базовый интерфейс;
+- validate_file не меняет buffer dirty state;
+- validate_file не пишет файл;
+- validate_file должен возвращать diagnostics, errors, warnings и formatter_name.
+```
+
+Выбор форматтера по расширению:
+
+```text
+.yaml, .yml -> yaml formatter
+.txt, .text, unknown plain text mode -> text formatter
+future: .json -> json formatter
+future: .md, .markdown -> markdown formatter
+```
+
+Для менеджера проектов важен сценарий:
+
+```json
+{
+  "command": "validate_file",
+  "file_path": "docs/plans/G-009-editor-core-buffer-registry/README.yaml"
+}
+```
+
+Ожидаемое поведение:
+
+```text
+1. API определяет formatter по имени файла.
+2. Formatter получает raw_content или buffer.document.
+3. Formatter проверяет формат.
+4. API возвращает единый validation_result.
+```
+
+## Formatter validation interface
+
+Базовый класс форматтера обязан иметь отдельные методы форматной проверки:
+
+```text
+AbstractFormatter
+  validate_content(raw_content, *, file_path=null, schema=null, options=null) -> validation_result
+  validate_document(document, *, schema=null, options=null) -> validation_result
+```
+
+Где:
+
+```text
+validate_content проверяет raw file content без необходимости открывать buffer.
+validate_document проверяет уже распарсенный document из буфера.
+```
+
+Форматтер может внутри использовать parse/render/semantic checks, но контракт наружу должен быть единым.
+
+Для YAML formatter:
+
+```text
+validate_content: YAML parse + optional schema + semantic checks + diagnostics
+validate_document: semantic checks + deterministic render checks where required
+```
+
+Для text formatter:
+
+```text
+validate_content: basic text constraints and encoding/line diagnostics
+validate_document: array-of-lines structure checks
+```
+
+## ForeignFormatter
+
+Нужен класс:
+
+```text
+ForeignFormatter
+```
+
+Назначение: подключать внешний форматтер, который реализует стандарт `AbstractFormatter`, но фактически выполняет сложные операции на внешнем сервере.
+
+Это нужно для сложных вещей вроде CST, AST, специализированных валидаторов и форматтеров, которые не должны жить внутри базового пакета.
+
+ForeignFormatter должен работать через OpenAPI-вызов сервера на базе `mcp-proxy-adapter`.
+
+Минимальная модель:
+
+```text
+ForeignFormatter(AbstractFormatter)
+  formatter_name
+  openapi_endpoint
+  mcp_server_id
+  command_mapping
+  validate_content(...)
+  validate_document(...)
+  normalize_address(...)
+  copy_fragment(...)
+  cut_fragment(...)
+  paste_fragment(...)
+  iter_units(...)
+  match_unit(...)
+  compare_units(...)
+```
+
+Правила:
+
+```text
+- ForeignFormatter обязан соблюдать тот же контракт, что локальные text/yaml formatters;
+- API не должен знать, локальный formatter или foreign formatter используется;
+- ошибки внешнего сервера должны маппиться в единый error_model;
+- nested success=false от внешнего сервера не должен превращаться в success=true;
+- mcp-proxy-adapter completion не считается успехом, пока inner result.success=false;
+- ForeignFormatter не должен открывать/сохранять файлы сам, если операция является buffer lifecycle;
+- ForeignFormatter может выполнять format-specific validation, CST/AST address handling, search units и edit fragments.
+```
+
+Пример использования:
+
+```text
+.py -> ForeignFormatter backed by CST server
+.ts -> ForeignFormatter backed by TypeScript AST/CST server
+.md -> future Markdown formatter, local or foreign
+```
+
+## Ошибки editor core / formatter / search
+
+```text
+BUFFER_NOT_FOUND
+BUFFER_ALREADY_OPEN
+BUFFER_HAS_UNSAVED_CHANGES
+BUFFER_STALE
+BUFFER_INVALID
 FORMATTER_NOT_FOUND
 FORMATTER_UNSUPPORTED
+FOREIGN_FORMATTER_FAILED
+FOREIGN_FORMATTER_TIMEOUT
+FOREIGN_FORMATTER_CONTRACT_VIOLATION
+FORMAT_VALIDATION_FAILED
 ADDRESS_INVALID
 ADDRESS_NOT_FOUND
 ADDRESS_NOT_UNIQUE
@@ -673,5 +832,5 @@ SAVE_TARGET_MISSING
 Главный принцип обновляется так:
 
 ```text
-open/new -> search/select addresses -> copy/cut/paste in buffers -> formatter.validate -> formatter.render -> checked save/save_as
+open/new -> validate_file or search/select addresses -> copy/cut/paste in buffers -> formatter.validate_document -> formatter.render -> checked save/save_as
 ```
