@@ -1,0 +1,146 @@
+format: global_package_step_v2
+plan_id: yaml_editor_pip_package_for_mcp
+step_id: G-006
+step_name: validation_rules
+title: Validation, schema, semantic rules, and render checks subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+global_intent: Own all validation logic for YAML documents and plan_task_v1 semantics.
+  This subsystem decides whether a loaded or mutated document is acceptable, but it
+  does not mutate, read from disk directly, or write files.
+why_this_block_exists: 'Lower-level validation tasks must be able to understand the
+  complete validation problem from this global step: syntax, schema, semantic checks,
+  rendered-YAML checks, deterministic rendering checks, and diagnostics. This logic
+  must not be duplicated inside the writer, reader, CLI, or MCP wrappers.'
+owned_code_paths:
+- yaml_editor/validation/
+- tests/validation/
+owned_docs_paths:
+- docs/validation_rules.md
+forbidden_code_paths:
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - G-002-document-io
+  may_be_used_by:
+  - G-007-transaction-writer
+  - G-008-interfaces-and-release
+public_contracts_provided:
+- validate_yaml_document(document)
+- validate_rendered_yaml(text)
+- validate_schema(document, schema_name)
+- validate_plan_task_v1(document)
+- validate_render_determinism(document)
+- ValidationReport
+core_responsibilities:
+- Validate YAML document structure after parsing.
+- Validate rendered YAML can be parsed back to an equivalent structure.
+- Validate deterministic rendering for supported documents.
+- Own JSON Schema files and schema loading.
+- Own plan_task_v1 semantic checks.
+- Return detailed machine-readable validation diagnostics.
+plan_task_v1_rules:
+- format must equal plan_task_v1.
+- node_id must match file-level conventions used by the plans repository.
+- kind must be one of spec, global, tactical, atomic.
+- depends_on must be a list of strings.
+- commands must be a list of objects.
+- commands[].name values must be unique.
+- commands[].schema.required must reference only existing properties.
+- read_model.sees_live_tmpfs_worktree must be false for read-only plan_* disk commands.
+- buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
+    no merge, lock retained.
+- verification must be a non-empty list.
+- status must be one of draft, ready_for_review, ready_for_implementation, blocked.
+error_codes_owned:
+- VALIDATION_FAILED
+- SCHEMA_VALIDATION_FAILED
+- SEMANTIC_VALIDATION_FAILED
+- RENDER_NOT_DETERMINISTIC
+subsystem_independence_rules:
+- This subsystem must not parse structural YAML paths.
+- This subsystem must not apply mutations.
+- This subsystem must not perform file backups or atomic writes.
+- This subsystem must not implement CLI or MCP wrappers.
+- Transaction writer and interfaces must call validation public contracts instead
+  of duplicating validation rules.
+implementation_outline:
+- Create validation package with schema, semantic, render_check, and report modules.
+- Store plan_task_v1.schema.json under validation-owned package data.
+- Implement positive and negative validation fixtures.
+- Implement per-check validation diagnostics suitable for MCP responses.
+verification:
+  commands:
+  - python -m pytest tests/validation
+  expected:
+  - Valid plan_task_v1 fixture passes all checks.
+  - Invalid status fails semantic validation.
+  - Empty verification fails semantic validation.
+  - Invalid required references fail schema or semantic validation.
+  - Non-deterministic render cases are reported as RENDER_NOT_DETERMINISTIC when applicable.
+acceptance_criteria:
+- Validation subsystem owns all schema and semantic rules.
+- Writer can use validation as a gate without containing validation logic.
+- Interfaces can expose validation without duplicating implementation.
+- Lower-level validation tasks can be decomposed independently from writer and mutation
+  tasks.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only validation, schema, semantic, and render-check logic.
+    Do not edit document_io, path_language, mutations, transaction_writer, reader,
+    or interfaces. If validation needs rendered YAML, use document_io public rendering
+    contracts.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+tactical_decomposition:
+- tactical_step_id: T-001
+  tactical_step_name: validation_package_boundary
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-001-validation-package-boundary/README.yaml
+  purpose: Define validation package boundary and public surface.
+- tactical_step_id: T-002
+  tactical_step_name: validation_report_contract
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-002-validation-report-contract/README.yaml
+  purpose: Define ValidationReport, issue, diagnostics, and G-006 error-code contracts.
+- tactical_step_id: T-003
+  tactical_step_name: yaml_document_structure_validation
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-003-yaml-document-structure-validation/README.yaml
+  purpose: Own validation of already parsed YAML-compatible in-memory document structures.
+- tactical_step_id: T-004
+  tactical_step_name: schema_validation
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-004-schema-validation/README.yaml
+  purpose: Own JSON Schema loading and named schema validation.
+- tactical_step_id: T-005
+  tactical_step_name: plan_task_semantic_validation
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-005-plan-task-semantic-validation/README.yaml
+  purpose: Own plan_task_v1 semantic validation rules.
+- tactical_step_id: T-006
+  tactical_step_name: rendered_yaml_validation
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-006-rendered-yaml-validation/README.yaml
+  purpose: Own rendered YAML parse and structural equivalence validation.
+- tactical_step_id: T-007
+  tactical_step_name: render_determinism_validation
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-007-render-determinism-validation/README.yaml
+  purpose: Own render determinism validation.
+- tactical_step_id: T-008
+  tactical_step_name: validation_orchestration
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-008-validation-orchestration/README.yaml
+  purpose: Own high-level validation entry point orchestration and report aggregation.
+- tactical_step_id: T-009
+  tactical_step_name: validation_docs_and_integration_verification
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-009-validation-docs-and-integration-verification/README.yaml
+  purpose: Own validation documentation and integration verification planning without
+    production edits.
