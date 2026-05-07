@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-011
 step_name: universal_search
 title: AbstractSearch and universal formatter-unit search subsystem
@@ -18,15 +18,15 @@ why_this_block_exists: The technical specification separates search/query from b
   Search must be universal enough to work for text now, YAML now, and future JSON/Markdown
   formatters later.
 owned_code_paths:
-- yaml_editor/search/
+- ai_editor/search/
 - tests/search/
 owned_docs_paths:
 - docs/search.md
 forbidden_code_paths:
-- yaml_editor/editor_core/
-- yaml_editor/formatters/text/
-- yaml_editor/formatters/yaml/
-- yaml_editor/interfaces/
+- ai_editor/editor_core/
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
+- ai_editor/interfaces/
 - .venv
 - venv
 - site-packages
@@ -104,7 +104,7 @@ verification:
   - python -m pytest tests/search
   expected:
   - Search lists text units through text formatter iter_units.
-  - Search lists YAML units through YAML formatter iter_units.
+  - Search lists YAML units through AI formatter iter_units.
   - find returns all matches for a valid query.
   - find_one returns SEARCH_NO_MATCH for zero matches.
   - find_one returns SEARCH_NOT_UNIQUE for multiple matches.
