@@ -121,3 +121,24 @@ observations_template:
   fix: ''
   post_fix_verification: ''
   status: ''
+foreign_command_discovery:
+  purpose: Expose external formatter-specific commands as a local FormatterCommandCatalog
+    while preserving OpenAPI schema details.
+  required_behavior:
+  - Call external OpenAPI/MCP-proxy-adapter command discovery or configured schema
+    endpoint
+  - Normalize external OpenAPI operations into FormatterCommandMetadata
+  - Preserve formatter-specific commands such as CST XPath-like search and derived
+    tree export
+  - Mark commands that write derived artifacts with writes_files=true
+  - Return FORMATTER_COMMAND_DISCOVERY_FAILED on external discovery failure
+  - Return FORMATTER_COMMAND_SCHEMA_INVALID when external schema cannot be normalized
+  - Return FOREIGN_FORMATTER_CONTRACT_VIOLATION when nested success/result contract
+    is missing
+  - Do not treat proxy transport completion as successful discovery unless nested
+    result.success=true
+  catalog_output: FormatterCommandCatalog
+  examples:
+  - CST formatter exposes xpath-like tree search
+  - CST formatter exposes save extracted tree to separate file with writes_files=true
+  - Language formatter exposes node parent/children/sibling navigation
