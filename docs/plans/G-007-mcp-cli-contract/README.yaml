@@ -143,3 +143,11 @@ tactical_decomposition:
   readme_path: docs/plans/G-007-mcp-cli-contract/T-008-transaction-writer-docs-and-integration-verification/README.yaml
   purpose: Own transaction writer documentation and integration verification planning
     without production edits.
+branch_self_containment_policy:
+- Technical Specification -> this G-007 README.yaml -> any one T-YYY README.yaml under
+  this directory must give an implementer the full picture for that tactical branch.
+- Tactical README files under G-007 must repeat the relevant parent context and must
+  not require reading sibling T branches.
+- Maximizing tactical steps means maximizing independent steps inside G-007 only;
+  no T step under G-007 may include work from parser internals, mutation internals,
+  validation internals, interfaces, CLI, MCP wrappers, or unrelated branches.
