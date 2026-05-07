@@ -197,6 +197,8 @@ project_metadata:
   - ruamel.yaml>=0.18
   - jsonschema>=4
   - jsonpath-ng>=1.6
+  - libcst>=1.1
+  - lark>=1.1
   optional_dependencies:
     experimental: []
     dev:
