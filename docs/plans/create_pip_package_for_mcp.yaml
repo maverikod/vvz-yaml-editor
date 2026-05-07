@@ -143,7 +143,7 @@ public_api:
       is already open.
     request:
       file_path: string
-      formatter: auto|text|yaml
+      formatter: auto|text|yaml|foreign formatter name
     response_fields:
     - success
     - buffer_id
@@ -156,7 +156,7 @@ public_api:
     layer: buffer
     purpose: Create a new unsaved buffer with an explicit formatter.
     request:
-      formatter: text|yaml
+      formatter: text|yaml|foreign formatter name
       display_name: optional string
     response_fields:
     - success
@@ -206,6 +206,26 @@ public_api:
     - success
     - buffer_id
     - closed
+    - diagnostics
+  - name: validate_file
+    layer: file_validation
+    purpose: Validate a file by file_path or an in-memory buffer by buffer_id for
+      active formatter errors without editing or writing. Formatter is selected by
+      explicit formatter or by file extension when formatter=auto.
+    request:
+      file_path: optional string
+      buffer_id: optional string
+      formatter: auto|text|yaml|foreign formatter name
+      schema: optional string
+      options: optional object
+    response_fields:
+    - success
+    - formatter
+    - file_path
+    - buffer_id
+    - validation
+    - errors
+    - warnings
     - diagnostics
   - name: copy
     layer: edit
@@ -296,7 +316,8 @@ public_api:
     - diagnostics
   - name: validate
     layer: formatter
-    purpose: Run formatter validation for a buffer without writing it.
+    purpose: Run formatter validation for an already opened buffer without writing
+      it. This validates the in-memory document and is distinct from validate_file(file_path).
     request:
       buffer_id: string
       schema: optional string
@@ -304,6 +325,7 @@ public_api:
     - success
     - validation
     - errors
+    - warnings
     - diagnostics
   compatibility_commands:
     yaml_compatibility:
