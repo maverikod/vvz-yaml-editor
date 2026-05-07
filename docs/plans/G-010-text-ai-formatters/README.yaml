@@ -163,10 +163,10 @@ verification:
   - python -m pytest tests/formatters/text tests/formatters/yaml
   expected:
   - Text formatter parses documents as arrays of lines and supports line-range addresses.
-  - AI formatter parses documents as YAML trees and supports structural YAML addresses.
+  - YAML formatter parses documents as YAML trees and supports structural YAML addresses.
   - Formatter copy/cut/paste methods require source_address or target_address.
   - Formatter compare_units works for text units and YAML units.
-  - AI formatter preserves formatting where ruamel.yaml supports it.
+  - YAML formatter preserves formatting where ruamel.yaml supports it.
   - Clipboard compatibility rejects text -> yaml by default.
   - Clipboard compatibility allows yaml -> text only as explicit rendered text.
 acceptance_criteria:
