@@ -249,9 +249,14 @@ model_assignment_spec:
     files; save and save_as call validate as the first pipeline stage and abort when
     success=false. Provide buffer registry, file-backed and unsaved buffer lifecycle,
     dirty/revision/hash state, open/new/save/save_as/close/reload, copy/cut/paste
-    orchestration over BufferAddress. Do not implement YAML path logic, text range
-    internals, formatter parsing internals, search/query semantics, CLI, MCP wrappers,
-    .venv, venv, site-packages, or installed dependencies.'
+    orchestration over BufferAddress. Config classes (AiEditorConfig, AiEditorConfigGenerator,
+    AiEditorConfigValidator) must extend mcp_proxy_adapter SimpleConfig/SimpleConfigGenerator/BaseValidator;
+    do not create a separate config file. Commands exposed through mcp_proxy_adapter
+    must follow docs/metadatastd.md: each command in ai_editor/commands/ has _command.py,
+    _schema.py, _metadata.py; registered via ai_editor/hooks_register.py using reg.register(...,
+    ''custom''). Do not implement YAML path logic, text range internals, formatter
+    parsing internals, search/query semantics, CLI, MCP wrappers, .venv, venv, site-packages,
+    or installed dependencies.'
 observations_template:
 - command: ''
   expected: ''
