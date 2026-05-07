@@ -170,14 +170,33 @@ sidecar_contract:
     during parse.
   atomic_write: Write to .tmp file in .cst/ dir then os.replace to final path.
 parse_contract:
-  method: parse(raw_content) -> CSTTree
-  steps:
-  - parse raw_content via libcst.parse_module -> logical_source
-  - compute SHA256(logical_source)
-  - check sidecar: if source_sha256 matches AND sidecar_matches_built_tree -> load
-      metadata_map from sidecar
-  - else: _build_tree_index from scratch; stable_id = node_id on first assignment
-  - return CSTTree stored in buffer
+  error_contract: libcst.ParserSyntaxError -> CSTFormatter re-raises as FORMAT_VALIDATION_FAILED
+    with CST_PARSE_FAILED diagnostic. Editor core catches and falls back to text formatter
+    (G-009 formatter_fallback_policy). Empty file -> return empty CSTTree with empty
+    module body, no error. No auto-fix of syntax errors inside CSTFormatter.
+  lifecycle_open_without_sidecar:
+  - '1. Receive raw_content: str from editor core.'
+  - '2. Strip legacy trailing marker block: strip_persisted_node_ids(raw_content)
+    -> logical_source. (Defensive: new files will have no markers.)'
+  - '3. Strip legacy inline @node-id comment lines: strip_inline_node_id_lines_from_source(logical_source).
+    (Defensive: new files will have none.)'
+  - 4. Compute source_sha256 = SHA-256(logical_source.encode('utf-8')).
+  - '5. If file_path given: attempt sidecar load per sidecar_contract.validation_on_load.
+    Both checksums must pass. If valid -> load metadata_map from sidecar, go to step
+    9.'
+  - '6. Parse: module = libcst.parse_module(logical_source). If ParserSyntaxError
+    -> raise FORMAT_VALIDATION_FAILED + CST_PARSE_FAILED. Do not attempt auto-fix.'
+  - '7. Build index: _build_tree_index(tree, previous_metadata_map=None). Each node:
+    stable_id = node_id (new UUID). stable_id stored in TreeNodeMetadata.'
+  - 8. Return CSTTree. Sidecar NOT written here.
+  - 9. Return CSTTree. module parsed from logical_source so libcst graph is live.
+    metadata_map from sidecar if step 5 succeeded.
+  lifecycle_open_with_valid_sidecar: source_sha256 matches AND tree_sha256 matches
+    AND sidecar_matches_built_tree passes -> metadata_map loaded from sidecar, module
+    parsed from source, _build_tree_index skipped. Fast path.
+  method: 'parse(raw_content: str, file_path: str | None = None) -> CSTTree'
+  note: CSTFormatter.parse receives content as string from editor core. Editor core
+    owns file I/O. file_path is optional metadata used only to locate the sidecar.
 render_contract:
   method: render(document) -> str
   output: tree.module.code
