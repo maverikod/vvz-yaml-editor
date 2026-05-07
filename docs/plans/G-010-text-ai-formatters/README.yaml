@@ -2,7 +2,7 @@ format: global_package_step_v2
 plan_id: ai_editor_pip_package_for_mcp
 step_id: G-010
 step_name: text_ai_formatters
-title: AbstractFormatter contract and initial text/AI formatter backends subsystem
+title: AbstractFormatter contract and initial text/AI/CST formatter backends subsystem
 status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
