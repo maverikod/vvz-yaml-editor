@@ -132,3 +132,11 @@ tactical_decomposition:
   readme_path: docs/plans/G-005-validation-and-rendering/T-008-mutation-docs-and-integration-verification/README.yaml
   purpose: Own mutation documentation and integration verification planning without
     production edits.
+branch_self_containment_policy:
+- Technical Specification -> this G-005 README.yaml -> any one T-YYY README.yaml under
+  this directory must give an implementer the full picture for that tactical branch.
+- Tactical README files under G-005 must repeat the relevant parent context and must
+  not require reading sibling T branches.
+- Maximizing tactical steps means maximizing independent steps inside G-005 only;
+  no T step under G-005 may include work from validation, transaction writer, interfaces,
+  CLI, MCP, reader, document_io, or path_language branches.
