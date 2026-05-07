@@ -67,9 +67,9 @@ forbidden_paths:
 allowed_dependencies:
   may_depend_on: []
   may_be_used_by:
-  - future version export owner
-  - future contracts public index owner
-  - future typed marker owner
+  - T-002 version_export
+  - T-008 contracts_public_index
+  - T-009 typed_package_marker
 public_contracts_provided:
 - build-system.requires
 - build-system.build-backend
