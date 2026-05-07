@@ -1,0 +1,136 @@
+format: tactical_step_v1
+parent_step_id: G-001
+parent_step_name: package_contracts_and_distribution
+tactical_step_id: T-008
+tactical_step_name: contracts_public_index
+title: Public contracts package index
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-001-package-foundation/README.yaml
+intent: Define the public import surface for shared contracts under ai_editor.contracts.
+  This tactical step owns only the contracts package index and re-export policy, not
+  the individual contract implementations.
+owned_code_paths:
+- ai_editor/contracts/__init__.py
+owned_test_paths:
+- tests/contracts/test_contracts_public_index.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- ai_editor/__init__.py
+- ai_editor/contracts/result.py
+- ai_editor/contracts/errors.py
+- ai_editor/contracts/diagnostics.py
+- ai_editor/contracts/validation.py
+- ai_editor/contracts/operations.py
+- ai_editor/py.typed
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - T-003-result-envelope
+  - T-004-error-codes
+  - T-005-diagnostics-contract
+  - T-006-validation-result-contract
+  - T-007-operation-result-contract
+  may_be_used_by:
+  - future_subsystems
+public_contracts_provided:
+- ai_editor.contracts.ResultEnvelope
+- ai_editor.contracts.ErrorCode
+- ai_editor.contracts.Diagnostic
+- ai_editor.contracts.DiagnosticSeverity
+- ai_editor.contracts.ValidationResult
+- ai_editor.contracts.ValidationCheckResult
+- ai_editor.contracts.OperationResult
+- ai_editor.contracts.RenderPreview
+- ai_editor.contracts.FileHashPair
+contracts_public_index_policy:
+  required_re_exports:
+  - ResultEnvelope
+  - ErrorCode
+  - Diagnostic
+  - DiagnosticSeverity
+  - ValidationResult
+  - ValidationCheckResult
+  - OperationResult
+  - RenderPreview
+  - FileHashPair
+  all_policy:
+    required: true
+    value_must_match_required_re_exports: true
+    no_extra_names: true
+  import_policy:
+  - Import only from G-001 contract implementation modules owned by T-003 through
+    T-007.
+  - Do not define contract internals in the package index.
+  - Do not import YAML behavior, future subsystem, CLI, or MCP wrapper modules.
+  dependency_policy:
+  - This step may depend on T-003 through T-007 being implemented first.
+  - If an upstream contract name changes, this README must be updated before implementation.
+responsibilities:
+- Re-export stable shared contracts from ai_editor.contracts.
+- Keep the public contracts namespace explicit and minimal.
+- Avoid importing future YAML implementation subsystems.
+- Make imports predictable for later subsystem implementers.
+implementation_notes:
+- This step must not define contract internals; it only imports and re-exports them.
+- Use __all__ to make the public surface explicit.
+- __all__ must contain exactly the required_re_exports list unless a later plan step
+  changes the contract set.
+- Do not import document_io, path_language, reader, mutations, validation, transaction_writer,
+  interfaces, CLI, or MCP wrappers.
+verification:
+  commands:
+  - python -m pytest tests/contracts/test_contracts_public_index.py
+  - python -c "from ai_editor.contracts import ResultEnvelope, ErrorCode, Diagnostic,
+    DiagnosticSeverity, ValidationResult, ValidationCheckResult, OperationResult,
+    RenderPreview, FileHashPair"
+  expected:
+  - Public contract imports succeed for every required re-export.
+  - __all__ exposes exactly the approved contracts and no extra names.
+  - Importing ai_editor.contracts does not import forbidden subsystem modules.
+acceptance_criteria:
+- contracts/__init__.py is the only production file edited by this tactical step.
+- Every public contract from T-003 through T-007 is importable through ai_editor.contracts.
+- __all__ exactly matches contracts_public_index_policy.required_re_exports.
+- Public index does not implement YAML behavior.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only the contracts public index and tests. Do not edit the
+    individual contract implementation files or any future subsystem directories.
+    Re-export exactly ResultEnvelope, ErrorCode, Diagnostic, DiagnosticSeverity, ValidationResult,
+    ValidationCheckResult, OperationResult, RenderPreview, and FileHashPair from ai_editor.contracts.
+    This task owns import surface only.
+observations_template:
+- actual: ''
+  command: ''
+  error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-001/T-008
+  problem: public index omitted secondary public contracts introduced by T-005 through
+    T-007
+  action: added DiagnosticSeverity, ValidationCheckResult, RenderPreview, and FileHashPair
+    to public_contracts_provided and required_re_exports
+  status: fixed
+- iteration: 1
+  point: G-001/T-008
+  problem: __all__ policy was not exact enough
+  action: added contracts_public_index_policy requiring exact __all__ with no extra
+    names
+  status: fixed
