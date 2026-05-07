@@ -80,6 +80,7 @@ allowed_dependencies:
   - G-004 reader queries public contracts
   - G-006 validation rules public contracts
   - G-007 transaction writer public contracts
+  - workflow clipboard public contracts from the root plan
   may_be_used_by:
   - G-008 CLI adapter
   - external MCP wrappers
