@@ -377,7 +377,8 @@ verification:
   expected:
   - Metadata test validates pyproject.toml without importing ai_editor.
   - build-system.build-backend is hatchling.build.
-  - project.version is static 0.1.0.
+  - 'Required runtime dependencies are in project.dependencies: ruamel.yaml>=0.18,
+    jsonschema>=4, jsonpath-ng>=1.6, libcst>=1.1, lark>=1.1.'
   - Required runtime dependencies are in project.dependencies.
   - jsonpath-ng is in project.dependencies as a mandatory runtime dependency, not
     in project.optional-dependencies.experimental.
