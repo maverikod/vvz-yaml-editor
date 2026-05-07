@@ -95,6 +95,7 @@ cli_surface:
   - close
   - validate
   - validate-file
+  - formatter-commands
   - copy
   - cut
   - paste
