@@ -167,6 +167,43 @@ public_api:
     - payload_kind
     - source_hash
     - diagnostics
+  - name: yaml_clipboard_get
+    purpose: Return clipboard item metadata and, when requested, the stored payload
+      for diagnostics without mutating YAML files.
+    request:
+      clipboard_id: string
+      item_name: string
+      include_payload: boolean
+    response_fields:
+    - success
+    - clipboard_id
+    - item_name
+    - payload_kind
+    - source_file_path
+    - source_path
+    - source_hash
+    - payload
+    - diagnostics
+  - name: yaml_clipboard_list
+    purpose: List clipboard item metadata for one clipboard_id or for all visible
+      workflow clipboard namespaces.
+    request:
+      clipboard_id: optional string
+    response_fields:
+    - success
+    - items
+    - diagnostics
+  - name: yaml_clipboard_clear
+    purpose: Clear one clipboard item or one clipboard namespace without touching
+      plan_task_v1 YAML documents.
+    request:
+      clipboard_id: string
+      item_name: optional string
+    response_fields:
+    - success
+    - clipboard_id
+    - cleared_items
+    - diagnostics
   - name: yaml_clipboard_paste
     purpose: Paste one clipboard item into a target YAML file through the checked
       write pipeline.
