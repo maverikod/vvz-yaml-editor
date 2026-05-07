@@ -230,3 +230,28 @@ formatter_command_discovery:
   - formatter-specific artifact writes must not masquerade as editor save/save_as
   - editor core must not interpret formatter-specific command semantics
   - public API may expose formatter_commands(formatter|buffer_id|file_path) for discovery
+formatter_contract_extensions:
+  parse_exception_contract:
+    must_raise_on:
+    - structurally invalid or corrupt content that cannot produce a valid document
+      model
+    - YAML parse failure for ai formatter
+    - LibCST parse failure for cst formatter (see G-013)
+    exception_type: raises FORMAT_VALIDATION_FAILED or formatter-specific error (YAML_PARSE_FAILED,
+      CST_PARSE_FAILED)
+    must_not_raise_on:
+    - valid content with minor formatting quirks
+    - empty file (return empty document model)
+    caller_behavior: editor core catches parse exception and applies formatter_fallback_policy
+      (see G-009)
+  validate_document_contract:
+    required: true
+    returns: ValidationResult
+    purpose: called by editor core as first stage of save/save_as pipeline and by
+      validate(buffer_id); must not write files or change document state
+    text_formatter_behavior: always returns success=true; text formatter imposes no
+      structural constraints
+    ai_formatter_behavior: validates YAML structure, semantic constraints, and deterministic
+      render; returns diagnostics on failure
+    cst_formatter_behavior: compiles tree.module.code; returns syntax diagnostics
+      on failure
