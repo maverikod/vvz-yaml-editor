@@ -1,0 +1,182 @@
+format: tactical_step_v1
+parent_step_id: G-005
+parent_step_name: mutation_operations
+tactical_step_id: T-008
+tactical_step_name: mutation_docs_and_integration_verification
+title: Mutation subsystem documentation and integration verification
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-005-validation-and-rendering/README.yaml
+intent: Own documentation and integration verification planning for the complete G-005
+  pure in-memory mutation subsystem. This tactical step documents mutation contracts,
+  operation semantics, changed path rules, typed errors, dedupe behavior, and batch
+  rollback behavior, and defines integration verification for already implemented
+  G-005 outputs without modifying production modules owned by earlier tactical steps.
+self_contained_context:
+  global_goal: G-005 owns structural in-memory mutation operations over already loaded
+    YAML document objects.
+  technical_spec_basis:
+  - The YAML editor must edit YAML by structural tree paths, not by line ranges.
+  - G-005 covers only in-memory mutation operations: set, replace_block, append, delete,
+      move, batch application, and changed path collection.
+  - checked write, schema validation, rendered YAML validation, backups, CLI, and
+    MCP wrappers are later or separate branches.
+  - Every operation must report normalized structural changed_paths and typed diagnostics.
+  parent_boundaries:
+  - Mutations must not read files from disk.
+  - Mutations must not render YAML text for persistence.
+  - Mutations must not validate plan_task_v1 schema or semantics.
+  - Mutations must not create backups or perform atomic writes.
+  - Mutations must not expose CLI or MCP commands.
+  - Integration verification may reveal defects in earlier G-005 tactical outputs
+    but must route fixes to the owning T step instead of patching them here.
+owned_code_paths: []
+owned_test_paths:
+- tests/mutations/test_mutation_integration.py
+owned_docs_paths:
+- docs/mutation_operations.md
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/mutations/__init__.py
+- yaml_editor/mutations/package_boundary.py
+- yaml_editor/mutations/contracts.py
+- yaml_editor/mutations/replace_ops.py
+- yaml_editor/mutations/append_ops.py
+- yaml_editor/mutations/delete_ops.py
+- yaml_editor/mutations/move_ops.py
+- yaml_editor/mutations/engine.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/validation/
+- tests/transaction_writer/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 in-memory YAML document model concepts
+  - G-003 structural path language public contracts
+  - G-005/T-001 package boundary
+  - G-005/T-002 mutation contract models
+  - G-005/T-003 set and replace_block operations
+  - G-005/T-004 append operation
+  - G-005/T-005 delete operation
+  - G-005/T-006 move operation
+  - G-005/T-007 dispatch, batch rollback, and changed path aggregation
+  may_be_used_by:
+  - G-007 checked write pipeline
+  - future interface and release documentation
+public_contracts_provided:
+- docs/mutation_operations.md
+- tests/mutations/test_mutation_integration.py
+documentation_policy:
+  required_sections:
+  - pure in-memory mutation scope and non-goals
+  - structural path requirement and dependency on path_language
+  - MutationOperation and result contract overview
+  - set operation semantics
+  - replace_block operation semantics
+  - append and dedupe semantics
+  - delete semantics
+  - move semantics
+  - apply_mutation and apply_mutation_batch semantics
+  - changed_paths and diagnostics rules
+  - forbidden validation, rendering, writer, CLI, and MCP behavior
+  forbidden_claims:
+  - G-005 reads YAML files from disk.
+  - G-005 validates plan_task_v1 schema or semantics.
+  - G-005 renders final YAML text for persistence.
+  - G-005 creates backups or performs atomic writes.
+  - G-005 exposes CLI or MCP commands.
+  - G-005 owns path parser implementation.
+integration_verification_policy:
+  required_coverage:
+  - package boundary imports and public exports from T-001
+  - operation and result contracts from T-002
+  - set and replace_block behavior from T-003
+  - append and dedupe behavior from T-004
+  - delete behavior from T-005
+  - move behavior from T-006
+  - dispatch, batch rollback, and changed path aggregation from T-007
+  - forbidden imports from validation, transaction_writer, interfaces, reader, CLI,
+    and MCP layers
+  failure_routing_policy:
+  - This step may add documentation and integration tests that reveal defects in T-001
+    through T-007 outputs.
+  - This step must not modify production modules or sibling-owned tests.
+  - If a defect is found, document the owning tactical step in observations and route
+    the fix to that step.
+responsibilities:
+- Document the complete G-005 mutation subsystem truthfully and without claiming downstream
+  writer/interface behavior.
+- Provide integration verification planning that shows G-005 tactical outputs compose
+  as one pure in-memory subsystem.
+- Guard against forbidden imports and boundary leaks into validation, transaction
+  writer, reader, interfaces, CLI, or MCP code.
+implementation_notes:
+- Documentation must be understandable from docs/tech_spec.md, parent G-005 README.yaml,
+  and this T-008 README.yaml without reading sibling T README files.
+- Integration tests should use public G-005 entry points and contracts, not private
+  implementation details.
+- Do not patch production modules here; route discovered defects to their owning tactical
+  step.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/mutations/test_mutation_integration.py
+  optional_cross_step_commands:
+  - python -m pytest tests/mutations
+  expected:
+  - docs/mutation_operations.md documents scope, operations, changed paths, errors,
+    dedupe, rollback, and non-goals.
+  - Integration coverage composes T-001 through T-007 outputs through public G-005
+    entry points.
+  - Forbidden downstream subsystem imports are not introduced.
+  - Any discovered defect is routed to the owning tactical step instead of patched
+    here.
+acceptance_criteria:
+- Mutation documentation is truthful for G-005 scope and does not describe writer,
+  CLI, or MCP behavior as implemented by G-005.
+- Integration test file is owned solely by this step.
+- Integration coverage includes package boundary, contracts, replacement operations,
+  append, delete, move, engine dispatch, rollback, changed_paths, and forbidden imports.
+- This step edits only docs/mutation_operations.md and tests/mutations/test_mutation_integration.py
+  during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on docs/mutation_operations.md and tests/mutations/test_mutation_integration.py.
+    Document the complete G-005 pure in-memory mutation subsystem and add integration
+    verification over public G-005 entry points. Do not modify production modules
+    owned by T-001 through T-007. Do not implement or document validation, rendered
+    persistence, transaction writing, CLI, or MCP wrappers as part of G-005. If integration
+    reveals a defect, record the owning tactical step and route the fix there. Do
+    not edit .venv, venv, site-packages, installed dependencies, or sibling-owned
+    files.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  owning_step: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-005/T-008
+  problem: Tactical README did not exist for mutation documentation and integration
+    verification.
+  action: Created a self-contained tactical README constrained to G-005 documentation
+    and integration verification.
+  status: fixed
