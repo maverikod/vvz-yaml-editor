@@ -1,0 +1,106 @@
+format: tactical_step_v1
+parent_step_id: G-008
+parent_step_name: interfaces_release
+tactical_step_id: T-004
+tactical_step_name: cli_usage_docs
+title: CLI usage documentation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-008-regression-release-readiness/README.yaml
+intent: Own CLI usage documentation for the yaml-editor console command. This tactical
+  step documents load, validate, get, write-checked, and version usage, expected output
+  shape, exit-code policy, and examples without modifying CLI code or internal subsystem
+  code.
+self_contained_context:
+  global_goal: G-008 owns public interfaces, CLI adapters, MCP integration examples,
+    regression checks, and release readiness assets.
+  cli_surface:
+    executable: yaml-editor
+    commands:
+    - load
+    - validate
+    - get
+    - write-checked
+    - version
+  boundaries:
+  - Do not implement CLI code in this step.
+  - Do not edit public API code in this step.
+  - Do not edit parser, path, mutation, validation, writer, or MCP internals.
+  - Documentation must present CLI as a thin diagnostic wrapper over public API.
+owned_code_paths: []
+owned_test_paths: []
+owned_docs_paths:
+- docs/cli_usage.md
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/
+- tests/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-008/T-001 public API boundary
+  - G-008/T-002 CLI adapter
+  may_be_used_by:
+  - release readiness documentation
+public_contracts_provided:
+- docs/cli_usage.md
+documentation_policy:
+  required_sections:
+  - installation and executable name
+  - yaml-editor --help overview
+  - yaml-editor version example
+  - load command usage
+  - validate command usage
+  - get command usage
+  - write-checked dry-run usage
+  - write-checked real-write warning and read-back verification
+  - JSON-compatible output shape
+  - exit-code policy
+  forbidden_claims:
+  - CLI implements parser internals.
+  - CLI implements mutation internals.
+  - CLI implements validation internals.
+  - CLI implements transaction writer internals.
+responsibilities:
+- Document CLI command usage and expected outputs.
+- Document exit-code and nested failure behavior.
+- Keep docs independent from implementation edits.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - yaml-editor --help
+  - yaml-editor version
+  expected:
+  - CLI docs match available command names.
+  - Docs explain that write-checked real writes require separate read-back verification.
+acceptance_criteria:
+- CLI docs are usable without reading sibling T README files.
+- No code or test file is edited by this step during implementation.
+- This step edits only docs/cli_usage.md during implementation.
+model_assignment_spec:
+  performer: documentation_agent
+  instruction: Work only on docs/cli_usage.md. Document yaml-editor CLI usage, output
+    shape, exit-code policy, and real-write read-back verification. Do not implement
+    or edit CLI code, public API code, MCP code, or internal subsystem code. Do not
+    edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-008/T-004
+  problem: Tactical README did not exist for CLI usage documentation.
+  action: Created a self-contained tactical README constrained to G-008 CLI documentation
+    ownership.
+  status: fixed
