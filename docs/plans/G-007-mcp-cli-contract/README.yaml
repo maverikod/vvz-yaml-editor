@@ -144,6 +144,11 @@ tactical_decomposition:
   readme_path: docs/plans/G-007-mcp-cli-contract/T-008-transaction-writer-docs-and-integration-verification/README.yaml
   purpose: Own transaction writer documentation and integration verification planning
     without production edits.
+- tactical_step_id: T-009
+  tactical_step_name: changed_path_mismatch_gate
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-009-changed-path-mismatch-gate/README.yaml
+  purpose: Own expected-vs-actual changed path comparison and CHANGED_PATH_MISMATCH
+    rejection before persistence.
 branch_self_containment_policy:
 - Technical Specification -> this G-007 README.yaml -> any one T-YYY README.yaml under
   this directory must give an implementer the full picture for that tactical branch.
