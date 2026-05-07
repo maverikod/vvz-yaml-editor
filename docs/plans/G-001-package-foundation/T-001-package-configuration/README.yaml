@@ -365,8 +365,8 @@ verification:
   - build-system.build-backend is hatchling.build.
   - project.version is static 0.1.0.
   - Required runtime dependencies are in project.dependencies.
-  - jsonpath-ng is in project.optional-dependencies.experimental, not mandatory runtime
-    dependencies.
+  - jsonpath-ng is in project.dependencies as a mandatory runtime dependency, not
+    in project.optional-dependencies.experimental.
   - Metadata-only tests do not require README.md, package root, or py.typed to exist.
   - Tooling minimum sections are present for pytest, ruff, and mypy.
   - No forbidden subsystem files are modified.
