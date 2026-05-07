@@ -755,8 +755,8 @@ coverage_gap_closures:
     Formatters must not open, save, or close files.
 - gap: formatter_editing_separated_from_buffer_and_search
   resolution: G-010 owns AbstractFormatter, initial text/yaml formatters, formatter-specific
-    address semantics, validate_content, validate_document, copy/cut/paste fragment
-    operations, unit contracts, compare_units, and formatter clipboard compatibility.
+    address semantics, validate_content, validate_document, list_commands, copy/cut/paste
+    fragment operations, unit contracts, compare_units, and formatter clipboard compatibility.
 - gap: universal_search_separated_from_file_and_formatter_lifecycle
   resolution: 'G-011 owns AbstractSearch over formatter-provided units: find, find_one,
     list_units, select, match_unit use, compare_units use, search result policy, and
@@ -774,6 +774,10 @@ coverage_gap_closures:
   resolution: G-012 owns ForeignFormatter, external OpenAPI/MCP-proxy-adapter delegation,
     nested success/error mapping, and foreign formatter contract compliance for complex
     CST/AST/server-side formatters.
+- gap: formatter_command_discovery_and_specific_commands
+  resolution: Root public API exposes formatter_commands and G-010 requires AbstractFormatter.list_commands()
+    -> FormatterCommandCatalog. G-012 maps external OpenAPI command discovery into
+    the same catalog, including formatter-specific commands and writes_files metadata.
 workflow_clipboard:
   purpose: Format-aware runtime clipboard for editor copy/cut/paste operations between
     buffers. Clipboard state is workflow/cache state and must not be stored inside
