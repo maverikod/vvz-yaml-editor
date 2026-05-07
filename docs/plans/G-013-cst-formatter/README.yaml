@@ -447,23 +447,22 @@ acceptance_criteria:
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
-    cst-code as specified in source_code_origin. Do not rewrite from scratch. Adapt
-    tree_builder: remove _trees registry, TTL cleanup loop, load_file_to_tree (reads
-    disk). CSTFormatter.parse(raw_content: str, file_path=None) receives string content
-    from editor core. stable_id survival: primary = previous_metadata_map exact_key
-    + previous_obj_to_id in _build_tree_index. Supplementary for structural mutations
-    (insert/delete/move) only: call set_stable_id() before mutation to embed @node-id
-    in FunctionDef/ClassDef leading_lines; call get_stable_id() after mutation to
-    recover; call strip_inline_node_id_lines_from_source() to remove all comments
-    before final _build_tree_index; comments must never appear in render() output
-    or on disk. Do NOT use inline comment transport for replace or replace_docstring.
-    Sidecar header: ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>''.
-    Validate both checksums on load. Write sidecar only from save orchestration. Default
-    read format is declarative (skeleton). get_unit(stable_id) returns full node source.
-    list_units() flat metadata list without bodies. cst_query results in declarative
-    format. Do not call append_persisted_node_ids or render_marker_block. Do not edit
-    editor_core, search, interfaces, transaction_writer, text formatter, ai formatter,
-    foreign formatter, .venv, venv, or site-packages.'
+    cst-code. Do not rewrite from scratch. Adapt tree_builder: remove _trees registry,
+    TTL loop, load_file_to_tree. CSTFormatter.parse(raw_content: str, file_path=None)
+    receives string from editor core. STABLE_ID RULE: assigned exactly once per node
+    at first _build_tree_index, never changed after. Survival across mutations: snapshot
+    previous_metadata_map + previous_obj_to_id before mutation; after mutation call
+    _build_tree_index with both; match by exact_key (position+type) then by object
+    identity; unmatched nodes get new UUID4. DO NOT use set_stable_id or get_stable_id
+    in mutation flow — they violate the single-assignment rule. node_stable_id.py
+    is allowed ONLY for strip_inline_node_id_lines_from_source at parse time. Sidecar
+    header: ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>''. Validate
+    both on load. Write sidecar only from save orchestration. Default read format:
+    declarative (skeleton). get_unit(stable_id) full source. list_units() metadata
+    only. cst_query declarative. render() produces clean Python, no markers. Do not
+    call append_persisted_node_ids or render_marker_block. Do not edit editor_core,
+    search, interfaces, transaction_writer, text formatter, ai formatter, foreign
+    formatter, .venv, venv, site-packages.'
 observations_template:
 - command: ''
   expected: ''
