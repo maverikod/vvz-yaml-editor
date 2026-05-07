@@ -247,3 +247,28 @@ pre_save_validation:
   - fallback buffers (format_fallback status) are validated by text formatter, not
     original formatter
   error_code: VALIDATION_FAILED
+config_policy:
+  config_file: ai_editor/config/editor.json
+  format: JSON
+  schema_field: '$schema: ai_editor_config_v1'
+  small_file_threshold_field:
+    key: formatter.small_file_threshold
+    type: string
+    default: 1k
+    units:
+      bare_integer: characters, e.g. 500
+      k_suffix: thousands of characters, e.g. 1k = 1000
+      m_suffix: millions of characters, e.g. 1m = 1000000
+    zero_value: 0 means always use structural formatter; threshold is disabled
+    parsing_rule: strip trailing unit letter; multiply by unit factor; compare against
+      len(raw_content)
+  small_file_formatter_field:
+    key: formatter.small_file_formatter
+    type: string
+    default: text
+    meaning: formatter name to use when file size is below threshold
+  application_rule: threshold applies only when formatter=auto and open_as_text=False;
+    open_as_text=True always overrides threshold
+  rationale: target deployment environment has approximately 1-2GB free RAM; small
+    files must not trigger heavy structural parsing unnecessarily; default 1k is conservative
+    for constrained environments
