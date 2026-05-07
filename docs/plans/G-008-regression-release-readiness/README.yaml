@@ -188,6 +188,21 @@ tactical_decomposition:
   tactical_step_name: release_checklist_and_final_readiness
   readme_path: docs/plans/G-008-regression-release-readiness/T-007-release-checklist-and-final-readiness/README.yaml
   purpose: Own release checklist consolidation, final readiness decision, and handoff.
+- tactical_step_id: T-008
+  tactical_step_name: unsafe_line_fallback_api
+  readme_path: docs/plans/G-008-regression-release-readiness/T-008-unsafe-line-fallback-api/README.yaml
+  purpose: Own emergency-only yaml_read_lines and yaml_write_lines_unsafe fallback
+    APIs.
+- tactical_step_id: T-009
+  tactical_step_name: model_friendly_write_helpers
+  readme_path: docs/plans/G-008-regression-release-readiness/T-009-model-friendly-write-helpers/README.yaml
+  purpose: Own yaml_update_command, yaml_append_verification, and yaml_validate_plan_task
+    helper semantics.
+- tactical_step_id: T-010
+  tactical_step_name: console_entry_point_alignment
+  readme_path: docs/plans/G-008-regression-release-readiness/T-010-console-entry-point-alignment/README.yaml
+  purpose: Own console script target alignment between package metadata and the G-008
+    CLI owner path.
 branch_self_containment_policy:
 - Technical Specification -> this G-008 README.yaml -> any one T-YYY README.yaml under
   this directory must give an implementer the full picture for that tactical branch.
