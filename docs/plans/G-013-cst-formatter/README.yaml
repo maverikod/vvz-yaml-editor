@@ -390,14 +390,20 @@ acceptance_criteria:
   work correctly with stable_id addressing.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
-    cst-code as specified in source_code_origin. Do not rewrite from scratch. Do not
-    use node_id_markers.py or any trailing marker block mechanism. stable_id transport
-    between mutation steps uses only set_stable_id/get_stable_id (inline leading_lines
-    comments, FunctionDef and ClassDef only). For all other node types, stable_id
-    is transferred via previous_metadata_map in _build_tree_index using exact_key
-    position matching. Do not edit editor_core, search, interfaces, transaction_writer,
-    text formatter, ai formatter, foreign formatter, .venv, venv, or site-packages.
+  instruction: 'Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
+    cst-code as specified in source_code_origin. Do not rewrite from scratch. Adapt
+    tree_builder: remove _trees registry, TTL cleanup loop, load_file_to_tree (reads
+    disk). CSTFormatter.parse(raw_content: str, file_path=None) receives string content
+    from editor core. stable_id survives mutations via previous_metadata_map exact_key
+    matching in _build_tree_index. Do not use set_stable_id/get_stable_id as mutation
+    transport. Sidecar header: ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>''.
+    Validate both checksums on load. Write sidecar only from save orchestration. Default
+    read format is declarative (skeleton). get_unit(stable_id) returns full node source.
+    list_units() returns flat metadata list without bodies. cst_query results in declarative
+    format. Do not call append_persisted_node_ids or render_marker_block. strip_persisted_node_ids
+    and strip_inline_node_id_lines_from_source are allowed as defensive read-only
+    helpers. Do not edit editor_core, search, interfaces, transaction_writer, text
+    formatter, ai formatter, foreign formatter, .venv, venv, or site-packages.'
 observations_template:
 - command: ''
   expected: ''
