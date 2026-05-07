@@ -45,7 +45,7 @@ allowed_dependencies:
 public_contracts_provided:
 - AbstractFormatter
 - text formatter backend
-- AI formatter backend
+- YAML formatter backend
 - formatter unit contract
 - formatter unit comparison contract
 - formatter paste compatibility contract
