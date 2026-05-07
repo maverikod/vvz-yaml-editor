@@ -1,0 +1,175 @@
+format: tactical_step_v1
+parent_step_id: G-007
+parent_step_name: transaction_writer
+tactical_step_id: T-008
+tactical_step_name: transaction_writer_docs_and_integration_verification
+title: Transaction writer documentation and integration verification
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-007-mcp-cli-contract/README.yaml
+intent: Own documentation and integration verification planning for the complete G-007
+  checked transaction writer subsystem. This tactical step documents writer scope,
+  public contracts, dry-run behavior, backup policy, atomic write/read-back policy,
+  orchestration, diagnostics, and non-goals, and defines integration verification
+  without modifying production modules owned by earlier tactical steps.
+self_contained_context:
+  global_goal: G-007 owns safe checked persistence for structural YAML edits and orchestrates
+    document_io, mutations, and validation through public contracts.
+  complete_writer_scope:
+  - transaction writer package boundary and public surface
+  - CheckedWriteRequest and CheckedWriteResult contracts
+  - BackupRecord and FileHashPair contracts
+  - read and hashing stage
+  - dry-run no-write/no-backup semantics
+  - backup creation before real writes
+  - atomic replace and post-write read-back verification
+  - yaml_write_checked orchestration and truthful failure semantics
+  parent_boundaries:
+  - Writer must not implement parser configuration; use document_io.
+  - Writer must not implement mutation internals; use mutations.
+  - Writer must not implement schema or semantic validation internals; use validation.
+  - Writer must not implement CLI or MCP wrappers.
+  - Writer documentation must not claim interface behavior is implemented by G-007.
+owned_code_paths: []
+owned_test_paths:
+- tests/transaction_writer/test_transaction_writer_integration.py
+owned_docs_paths:
+- docs/transaction_writer.md
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/__init__.py
+- yaml_editor/transaction_writer/package_boundary.py
+- yaml_editor/transaction_writer/contracts.py
+- yaml_editor/transaction_writer/hashing.py
+- yaml_editor/transaction_writer/dry_run.py
+- yaml_editor/transaction_writer/backup.py
+- yaml_editor/transaction_writer/atomic_write.py
+- yaml_editor/transaction_writer/orchestrator.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/mutations/
+- tests/validation/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-007/T-001 transaction writer package boundary
+  - G-007/T-002 checked write contracts
+  - G-007/T-003 read and hashing stage
+  - G-007/T-004 dry-run semantics
+  - G-007/T-005 backup stage
+  - G-007/T-006 atomic replace and read-back
+  - G-007/T-007 checked write orchestration
+  may_be_used_by:
+  - G-008 interfaces and release
+public_contracts_provided:
+- docs/transaction_writer.md
+- tests/transaction_writer/test_transaction_writer_integration.py
+documentation_policy:
+  required_sections:
+  - checked writer scope and non-goals
+  - public request and result contracts
+  - read and hash behavior
+  - dry-run behavior
+  - backup behavior
+  - atomic replace and post-write read-back verification
+  - checked write orchestration pipeline
+  - failure and success truthfulness rules
+  - downstream interface usage without wrapper implementation
+  - forbidden parser, mutation, validation, CLI, and MCP internals
+  forbidden_claims:
+  - G-007 implements YAML parsing internals.
+  - G-007 implements mutation internals.
+  - G-007 implements validation internals.
+  - G-007 exposes CLI or MCP commands.
+  - G-007 reports success=true before post-write read-back verification for real writes.
+integration_verification_policy:
+  required_coverage:
+  - package boundary exports from T-001
+  - request and result contracts from T-002
+  - read and hashing behavior from T-003
+  - dry-run behavior from T-004
+  - backup behavior from T-005
+  - atomic replace and read-back behavior from T-006
+  - orchestration behavior from T-007
+  - failure routing for mutation, validation, render, backup, write, and read-back
+    failures
+  - forbidden imports from interfaces, CLI, MCP, parser internals, mutation internals,
+    and validation internals
+  failure_routing_policy:
+  - This step may add docs and integration tests that reveal defects in T-001 through
+    T-007 outputs.
+  - This step must not modify production modules or sibling-owned tests.
+  - If a defect is found, document the owning tactical step in observations and route
+    the fix to that step.
+responsibilities:
+- Document G-007 checked writer behavior truthfully and completely.
+- Provide integration verification planning that shows G-007 tactical outputs compose
+  into one safe persistence subsystem.
+- Guard against boundary leaks into parser, mutation, validation, interface, CLI,
+  or MCP behavior.
+implementation_notes:
+- Documentation must be understandable from docs/tech_spec.md, parent G-007 README.yaml,
+  and this T-008 README.yaml without reading sibling T README files.
+- Integration tests should use public G-007 entry points and contracts, not private
+  implementation details.
+- Do not patch production modules here; route discovered defects to their owning tactical
+  step.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/transaction_writer/test_transaction_writer_integration.py
+  optional_cross_step_commands:
+  - python -m pytest tests/transaction_writer
+  expected:
+  - docs/transaction_writer.md documents scope, contracts, dry-run, backup, atomic
+    replace, read-back, orchestration, failures, and non-goals.
+  - Integration coverage composes T-001 through T-007 outputs through public G-007
+    entry points.
+  - Forbidden downstream and sibling internals are not introduced.
+  - Any discovered defect is routed to the owning tactical step instead of patched
+    here.
+acceptance_criteria:
+- Transaction writer documentation is truthful for G-007 scope and does not describe
+  CLI or MCP behavior as implemented by G-007.
+- Integration test file is owned solely by this step.
+- Integration coverage includes boundary, contracts, hashing, dry-run, backup, atomic
+  replace, orchestration, failure semantics, and forbidden imports.
+- This step edits only docs/transaction_writer.md and tests/transaction_writer/test_transaction_writer_integration.py
+  during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on docs/transaction_writer.md and tests/transaction_writer/test_transaction_writer_integration.py.
+    Document the complete G-007 checked transaction writer subsystem and add integration
+    verification over public G-007 entry points. Do not modify production modules
+    owned by T-001 through T-007. Do not implement or document parser, mutation, validation,
+    CLI, or MCP wrappers as part of G-007. If integration reveals a defect, record
+    the owning tactical step and route the fix there. Do not edit .venv, venv, site-packages,
+    installed dependencies, or sibling-owned files.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  owning_step: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-007/T-008
+  problem: Tactical README did not exist for transaction writer documentation and
+    integration verification.
+  action: Created a self-contained tactical README constrained to G-007 documentation
+    and integration verification.
+  status: fixed
