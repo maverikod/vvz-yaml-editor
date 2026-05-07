@@ -1,0 +1,109 @@
+format: tactical_step_v1
+parent_step_id: G-008
+parent_step_name: interfaces_release
+tactical_step_id: T-003
+tactical_step_name: mcp_integration_docs
+title: MCP integration examples and contract documentation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-008-regression-release-readiness/README.yaml
+intent: Own MCP integration documentation and examples for external MCP wrappers.
+  This tactical step documents how MCP wrappers should call yaml_editor.interfaces.public_api,
+  pass through nested success=false results, and verify real writes through separate
+  reads, without implementing MCP server code or internal subsystem logic.
+self_contained_context:
+  global_goal: G-008 owns public interfaces, MCP examples, CLI docs, regression checks,
+    and release readiness.
+  mcp_contract_rules:
+  - MCP wrappers must import interfaces/public_api only, not internal subsystem modules.
+  - MCP wrappers must pass through nested success=false results honestly.
+  - Queue completion must not be treated as operation success unless nested result.success
+    is true.
+  - Every real write in MCP-level testing must be verified through a separate read
+    command.
+  boundaries:
+  - Do not implement MCP server wrappers.
+  - Do not edit public_api or CLI code in this step.
+  - Do not edit parser, path, mutation, validation, or writer internals.
+owned_code_paths: []
+owned_test_paths: []
+owned_docs_paths:
+- docs/mcp_integration.md
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- tests/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-008/T-001 public API boundary
+  may_be_used_by:
+  - external MCP server wrappers
+  - release readiness documentation
+public_contracts_provided:
+- docs/mcp_integration.md
+documentation_policy:
+  required_sections:
+  - public API import rule for MCP wrappers
+  - request and response examples for read operations
+  - request and response examples for validation operations
+  - request and response examples for checked write dry-run
+  - request and response examples for checked real write
+  - nested success=false pass-through rule
+  - queue completion versus operation success warning
+  - separate read-back verification rule for real writes
+  forbidden_claims:
+  - This package implements the MCP server itself.
+  - MCP wrappers may import internal subsystem modules directly.
+  - Queue completion alone proves operation success.
+responsibilities:
+- Document MCP wrapper integration examples using public API only.
+- Document truthful result handling and separate read-back verification.
+- Keep documentation independent from implementation code changes.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/interfaces/test_public_api_boundary.py
+  expected:
+  - Documentation examples reference public API entry points only.
+  - MCP success rules distinguish queue completion from nested operation success.
+  - Real write examples require separate read-back verification.
+acceptance_criteria:
+- MCP documentation is usable without reading sibling T README files.
+- No code or test file is edited by this step during implementation.
+- This step edits only docs/mcp_integration.md during implementation.
+model_assignment_spec:
+  performer: documentation_agent
+  instruction: Work only on docs/mcp_integration.md. Document MCP wrapper integration
+    examples that import yaml_editor.interfaces.public_api only, pass through nested
+    success=false results honestly, and verify real writes with a separate read. Do
+    not implement MCP server code, CLI code, public API code, or internal subsystem
+    code. Do not edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-008/T-003
+  problem: Tactical README did not exist for MCP integration documentation.
+  action: Created a self-contained tactical README constrained to G-008 MCP documentation
+    ownership.
+  status: fixed
