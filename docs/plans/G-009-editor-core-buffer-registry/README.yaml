@@ -334,3 +334,34 @@ config_policy:
     reduce VRAM pressure by giving the model only the declarative structure. Default
     1k is a conservative lower bound; files under 1k are trivially small for both
     model context and structural parsing.
+file_edit_lock_policy:
+  acquire_on_open: 'When editor core opens a file (buffer.open): 1. Query files table:
+    SELECT editing_pid FROM files WHERE project_id = ? AND path = ? LIMIT 1. 2. If
+    editing_pid IS NOT NULL and editing_lock_holder_is_alive(editing_pid) is True
+    -> return error BUFFER_LOCKED with holder pid. Do NOT open buffer. 3. If editing_pid
+    IS NULL or holder is dead (stale lock): UPDATE files SET editing_pid = os.getpid()
+    WHERE path = ? AND project_id = ? AND (editing_pid IS NULL OR editing_pid = <dead_pid>).
+    If 0 rows affected -> race condition, return BUFFER_LOCKED. 4. Lock acquired:
+    proceed with parse, return buffer_id.'
+  code_reference: 'Adapt from code_analysis/core/database/file_edit_lock.py: try_acquire_file_edit_lock,
+    release_file_edit_lock, editing_lock_holder_is_alive. Logic is already implemented
+    and tested in the server codebase.'
+  db_column: files.editing_pid INTEGER NULL. Stores OS PID of the process that has
+    the file open for editing. NULL means unlocked.
+  error_code: 'BUFFER_LOCKED (add to ErrorCode in G-001 T-004 if not already present).
+    Message: ''File is locked by process {pid}. Another editor has this file open.'''
+  purpose: Prevent concurrent writes to the same file by different editor processes.
+    Reuses the same mechanism used by the code_analysis server to coordinate between
+    file watcher, indexer, vectorizer, and CST write operations.
+  release_on_close: 'When buffer.close() is called: UPDATE files SET editing_pid =
+    NULL WHERE path = ? AND project_id = ? AND editing_pid = os.getpid(). Called in
+    finally block to guarantee release even on error. Safe if already NULL (no-op).'
+  stale_lock_handling: 'editing_lock_holder_is_alive(pid) uses os.kill(pid, 0): ProcessLookupError
+    -> dead, PermissionError -> alive, OSError with ESRCH -> dead. Stale locks are
+    cleared atomically before re-acquire using conditional UPDATE.'
+  worker_behavior: File watcher, indexer, and vectorizer in code_analysis server already
+    check editing_lock_holder_is_alive(row.editing_pid) and skip locked files. Editor
+    lock is therefore automatically respected by the entire server ecosystem.
+  write_path_lock: 'save and save_as must verify lock is still held by current process
+    before writing: SELECT editing_pid FROM files WHERE path = ? → must equal os.getpid().
+    If not (e.g. process crash and restart) → return BUFFER_STALE.'
