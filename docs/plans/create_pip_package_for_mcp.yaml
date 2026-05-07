@@ -80,8 +80,9 @@ module_architecture:
       and clipboard paste persistence.
   - path: yaml_editor/schemas/plan_task_v1.schema.json
     purpose: JSON Schema for plan_task_v1 structural checks.
-  - path: yaml_editor/cli.py
-    purpose: Small CLI wrapper for manual testing and MCP diagnostics.
+  - path: yaml_editor/interfaces/cli.py
+    purpose: Small CLI wrapper for manual testing and MCP diagnostics; console script
+      target is yaml_editor.interfaces.cli:main.
   - path: tests/
     purpose: Unit and integration tests over real YAML fixtures.
 public_api:
