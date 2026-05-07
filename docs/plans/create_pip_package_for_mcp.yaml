@@ -345,6 +345,27 @@ implementation_steps:
   - Append with dedupe=true is idempotent.
   - Move changes list order only at the requested path.
 - id: step_06
+  title: Implement workflow clipboard
+  actions:
+  - Implement runtime clipboard storage for YAML nodes, YAML blocks, and text fragments.
+  - Support memory and project-local persistent cache storage modes.
+  - Implement yaml_clipboard_copy, yaml_clipboard_get, yaml_clipboard_list, yaml_clipboard_clear,
+    and yaml_clipboard_paste.
+  - Validate source files, source paths, target files, target paths, clipboard item
+    existence, and paste compatibility before mutation.
+  - Ensure paste delegates to the checked write pipeline and supports dry_run=true.
+  deliverables:
+  - yaml_editor/clipboard.py
+  - tests/test_clipboard.py
+  - docs/mcp_integration.md
+  verification:
+  - Copying a missing source path returns SOURCE_PATH_NOT_FOUND or PATH_NOT_FOUND
+    without creating a clipboard item.
+  - Pasting a missing clipboard item returns CLIPBOARD_ITEM_NOT_FOUND without changing
+    the target file.
+  - Dry-run paste returns would_change without modifying the file.
+  - Real paste is verified through a separate yaml_get or yaml_load call.
+- id: step_07
   title: Implement schema and semantic validation
   actions:
   - Add plan_task_v1 JSON Schema.
@@ -358,7 +379,7 @@ implementation_steps:
   - Invalid required references are rejected.
   - Empty verification is rejected.
   - Invalid status is rejected.
-- id: step_07
+- id: step_08
   title: Implement deterministic rendering
   actions:
   - Render YAML through ruamel.yaml.
@@ -370,7 +391,7 @@ implementation_steps:
   verification:
   - Rendered YAML parses successfully.
   - Two renders of the same tree are identical.
-- id: step_08
+- id: step_09
   title: Implement atomic checked writer
   actions:
   - Implement read-parse-patch-validate-render-validate-write pipeline.
@@ -385,11 +406,11 @@ implementation_steps:
   - Dry run returns would_change without modifying the file.
   - Failed validation leaves the file byte-for-byte unchanged.
   - Successful write returns old_hash and new_hash.
-- id: step_09
+- id: step_10
   title: Implement public API wrappers
   actions:
   - Expose yaml_load, yaml_validate, yaml_get, yaml_set, yaml_replace_block, yaml_append,
-    yaml_delete, yaml_move, and yaml_write_checked.
+    yaml_delete, yaml_move, yaml_clipboard_copy, yaml_clipboard_paste, and yaml_write_checked.
   - Expose model-friendly helper functions.
   - Ensure API responses are JSON-serializable for MCP servers.
   deliverables:
@@ -398,10 +419,11 @@ implementation_steps:
   verification:
   - Every public function has success and error response contracts.
   - API responses can be serialized with json.dumps.
-- id: step_10
+- id: step_11
   title: Add CLI for diagnostics
   actions:
-  - Implement yaml-editor load, validate, get, write-checked commands.
+  - Implement yaml-editor load, validate, get, clipboard-copy, clipboard-paste, and
+    write-checked commands.
   - Keep CLI thin and delegate to public API.
   deliverables:
   - yaml_editor/cli.py
@@ -409,18 +431,23 @@ implementation_steps:
   verification:
   - yaml-editor --help exits with code 0.
   - yaml-editor validate fixture.yaml reports validation result.
-- id: step_11
+  - yaml-editor clipboard-copy followed by clipboard-paste dry-run reports expected
+    changed_paths.
+- id: step_12
   title: Add MCP integration guide
   actions:
   - Document how an MCP server imports yaml_editor.api functions.
   - Document request and response JSON examples.
+  - Document clipboard copy/paste workflow for splitting one step into two checked
+    edits.
   - Document that MCP command handlers must never use yaml_write_lines_unsafe for
     normal operation.
   deliverables:
   - docs/mcp_integration.md
   verification:
-  - Guide includes examples for yaml_write_checked and yaml_get_command.
-- id: step_12
+  - Guide includes examples for yaml_write_checked, yaml_get_command, yaml_clipboard_copy,
+    and yaml_clipboard_paste.
+- id: step_13
   title: Add packaging and release checks
   actions:
   - Run ruff, mypy, pytest, build, and twine check.
