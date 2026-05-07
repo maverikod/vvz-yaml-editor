@@ -330,6 +330,8 @@ requirements_from_tech_spec:
     - ruamel.yaml>=0.18
     - jsonschema>=4
     - jsonpath-ng>=1.6
+    - libcst>=1.1
+    - lark>=1.1
     experimental_optional: []
 must_not_implement_commands:
 - yaml_load
