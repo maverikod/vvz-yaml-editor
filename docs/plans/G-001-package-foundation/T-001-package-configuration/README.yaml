@@ -310,7 +310,8 @@ responsibilities:
 - Configure hatchling as build backend using hatchling.build.
 - Declare runtime dependencies with explicit lower bounds.
 - Put required runtime dependencies in project.dependencies.
-- Put jsonpath-ng in project.optional-dependencies.experimental.
+- Put jsonpath-ng in project.dependencies as a mandatory runtime dependency for structural
+  filter support.
 - Declare development dependencies for tests, lint, typing, build, package checks,
   and Python 3.10 TOML parsing.
 - Define package-data policy needed by future typed marker packaging.
