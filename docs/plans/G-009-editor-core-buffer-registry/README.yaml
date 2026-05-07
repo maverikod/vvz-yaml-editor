@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-009
 step_name: editor_core_buffer_registry
 title: AbstractBuffer, editor core, and buffer registry subsystem
@@ -17,18 +17,18 @@ why_this_block_exists: The technical specification separates file/buffer lifecyc
   while delegating all address, fragment, validation, and unit semantics to the attached
   formatter and search layer.
 owned_code_paths:
-- yaml_editor/editor_core/
+- ai_editor/editor_core/
 - tests/editor_core/
 owned_docs_paths:
 - docs/editor_core.md
 forbidden_code_paths:
-- yaml_editor/formatters/
-- yaml_editor/search/
-- yaml_editor/path_language/
-- yaml_editor/mutations/
-- yaml_editor/validation/
-- yaml_editor/transaction_writer/
-- yaml_editor/interfaces/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/path_language/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
 - .venv
 - venv
 - site-packages
@@ -47,7 +47,7 @@ public_contracts_provided:
 - format-independent copy/cut/paste orchestration over BufferAddress
 abstract_buffer_contract:
   methods:
-  - open(file_path, formatter=auto) -> buffer_id
+  - open(file_path, formatter=auto, open_as_text=False) -> buffer_id
   - new(formatter, display_name=New file) -> buffer_id
   - save(buffer_id)
   - save_as(buffer_id, file_path, overwrite=false)
@@ -55,6 +55,7 @@ abstract_buffer_contract:
   - reload(buffer_id)
   - get_state(buffer_id)
   - get_formatter(buffer_id)
+  - validate(buffer_id) -> ValidationResult
   responsibilities:
   - Own file_path binding and one-open-buffer-per-file rule.
   - Own unsaved/New file buffers.
@@ -154,8 +155,8 @@ acceptance_criteria:
 model_assignment_spec:
   performer: coding_agent
   instruction: Implement only AbstractBuffer and the format-independent editor core
-    under yaml_editor/editor_core and tests/editor_core. Provide buffer registry,
-    file-backed and unsaved buffer lifecycle, dirty/revision/hash state, open/new/save/save_as/close/reload,
+    under ai_editor/editor_core and tests/editor_core. Provide buffer registry, file-backed
+    and unsaved buffer lifecycle, dirty/revision/hash state, open/new/save/save_as/close/reload,
     and copy/cut/paste orchestration over BufferAddress. Do not implement YAML path
     logic, text range internals, formatter parsing, search/query semantics, CLI, MCP
     wrappers, .venv, venv, site-packages, or installed dependencies.
