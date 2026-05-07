@@ -306,14 +306,18 @@ read_operations:
     method: 'list_units(document: CSTTree) -> List[unit]'
 specific_commands:
   cst_query:
-    description: XPath-like search over document nodes using Lark-based selector parser
+    description: XPath-like search over document nodes using Lark-based selector parser.
+    implementation: cst_query package (existing Lark grammar, parser, executor)
+    result_format: declarative. Each matched node is presented as declarative overview
+      (signature + docstring + children signatures, no bodies). Same rules as skeleton().
+      Full body available via get_unit(stable_id).
+    returns: 'List of nodes. Each entry: stable_id, type, name, qualname, start_line,
+      end_line. Implementation body not included by default.'
     selector_examples:
     - //FunctionDef[@name='foo']
     - class > method:first
     - Def:*[start_line>=100]
     - function[@name^='_']:not([name^='__'])
-    returns: list of nodes with stable_id, type, name, qualname, start_line, end_line
-    implementation: cst_query package (existing Lark grammar, parser, executor)
 validation:
   validate_content:
     input: raw Python source string
