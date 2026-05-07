@@ -11,22 +11,26 @@ language_policy:
 summary:
   goal: Create a production-ready Python pip package that provides a small, familiar
     editor interface for MCP servers and AI models. The package must separate file/buffer
-    lifecycle, formatter-specific editing, and universal search. YAML is the first
-    structured formatter and text is the first plain formatter; JSON and Markdown
-    must be possible later without redesigning AbstractBuffer, AbstractFormatter,
+    lifecycle, formatter-specific editing, universal search, and format validation.
+    YAML is the first structured formatter and text is the first plain formatter;
+    foreign formatters must make complex CST/AST or server-side formatters possible
+    through OpenAPI/MCP-proxy-adapter without redesigning AbstractBuffer, AbstractFormatter,
     or AbstractSearch.
-  main_principle: open/new buffer -> search/select addresses -> copy/cut/paste in
-    buffers -> formatter.validate -> formatter.render -> checked save/save_as
+  main_principle: validate_file/open/new buffer -> search/select addresses -> copy/cut/paste
+    in buffers -> formatter.validate_document -> formatter.render -> checked save/save_as
   non_goals:
   - Do not expose many technical buffer, session, or clipboard internals as normal
     model-facing commands.
   - Do not let formatter implementations open, save, or close files.
   - Do not let buffer lifecycle logic know YAML paths or text line ranges.
   - Do not put search/query semantics inside file save/open logic.
+  - Do not make validate_file perform edits or writes.
   - Do not implement regular editing through unsafe line ranges for structured formats.
   - Do not patch .venv, site-packages, or installed dependency code.
   - Do not allow save/save_as to persist invalid content for the active formatter.
   - Do not make YAML-specific assumptions part of the editor core.
+  - Do not treat external OpenAPI/MCP proxy completion as formatter success unless
+    nested result.success is true.
 package_target:
   distribution_name: yaml-editor-mcp
   import_package: yaml_editor
