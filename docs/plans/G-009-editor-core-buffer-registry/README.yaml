@@ -178,12 +178,19 @@ acceptance_criteria:
 - fallback buffers use text formatter for validate, render, and all subsequent operations.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only AbstractBuffer and the format-independent editor core
+  instruction: 'Implement only AbstractBuffer and the format-independent editor core
     under ai_editor/editor_core and tests/editor_core. Provide buffer registry, file-backed
     and unsaved buffer lifecycle, dirty/revision/hash state, open/new/save/save_as/close/reload,
-    and copy/cut/paste orchestration over BufferAddress. Do not implement YAML path
-    logic, text range internals, formatter parsing, search/query semantics, CLI, MCP
-    wrappers, .venv, venv, site-packages, or installed dependencies.
+    copy/cut/paste orchestration over BufferAddress, open_as_text option, formatter
+    fallback on parse error, and validate(buffer_id) for pre-save structure checking.
+    open(file_path, formatter=auto, open_as_text=False): when open_as_text=True always
+    use text formatter; when formatter=auto and structural formatter raises on parse,
+    fall back to text formatter and set buffer status to format_fallback. validate(buffer_id)
+    calls formatter.validate_document(document) and returns ValidationResult without
+    writing files; save and save_as call validate as the first pipeline stage and
+    abort when success=false. Do not implement YAML path logic, text range internals,
+    formatter parsing internals, search/query semantics, CLI, MCP wrappers, .venv,
+    venv, site-packages, or installed dependencies.'
 observations_template:
 - command: ''
   expected: ''
