@@ -651,19 +651,28 @@ coverage_gap_closures:
   resolution: G-007/T-009 owns expected-vs-actual changed path comparison and CHANGED_PATH_MISMATCH
     rejection before persistence.
 - gap: model_friendly_write_helpers
-  resolution: G-008/T-009 owns yaml_update_command, yaml_append_verification, and
-    yaml_validate_plan_task helper semantics.
+  resolution: G-008/T-009 owns YAML-specific helper compatibility semantics such as
+    yaml_update_command, yaml_append_verification, and yaml_validate_plan_task over
+    the generic editor/search/formatter architecture.
 - gap: console_entry_point_alignment
   resolution: Root console script target is yaml-editor=yaml_editor.interfaces.cli:main
     and G-008/T-010 owns alignment verification with G-001 metadata coordination.
-- gap: editor_core_separated_from_yaml
-  resolution: G-009 owns the format-independent editor core, dynamic buffer registry,
-    file-backed/unsaved buffers, dirty state, and open/save/save_as/close/copy/cut/paste
-    orchestration.
-- gap: buffer_formatter_and_format_aware_clipboard
-  resolution: G-010 owns initial text and yaml formatter backends and the formatter
-    compatibility rules for clipboard payloads, including CLIPBOARD_FORMAT_MISMATCH
-    and CLIPBOARD_SOURCE_STALE behavior.
+- gap: buffer_file_lifecycle_separated_from_formatter
+  resolution: G-009 owns AbstractBuffer, dynamic buffer registry, file-backed/unsaved
+    buffers, dirty state, stale checks, and open/new/save/save_as/close/reload lifecycle.
+    Formatters must not open, save, or close files.
+- gap: formatter_editing_separated_from_buffer_and_search
+  resolution: G-010 owns AbstractFormatter, initial text/yaml formatters, formatter-specific
+    address semantics, copy/cut/paste fragment operations, unit contracts, compare_units,
+    and formatter clipboard compatibility.
+- gap: universal_search_separated_from_file_and_formatter_lifecycle
+  resolution: 'G-011 owns AbstractSearch over formatter-provided units: find, find_one,
+    list_units, select, match_unit use, compare_units use, search result policy, and
+    search typed errors.'
+- gap: copy_cut_paste_address_contract
+  resolution: Root public API and G-009 require copy/cut to provide source BufferAddress
+    and paste to provide target BufferAddress; address is opaque to editor core and
+    interpreted only by formatter.
 workflow_clipboard:
   purpose: Runtime workflow property for copying YAML nodes, YAML blocks, and text
     fragments between checked editing steps without adding clipboard data to plan_task_v1
