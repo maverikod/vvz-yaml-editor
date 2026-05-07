@@ -1,0 +1,190 @@
+format: global_package_step_v2
+plan_id: yaml_editor_pip_package_for_mcp
+step_id: G-008
+step_name: interfaces_release
+title: Public interfaces, MCP/CLI adapters, regression, and release readiness subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+global_intent: Own the outer interface layer and release verification for the package.
+  This subsystem exposes stable public APIs, CLI commands, MCP adapter examples, integration
+  docs, and end-to-end regression checks without owning internal parser, path, mutation,
+  validation, or writer logic.
+why_this_block_exists: 'Lower-level interface and release tasks must understand the
+  whole external-facing responsibility: wire internal subsystem contracts into user-visible
+  APIs, verify the package through actual commands, and prove MCP usage without duplicating
+  core logic.'
+owned_code_paths:
+- yaml_editor/interfaces/
+- tests/interfaces/
+- tests/integration/
+owned_docs_paths:
+- docs/mcp_integration.md
+- docs/cli_usage.md
+- docs/release_checklist.md
+- docs/regression_observations.md
+forbidden_code_paths:
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - G-004-reader-queries
+  - G-006-validation-rules
+  - G-007-transaction-writer
+  may_be_used_by: []
+public_contracts_provided:
+- yaml_editor.interfaces.public_api
+- yaml_editor.interfaces.cli
+- yaml-editor console command
+- MCP integration examples
+- release checklist
+core_responsibilities:
+- Expose stable public functions for MCP server wrappers.
+- Implement CLI diagnostics as thin wrappers over public functions.
+- Document request and response examples for MCP integration.
+- Document unsafe line fallback as emergency-only if such fallback is ever added.
+- Run end-to-end regression tests across subsystem boundaries.
+- Verify package build, wheel install, import, and CLI behavior.
+public_api_surface:
+  read_functions:
+  - yaml_load
+  - yaml_get
+  - yaml_get_command
+  - yaml_get_verification
+  validation_functions:
+  - yaml_validate
+  - yaml_validate_plan_task
+  write_functions:
+  - yaml_write_checked
+  - yaml_set
+  - yaml_replace_block
+  - yaml_append
+  - yaml_delete
+  - yaml_move
+  - yaml_update_command
+  - yaml_append_verification
+cli_surface:
+  executable: yaml-editor
+  commands:
+  - load
+  - validate
+  - get
+  - write-checked
+  - version
+mcp_contract_rules:
+- MCP wrappers must import interfaces/public_api only, not internal subsystem modules.
+- MCP wrappers must pass through nested success=false results honestly.
+- Queue completion must not be treated as operation success unless nested result.success
+  is true.
+- Every real write in MCP-level testing must be verified through a separate read command.
+quality_gates:
+  local_static_checks:
+  - python -m ruff check .
+  - python -m mypy yaml_editor
+  local_tests:
+  - python -m pytest
+  - python -m pytest --cov=yaml_editor
+  packaging_checks:
+  - python -m build
+  - python -m twine check dist/*
+  install_checks:
+  - python -m pip install dist/*.whl
+  - python -c "import yaml_editor; print(yaml_editor.__version__)"
+subsystem_independence_rules:
+- This subsystem must not implement YAML parser internals.
+- This subsystem must not implement path parser internals.
+- This subsystem must not implement mutation internals.
+- This subsystem must not implement validation internals.
+- This subsystem must not implement atomic writer internals.
+- It may compose public contracts from other subsystems into user-facing APIs.
+- Integration tests may call multiple subsystems, but production logic must stay in
+  owned interfaces paths.
+regression_requirements:
+- Test successful read operations against real fixtures.
+- Test failed read operations with invalid YAML, missing path, and ambiguous path.
+- Test dry-run write and verify no file change.
+- Test real checked write and verify result through separate read API.
+- Test validation failure leaves file unchanged.
+- Test append with dedupe=true is idempotent.
+- Test CLI commands use the same public API behavior.
+- Test wheel build and installed import.
+release_artifacts:
+- dist/*.whl
+- dist/*.tar.gz
+- docs/mcp_integration.md
+- docs/cli_usage.md
+- docs/release_checklist.md
+- docs/regression_observations.md
+verification:
+  commands:
+  - python -m pytest tests/interfaces tests/integration
+  - yaml-editor --help
+  - yaml-editor version
+  - python -m build
+  - python -m twine check dist/*
+  expected:
+  - Interface and integration tests pass.
+  - CLI commands return expected exit codes.
+  - Package builds successfully.
+  - Built distributions pass twine check.
+acceptance_criteria:
+- Public API is sufficient for MCP server usage.
+- CLI is a thin diagnostic wrapper and does not duplicate internals.
+- End-to-end tests prove read, dry-run write, real write, validation failure, and
+  read-back verification.
+- Release checklist records actual commands and outcomes.
+- Lower-level interface tasks can understand user-facing goals without touching internal
+  subsystem files.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only the public interface, CLI, MCP documentation, integration
+    tests, and release readiness assets. Do not edit internal subsystem directories.
+    If a behavior fails because of internals, document the failing contract and route
+    the fix to the owning global subsystem instead of patching it here.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+tactical_decomposition:
+- tactical_step_id: T-001
+  tactical_step_name: public_api_boundary
+  readme_path: docs/plans/G-008-regression-release-readiness/T-001-public-api-boundary/README.yaml
+  purpose: Define the MCP-facing public API boundary and exports.
+- tactical_step_id: T-002
+  tactical_step_name: cli_adapter
+  readme_path: docs/plans/G-008-regression-release-readiness/T-002-cli-adapter/README.yaml
+  purpose: Define yaml-editor CLI adapter behavior as a thin wrapper over public API.
+- tactical_step_id: T-003
+  tactical_step_name: mcp_integration_docs
+  readme_path: docs/plans/G-008-regression-release-readiness/T-003-mcp-integration-docs/README.yaml
+  purpose: Document MCP wrapper integration examples and truthful nested success handling.
+- tactical_step_id: T-004
+  tactical_step_name: cli_usage_docs
+  readme_path: docs/plans/G-008-regression-release-readiness/T-004-cli-usage-docs/README.yaml
+  purpose: Document yaml-editor CLI usage, output, exit codes, and read-back verification.
+- tactical_step_id: T-005
+  tactical_step_name: end_to_end_regression_suite
+  readme_path: docs/plans/G-008-regression-release-readiness/T-005-end-to-end-regression-suite/README.yaml
+  purpose: Own end-to-end public-interface regression suite and regression observations.
+- tactical_step_id: T-006
+  tactical_step_name: packaging_and_install_checks
+  readme_path: docs/plans/G-008-regression-release-readiness/T-006-packaging-and-install-checks/README.yaml
+  purpose: Own packaging, build, twine, wheel install, import, and console command
+    release checks.
+- tactical_step_id: T-007
+  tactical_step_name: release_checklist_and_final_readiness
+  readme_path: docs/plans/G-008-regression-release-readiness/T-007-release-checklist-and-final-readiness/README.yaml
+  purpose: Own release checklist consolidation, final readiness decision, and handoff.
