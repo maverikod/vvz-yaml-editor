@@ -314,3 +314,6 @@ mcp_proxy_adapter_integration:
   - Command appears in adapter help after restart.
   - Command executes successfully through MCP.
   - Write commands verified through separate read command.
+source_documents:
+- docs/tech_spec.md
+- docs/metadatastd.md
