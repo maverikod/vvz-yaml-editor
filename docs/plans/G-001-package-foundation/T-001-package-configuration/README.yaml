@@ -399,8 +399,8 @@ acceptance_criteria:
 - build-system.build-backend is hatchling.build.
 - project.version is statically defined as 0.1.0.
 - ruamel.yaml and jsonschema are mandatory runtime dependencies with lower bounds.
-- jsonpath-ng is a mandatory runtime dependency with a lower bound because structural
-  list filters such as commands[name=...] are part of the root package contract.
+- libcst>=1.1 and lark>=1.1 are mandatory runtime dependencies in project.dependencies
+  because CSTFormatter is a built-in formatter (G-013), not an optional plugin.
 - No console script is declared in T-001.
 - Package-data policy accounts for future py.typed inclusion without creating py.typed.
 - README.md may be referenced but is not required to exist for T-001 completion.
