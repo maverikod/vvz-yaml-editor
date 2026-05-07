@@ -288,8 +288,8 @@ metadata_test_scope:
   - validate project.name equals yaml-editor-mcp
   - validate static project.version equals 0.1.0
   - validate project.requires-python equals >=3.10
-  - validate project.dependencies contains ruamel.yaml>=0.18 and jsonschema>=4
-  - validate project.optional-dependencies.experimental contains jsonpath-ng>=1.6
+  - validate project.dependencies contains ruamel.yaml>=0.18, jsonschema>=4, and jsonpath-ng>=1.6
+  - validate project.optional-dependencies.experimental is absent or empty
   - validate project.optional-dependencies.dev contains tomli for Python < 3.11
   - validate README.md may be referenced but is not required to exist for metadata-only
     tests
