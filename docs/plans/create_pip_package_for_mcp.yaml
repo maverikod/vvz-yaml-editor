@@ -72,26 +72,38 @@ module_architecture:
       state, revision/hash state, open/save/save_as/close/reload lifecycle, stale
       checks, and atomic persistence orchestration.'
   - path: yaml_editor/formatters/base.py
-    purpose: 'AbstractFormatter contract: parse, render, validate, normalize_address,
-      copy_fragment, cut_fragment, paste_fragment, get_unit, iter_units, diagnostics,
-      and unit comparison hooks.'
+    purpose: 'AbstractFormatter contract: parse, render, validate_content, validate_document,
+      validate, normalize_address, copy_fragment, cut_fragment, paste_fragment, get_unit,
+      iter_units, diagnostics, and unit comparison hooks.'
+  - path: yaml_editor/formatters/registry.py
+    purpose: Formatter registry and extension-based formatter resolution for validate_file/open(formatter=auto),
+      including local and foreign formatter registrations.
   - path: yaml_editor/formatters/text/
     purpose: Text formatter backend. Represents documents as arrays of lines and owns
-      text address, text unit, and text copy/cut/paste semantics.
+      text address, text unit, text validation, and text copy/cut/paste semantics.
   - path: yaml_editor/formatters/yaml/
     purpose: YAML formatter backend. Represents documents as YAML trees and owns YAML
-      address, YAML unit, structural path, parse, render, validation, and YAML copy/cut/paste
-      semantics.
+      address, YAML unit, structural path, format validation, render validation, and
+      YAML copy/cut/paste semantics.
+  - path: yaml_editor/formatters/foreign.py
+    purpose: ForeignFormatter implementation of AbstractFormatter that delegates complex
+      formatter operations to external OpenAPI/MCP-proxy-adapter backed servers while
+      preserving the local formatter contract.
+  - path: yaml_editor/file_validation.py
+    purpose: 'validate_file orchestration: resolve formatter by extension or explicit
+      name, validate raw file content or in-memory buffer document, and return unified
+      validation diagnostics without writes.'
   - path: yaml_editor/search/
     purpose: 'AbstractSearch and universal search engine over formatter units: find,
       find_one, list_units, select, match_unit, and formatter-driven compare_units.'
   - path: yaml_editor/api.py
-    purpose: High-level model-facing API for buffer lifecycle, copy/cut/paste, search,
-      validation, and YAML compatibility wrappers intended for MCP command handlers.
+    purpose: High-level model-facing API for buffer lifecycle, validate_file, copy/cut/paste,
+      search, validation, and YAML compatibility wrappers intended for MCP command
+      handlers and project managers.
   - path: yaml_editor/models.py
     purpose: Typed request and response dataclasses or pydantic-free DTOs, including
-      BufferAddress, buffer, formatter, search, clipboard, and compatibility request/response
-      contracts.
+      BufferAddress, validation, buffer, formatter, foreign formatter, search, clipboard,
+      and compatibility request/response contracts.
   - path: yaml_editor/path_parser.py
     purpose: YAML structural address parser for keys, indexes, and list filters such
       as commands[name=buf_diff], owned by the YAML formatter path layer.
@@ -120,8 +132,9 @@ module_architecture:
     purpose: Small CLI wrapper for manual testing and MCP diagnostics; console script
       target is yaml_editor.interfaces.cli:main.
   - path: tests/
-    purpose: Unit and integration tests over buffer lifecycle, search, text formatter,
-      YAML formatter, and real fixtures.
+    purpose: Unit and integration tests over buffer lifecycle, format validation,
+      foreign formatter contract, search, text formatter, YAML formatter, and real
+      fixtures.
 public_api:
   core_commands:
   - name: open
