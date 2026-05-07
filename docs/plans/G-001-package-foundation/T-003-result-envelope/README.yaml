@@ -123,10 +123,13 @@ model_assignment_spec:
     Diagnostic, ValidationResult, or OperationResult contracts from this step; use
     primitive JSON-safe shapes that later steps can refine.
 observations_template:
-- command: ''
-  expected: ''
-  actual: ''
+- actual: ''
+  command: ''
   error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
   status: ''
 quality_loop_observations:
 - iteration: 1
