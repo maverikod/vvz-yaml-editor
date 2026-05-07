@@ -559,14 +559,19 @@ regression_commands:
   mcp_level:
   - Import yaml_editor.api in the target MCP server.
   - Register wrapper commands for yaml_load, yaml_get, yaml_write_checked, yaml_validate_plan_task,
-    yaml_clipboard_copy, and yaml_clipboard_paste.
+    yaml_clipboard_copy, yaml_clipboard_get, yaml_clipboard_list, yaml_clipboard_clear,
+    and yaml_clipboard_paste.
   - Execute yaml_load against a real plan YAML fixture.
   - Execute yaml_write_checked with dry_run=true and verify no file change.
   - Execute yaml_clipboard_copy against an existing YAML path and verify the item
     through yaml_clipboard_get.
+  - Execute yaml_clipboard_list and verify the copied item appears without reading
+    or mutating a plan YAML document.
   - Execute yaml_clipboard_paste with dry_run=true and verify no file change.
   - Execute yaml_clipboard_paste with dry_run=false and verify the result through
     a separate yaml_get or yaml_load call.
+  - Execute yaml_clipboard_clear and verify yaml_clipboard_get returns CLIPBOARD_ITEM_NOT_FOUND
+    for the cleared item.
   - Execute yaml_write_checked with dry_run=false and verify the result through a
     separate yaml_get or yaml_load call.
 observations_template:
