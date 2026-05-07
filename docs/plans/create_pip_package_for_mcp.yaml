@@ -64,30 +64,43 @@ module_architecture:
   - path: yaml_editor/__init__.py
     purpose: Public package exports and version.
   - path: yaml_editor/editor_core/
-    purpose: 'Format-independent editor core: buffer registry, file-backed/unsaved
-      buffers, dirty state, open/save/save_as/close, and copy/cut/paste orchestration.'
+    purpose: 'AbstractBuffer and buffer registry: file-backed/unsaved buffers, dirty
+      state, revision/hash state, open/save/save_as/close/reload lifecycle, stale
+      checks, and atomic persistence orchestration.'
+  - path: yaml_editor/formatters/base.py
+    purpose: 'AbstractFormatter contract: parse, render, validate, normalize_address,
+      copy_fragment, cut_fragment, paste_fragment, get_unit, iter_units, diagnostics,
+      and unit comparison hooks.'
   - path: yaml_editor/formatters/text/
     purpose: Text formatter backend. Represents documents as arrays of lines and owns
-      text copy/cut/paste semantics.
+      text address, text unit, and text copy/cut/paste semantics.
   - path: yaml_editor/formatters/yaml/
-    purpose: YAML formatter backend. Represents documents as YAML trees and owns structural
-      YAML path, parse, render, validation, and YAML copy/cut/paste semantics.
+    purpose: YAML formatter backend. Represents documents as YAML trees and owns YAML
+      address, YAML unit, structural path, parse, render, validation, and YAML copy/cut/paste
+      semantics.
+  - path: yaml_editor/search/
+    purpose: 'AbstractSearch and universal search engine over formatter units: find,
+      find_one, list_units, select, match_unit, and formatter-driven compare_units.'
   - path: yaml_editor/api.py
-    purpose: High-level API functions intended for MCP command handlers.
+    purpose: High-level model-facing API for buffer lifecycle, copy/cut/paste, search,
+      validation, and YAML compatibility wrappers intended for MCP command handlers.
   - path: yaml_editor/models.py
     purpose: Typed request and response dataclasses or pydantic-free DTOs, including
-      buffer, formatter, and clipboard request/response contracts.
+      BufferAddress, buffer, formatter, search, clipboard, and compatibility request/response
+      contracts.
   - path: yaml_editor/path_parser.py
-    purpose: YAML path parser for keys, indexes, and list filters such as commands[name=buf_diff],
-      owned by the YAML formatter path layer.
+    purpose: YAML structural address parser for keys, indexes, and list filters such
+      as commands[name=buf_diff], owned by the YAML formatter path layer.
   - path: yaml_editor/loader.py
-    purpose: YAML file read, ruamel.yaml parse, tree summary, and parse diagnostics,
-      used by the YAML formatter backend.
+    purpose: YAML raw-content parse, tree summary, and parse diagnostics, used by
+      the YAML formatter backend rather than by buffer lifecycle.
   - path: yaml_editor/operations.py
-    purpose: YAML in-memory set, replace_block, append, delete, move, and paste operations,
-      used by the YAML formatter backend.
+    purpose: 'YAML in-memory formatter operations: set, replace_block, append, delete,
+      move, and paste modes.'
   - path: yaml_editor/clipboard.py
-    purpose: Format-aware workflow clipboard payloads for editor copy/cut/paste operations.
+    purpose: Format-aware clipboard payloads for editor copy/cut/paste operations,
+      including source_formatter, source_address, source_revision, payload_kind, and
+      payload.
   - path: yaml_editor/validator.py
     purpose: YAML syntax validation, rendered YAML validation, schema validation,
       and semantic validation, used by the YAML formatter backend.
@@ -95,15 +108,16 @@ module_architecture:
     purpose: Deterministic ruamel.yaml rendering with formatting preservation, used
       by the YAML formatter backend.
   - path: yaml_editor/writer.py
-    purpose: 'Checked persistence helper for save/save_as: backups, hashes, atomic
-      write, and read-back diagnostics.'
+    purpose: 'Checked persistence helper used by AbstractBuffer save/save_as: backups,
+      hashes, atomic write, and read-back diagnostics.'
   - path: yaml_editor/schemas/plan_task_v1.schema.json
     purpose: JSON Schema for plan_task_v1 structural checks.
   - path: yaml_editor/interfaces/cli.py
     purpose: Small CLI wrapper for manual testing and MCP diagnostics; console script
       target is yaml_editor.interfaces.cli:main.
   - path: tests/
-    purpose: Unit and integration tests over real text and YAML fixtures.
+    purpose: Unit and integration tests over buffer lifecycle, search, text formatter,
+      YAML formatter, and real fixtures.
 public_api:
   core_commands:
   - name: yaml_load
