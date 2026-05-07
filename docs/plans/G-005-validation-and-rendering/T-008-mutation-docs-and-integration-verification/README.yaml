@@ -19,8 +19,8 @@ self_contained_context:
     YAML document objects.
   technical_spec_basis:
   - The YAML editor must edit YAML by structural tree paths, not by line ranges.
-  - G-005 covers only in-memory mutation operations: set, replace_block, append, delete,
-      move, batch application, and changed path collection.
+  - 'G-005 covers only in-memory mutation operations: set, replace_block, append,
+    delete, move, batch application, and changed path collection.'
   - checked write, schema validation, rendered YAML validation, backups, CLI, and
     MCP wrappers are later or separate branches.
   - Every operation must report normalized structural changed_paths and typed diagnostics.
