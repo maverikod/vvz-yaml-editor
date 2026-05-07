@@ -308,22 +308,102 @@ mutation_operations:
     start_col, end_line, end_col, type) -> get stable_id from prev_meta; if not found
     try previous_obj_to_id; if not found: new node, new UUID4. No inline comments.'
 libcst_constraints_and_workarounds:
-  inline_comment_transport_removed: set_stable_id / get_stable_id inline @node-id
-    comment transport is NOT used. This mechanism violates the single-assignment rule
-    and was a legacy approach in cst-code. In the adapted CSTFormatter, stable_id
-    never moves through source code.
-  libcst_immutable_tree: 'All nodes recreated after any transformation. Workaround:
-    previous_metadata_map exact_key + previous_obj_to_id in _build_tree_index. This
-    is the ONLY stable_id survival mechanism.'
-  match_node_rejection: 'Match node body is not directly insertable. Workaround: require
-    MatchCase as parent_stable_id; reject Match with clear error.'
-  simple_statement_suite_expansion: 'SimpleStatementSuite cannot accept inserted children.
-    Workaround: auto-expand one-liner to IndentedBlock before insert.'
-  docstring_positional: 'Docstring is not a named child but positional Expr at body[0].
-    Workaround: replace_docstring detects and handles this pattern explicitly.'
-  transformer_object_identity: 'CSTTransformer matches by object identity (is), not
-    by position. Workaround: node_map holds pre-mutation objects; previous_obj_to_id
-    maps id(libcst_object)->node_id for post-mutation recovery.'
+  constraint_1_immutable_nodes:
+    constraint: LibCST tree is immutable. Any `with_changes()` or `visit()` creates
+      entirely new node objects throughout the ancestor chain. After mutation, `node_map`
+      (id(obj)->node_id) is stale for all affected nodes.
+    workarounds:
+    - 'stable_id survival: snapshot `previous_metadata_map` before mutation, build
+      `previous_obj_to_id = {id(v): k for k, v in tree.node_map.items()}` before mutation.
+      After mutation call `_build_tree_index(previous_metadata_map=..., previous_obj_to_id=...)`.
+      For each rebuilt node: try exact_key (start_line, start_col, end_line, end_col,
+      type) to get previous stable_id; fallback to previous_obj_to_id for object identity
+      match; fallback to new UUID4.'
+    - 'node_map goes stale in batch: partial `_remove_operation_nodes_from_index`
+      after each sequential operation removes only the targeted nodes so remaining
+      valid node_ids stay addressable for the next operation in the batch.'
+  constraint_2_transformer_object_identity:
+    constraint: CSTTransformer.on_leave matches nodes by Python object identity (`original_node
+      is target`). After any prior transformation in a batch, `node_map` may hold
+      pre-mutation object references that no longer exist in the current module tree.
+    workarounds:
+    - 'For compound statements (FunctionDef, ClassDef, If, For, While, Try, With):
+      `resolve_replace_target_to_current_module(module, node, metadata)` re-resolves
+      by type+name+start_position scan via MetadataWrapper+PositionProvider. Used
+      before every replace and delete.'
+    - 'For inserts: `find_parent_in_module_by_position(module, start_line, start_col)`
+      scans current module for the container by exact start position; if not found
+      (positions shifted after prior inserts) falls back to smallest span containing
+      the target position.'
+    - 'For fine-grained nodes (Name, Param, Annotation): `find_leaf_node_in_module_by_position()`
+      with exact 4-coordinate match + preferred_type disambiguation by depth.'
+  constraint_3_simple_statement_suite:
+    constraint: '`SimpleStatementSuite` (one-liner body, e.g. `def f(): pass`) has
+      no insertable children collection. `insert_node_at_position` raises ValueError
+      when parent is SimpleStatementSuite.'
+    workaround: 'Detect parent type before insert. If `isinstance(parent_node, cst.SimpleStatementSuite)`:
+      raise with message ''Expand the block to IndentedBlock first, then insert.''
+      The caller (or a pre-insert step) must rewrite the function/class to use IndentedBlock
+      body before inserting into it.'
+  constraint_4_match_node:
+    constraint: '`Match` node body is a sequence of `MatchCase` nodes, not `BaseStatement`.
+      Direct insertion into Match is not supported by the insert logic.'
+    workaround: 'Detect `isinstance(parent_node, cst.Match)` and raise ValueError:
+      ''Use MatchCase node as parent_node_id instead.'' Callers must pass a MatchCase
+      stable_id as parent.'
+  constraint_5_codegen_compat:
+    constraint: libcst 1.8.x codegen passes `default_semicolon=` kwarg to `SimpleStatementLine._codegen_impl(self,
+      state)` which does not accept it, causing TypeError.
+    workaround: 'Monkey-patch at module load: wrap `SimpleStatementLine._codegen_impl`
+      to accept `**kwargs` and ignore them. Applied once via `_apply_libcst_codegen_compat()`
+      at import time.'
+  constraint_6_insert_target_normalization:
+    constraint: Callers may pass a stable_id pointing to any node (e.g. an Import
+      inside SimpleStatementLine, or a Name inside FunctionDef). The insert logic
+      needs a statement-level ancestor that is a direct child of the body list.
+    workaround: '`insert_node_relative()` walks up the `parent_id` chain in `metadata_map`
+      from the target node until it finds an ancestor whose `(start_line, start_col)`
+      matches a direct element of the parent body (resolved via PositionProvider scan).
+      This means callers never need to manually pick the right statement level — any
+      node_id from anywhere in the subtree works.'
+  constraint_7_batch_mutable_path:
+    constraint: 'Sequential single-op LibCST transformations for multi-op batches
+      are slow and fragile: each op re-parses, positions shift, object identity is
+      lost for subsequent ops.'
+    workaround: 'For batches of (>1 replace or >1 insert or any delete) without REPLACE_RANGE
+      or MOVE: use `mutable_cst` layer (`build_from_libcst` -> `apply_operations`
+      -> `serialize_to_source` -> `cst.parse_module`). This converts the immutable
+      LibCST tree to a mutable representation, applies all ops at once, then re-parses
+      the result. Falls back to sequential if `mutable_cst` is unavailable or if fine-grained
+      node types (Name, Param) are targeted. For sequential multi-op: sort DELETE
+      bottom-to-top, then REPLACE bottom-to-top, then INSERT bottom-to-top by parent
+      position to prevent position shift from invalidating subsequent targets.'
+  stable_id_in_node_data_during_mutation:
+    invariant: After mutation completes, `@node-id` blocks do NOT exist anywhere.
+      They are transient in the source text only between `set_stable_id()` call and
+      the subsequent `strip_inline_node_id_lines_from_source()` call within the same
+      mutation step.
+    lifecycle: '1. Before structural mutation: for each FunctionDef/ClassDef in tree.module,
+      call `set_stable_id(node, stable_id)` — embeds `# @node-id: <uuid>` as a leading_lines
+      EmptyLine comment directly in the node data (in memory, not on disk). 2. Run
+      LibCST transformation (insert/delete/move). FunctionDef/ClassDef nodes carry
+      their stable_id through the transformation because the comment travels with
+      the node object. 3. After mutation: walk new tree, call `get_stable_id(node)`
+      on each FunctionDef/ClassDef — recover stable_id from leading_lines. Strip all
+      @node-id comments from module.code via `strip_inline_node_id_lines_from_source()`.
+      4. Call `_build_tree_index` with recovered stable_ids in `previous_metadata_map`.
+      The stable_id is now back in metadata only — never in source.'
+    why_inline: For INSERT/DELETE/MOVE operations, node positions shift throughout
+      the tree. exact_key matching (start_line, start_col, end_line, end_col, type)
+      fails for nodes that moved. previous_obj_to_id also fails because LibCST recreates
+      all ancestor nodes. Embedding stable_id in the node data (leading_lines comment)
+      makes it travel with the node object through the transformation, regardless
+      of position shift.
+    why_only_funcdef_classdef: 'LibCST only supports `leading_lines` (EmptyLine with
+      Comment) on FunctionDef and ClassDef nodes. Other node types do not have this
+      attribute. For all other node types: exact_key + previous_obj_to_id is sufficient
+      because they either do not shift (replace) or their stable_id is recoverable
+      through parent chain.'
 read_operations:
   default_buffer_format: declarative. When editor core opens a .py file via CSTFormatter
     the view returned to the caller is the declarative overview, not full source.
