@@ -448,7 +448,8 @@ implementation_steps:
   title: Implement public API wrappers
   actions:
   - Expose yaml_load, yaml_validate, yaml_get, yaml_set, yaml_replace_block, yaml_append,
-    yaml_delete, yaml_move, yaml_clipboard_copy, yaml_clipboard_paste, and yaml_write_checked.
+    yaml_delete, yaml_move, yaml_clipboard_copy, yaml_clipboard_get, yaml_clipboard_list,
+    yaml_clipboard_clear, yaml_clipboard_paste, and yaml_write_checked.
   - Expose model-friendly helper functions.
   - Ensure API responses are JSON-serializable for MCP servers.
   deliverables:
