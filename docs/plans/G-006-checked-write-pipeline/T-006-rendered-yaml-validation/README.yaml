@@ -1,0 +1,113 @@
+format: tactical_step_v1
+parent_step_id: G-006
+parent_step_name: validation_rules
+tactical_step_id: T-006
+tactical_step_name: rendered_yaml_validation
+title: Rendered YAML parse and structural equivalence validation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-006-checked-write-pipeline/README.yaml
+intent: Own validation of rendered YAML text. This tactical step verifies that rendered
+  YAML parses successfully and, when an expected in-memory document is provided, parses
+  back to an equivalent structure. It does not own deterministic rendering, schema
+  validation, semantic validation, mutation logic, file writing, backups, CLI, or
+  MCP wrappers.
+self_contained_context:
+  global_goal: G-006 owns validation logic for YAML documents, rendered YAML, schema,
+    semantic rules, render checks, and diagnostics.
+  technical_basis:
+  - Rendered YAML must parse back to an equivalent tree.
+  - Write must be rejected later if rendered YAML is invalid, but writer behavior
+    is not owned here.
+  - Validation reports must be machine-readable through ValidationReport.
+  boundaries:
+  - Do not perform file writes or backups.
+  - Do not apply mutations.
+  - Do not run schema or plan_task_v1 semantic validation.
+  - Do not own deterministic double-render checks.
+  - Do not implement CLI or MCP wrappers.
+owned_code_paths:
+- yaml_editor/validation/render_check.py
+owned_test_paths:
+- tests/validation/test_rendered_yaml_validation.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/validation/schema.py
+- yaml_editor/validation/semantic.py
+- yaml_editor/validation/determinism.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 document_io parse/render public contracts
+  - G-006/T-002 validation report contract
+  - G-006/T-003 generic YAML document validation
+  may_be_used_by:
+  - G-006 render determinism validation
+  - G-007 checked write pipeline
+public_contracts_provided:
+- validate_rendered_yaml(text)
+- validate_rendered_yaml_equivalence(text, expected_document)
+rendered_yaml_policy:
+  parse_check:
+    requirement: Rendered YAML text must parse successfully as YAML.
+    failure_code: VALIDATION_FAILED
+  equivalence_check:
+    requirement: When expected_document is provided, parsed rendered YAML must be
+      structurally equivalent to it.
+    non_goal: Do not compare byte formatting or comments as the primary equivalence
+      rule unless parent contracts are later expanded.
+  diagnostics:
+  - report parse failures with machine-readable details
+  - report equivalence failures without exposing raw parser internals as the public
+    API
+responsibilities:
+- Validate rendered YAML text can be parsed.
+- Validate parsed rendered YAML is structurally equivalent to an expected in-memory
+  document when provided.
+- Return ValidationReport diagnostics for parse and equivalence failures.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/validation/test_rendered_yaml_validation.py
+  expected:
+  - Valid rendered YAML text passes parse validation.
+  - Invalid rendered YAML text fails with typed diagnostics.
+  - Equivalent rendered YAML passes equivalence validation.
+  - Non-equivalent rendered YAML fails without writing files.
+  - No schema, semantic, determinism, mutation, writer, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- Rendered YAML validation is independent from deterministic rendering checks.
+- Rendered YAML validation uses document_io public parse/render contracts where needed.
+- Validation results use the shared ValidationReport contract.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/validation/render_check.py and tests/validation/test_rendered_yaml_validation.py.
+    Implement rendered YAML parse validation and optional structural equivalence validation
+    using G-006 ValidationReport diagnostics and public document_io contracts. Do
+    not implement determinism checks, schema validation, semantic validation, mutations,
+    transaction writing, backups, CLI, or MCP wrappers. Do not edit .venv, venv, site-packages,
+    or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-006/T-006
+  problem: Tactical README did not exist for rendered YAML validation.
+  action: Created a self-contained tactical README constrained to G-006 rendered YAML
+    parse and equivalence validation.
+  status: fixed
