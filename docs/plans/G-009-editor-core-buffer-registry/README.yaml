@@ -202,3 +202,22 @@ formatter_fallback_policy:
     is format_fallback_on_corrupt'
   - 'formatter=explicit (caller named a specific formatter): no fallback; return FORMAT_VALIDATION_FAILED
     error without opening buffer'
+pre_save_validation:
+  method: validate(buffer_id) -> ValidationResult
+  when_called:
+  - explicitly by caller before save
+  - automatically by editor core as first stage of save and save_as pipeline
+  behavior:
+  - call formatter.validate_document(document) on the current in-memory document
+  - return ValidationResult with diagnostics
+  - if validation fails, save/save_as is aborted and ValidationResult is returned
+    as the operation result
+  - validate does not write any file and does not change buffer state
+  invariants:
+  - save never writes a file when validate returns success=false
+  - validate can be called independently of save to inspect buffer state without committing
+  - text formatter validate_document always returns success=true (structural constraints
+    are not checked for plain text)
+  - fallback buffers (format_fallback status) are validated by text formatter, not
+    original formatter
+  error_code: VALIDATION_FAILED
