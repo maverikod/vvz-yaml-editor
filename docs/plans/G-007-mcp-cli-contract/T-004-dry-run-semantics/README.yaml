@@ -1,0 +1,89 @@
+format: tactical_step_v1
+parent_step_id: G-007
+parent_step_name: transaction_writer
+tactical_step_id: T-004
+tactical_step_name: dry_run_semantics
+title: Checked write dry-run semantics
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-007-mcp-cli-contract/README.yaml
+intent: Own dry_run behavior for checked write orchestration. This tactical step specifies
+  and verifies that dry_run=true may read, parse, patch in memory, validate, render,
+  validate rendered YAML, compute old_hash, changed_paths, would_change, and render_preview,
+  but must never write bytes, create backups, or report a real new_hash from disk.
+self_contained_context:
+  global_goal: G-007 owns checked write transaction orchestration and safe persistence.
+  dry_run_rules:
+  - dry_run=true must never write file bytes.
+  - dry_run=true must never create backups.
+  - dry_run=true may compute old_hash from initial bytes.
+  - dry_run=true may report would_change based on in-memory rendered comparison.
+  - dry_run=true may report changed_paths from mutation results.
+  - dry_run=true must not claim atomic replace success.
+  boundaries:
+  - Do not own backup implementation.
+  - Do not own atomic replace implementation.
+  - Do not own mutation internals, validation internals, or document_io internals.
+owned_code_paths:
+- yaml_editor/transaction_writer/dry_run.py
+owned_test_paths:
+- tests/transaction_writer/test_dry_run_semantics.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/document_io/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/backup.py
+- yaml_editor/transaction_writer/atomic_write.py
+- yaml_editor/transaction_writer/orchestrator.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-007/T-002 checked write contracts
+  - G-007/T-003 read and hashing stage
+  may_be_used_by:
+  - G-007 orchestration
+public_contracts_provided:
+- dry_run result population policy
+- would_change calculation policy
+- render_preview dry-run policy
+responsibilities:
+- Define dry-run stage behavior and result fields.
+- Ensure dry-run semantics cannot create backups or write bytes.
+- Define how would_change and changed_paths are reported for in-memory-only changes.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/transaction_writer/test_dry_run_semantics.py
+  expected:
+  - dry_run=true reports would_change without byte changes.
+  - dry_run=true does not create backup records.
+  - dry_run=true does not claim real write or atomic replace success.
+  - Validation or mutation failure during dry-run returns success=false.
+acceptance_criteria:
+- Dry-run semantics are independent from backup and atomic write implementation.
+- Dry-run result fields are compatible with CheckedWriteResult.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/transaction_writer/dry_run.py and tests/transaction_writer/test_dry_run_semantics.py.
+    Define and verify dry_run checked-write semantics. Do not implement backup creation,
+    atomic replace, parser internals, mutation internals, validation internals, CLI,
+    or MCP wrappers. Do not edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-007/T-004
+  problem: Tactical README did not exist for dry-run semantics.
+  action: Created a self-contained tactical README constrained to G-007 dry-run behavior.
+  status: fixed
