@@ -1,0 +1,94 @@
+format: tactical_step_v1
+parent_step_id: G-007
+parent_step_name: transaction_writer
+tactical_step_id: T-005
+tactical_step_name: backup_stage
+title: Checked writer backup stage
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-007-mcp-cli-contract/README.yaml
+intent: Own backup creation behavior for real checked writes. This tactical step defines
+  BackupRecord creation before atomic replace, backup failure handling, and dry-run
+  exclusion. It does not own hashing, parsing, mutation, validation, rendering, atomic
+  replace, orchestration internals, CLI, or MCP wrappers.
+self_contained_context:
+  global_goal: G-007 owns checked write transaction orchestration where real writes
+    create backups before replacing bytes.
+  backup_rules:
+  - Backups are created only when dry_run=false and all earlier requested gates have
+    succeeded.
+  - dry_run=true must never create backups.
+  - Backup failure must prevent write and return success=false.
+  - BackupRecord must be compatible with CheckedWriteResult.
+  boundaries:
+  - Do not perform atomic replace.
+  - Do not apply mutations.
+  - Do not validate documents.
+  - Do not render YAML.
+  - Do not expose CLI or MCP wrappers.
+owned_code_paths:
+- yaml_editor/transaction_writer/backup.py
+owned_test_paths:
+- tests/transaction_writer/test_backup_stage.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/document_io/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/hashing.py
+- yaml_editor/transaction_writer/atomic_write.py
+- yaml_editor/transaction_writer/orchestrator.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-007/T-002 checked write contracts
+  - G-007/T-003 read and hashing stage
+  - G-007/T-004 dry-run semantics
+  may_be_used_by:
+  - G-007 atomic write stage
+  - G-007 orchestration
+public_contracts_provided:
+- create_backup(file_path, original_bytes)
+- BackupRecord population policy
+- backup failure diagnostics policy
+responsibilities:
+- Create backup records for real writes before atomic replace.
+- Return typed backup failure diagnostics.
+- Enforce that dry-run never creates backups.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/transaction_writer/test_backup_stage.py
+  expected:
+  - Real write path can create a BackupRecord before replace.
+  - dry_run=true creates no backup.
+  - Backup failure prevents write and returns success=false diagnostics.
+  - No mutation, validation, render, atomic replace, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- Backup creation is independent from atomic replace implementation.
+- Backup failure semantics are truthful and machine-readable.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/transaction_writer/backup.py and tests/transaction_writer/test_backup_stage.py.
+    Implement backup creation and BackupRecord population for real checked writes.
+    Do not implement atomic replace, orchestration, parser internals, mutations, validation,
+    rendering, CLI, or MCP wrappers. Do not create backups during dry-run. Do not
+    edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-007/T-005
+  problem: Tactical README did not exist for backup stage.
+  action: Created a self-contained tactical README constrained to G-007 backup behavior.
+  status: fixed
