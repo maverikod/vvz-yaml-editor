@@ -309,10 +309,13 @@ libcst_constraints_and_workarounds:
 - constraint: Match node body is not directly insertable
   workaround: require MatchCase as parent_stable_id; reject Match with clear error
 - constraint: all nodes recreated after any transformation (immutable tree)
-  workaround: 'stable_id survives via previous_metadata_map: before mutation snapshot
-    tree.metadata_map as previous_metadata_map; after mutation call _build_tree_index
-    with previous_metadata_map + previous_obj_to_id; stable_id restored via exact_key
-    matching (start_line, start_col, end_line, end_col, type); no inline comment transport'
+  workaround: 'stable_id survives via previous_metadata_map (exact_key + previous_obj_to_id)
+    as the primary mechanism. For structural mutations (insert/delete/move) where
+    node positions shift: additionally use inline leading_lines comments (set_stable_id/get_stable_id
+    from node_stable_id.py) for FunctionDef/ClassDef nodes before and after mutation
+    to survive position shifts. Comments are stripped immediately after _build_tree_index
+    via strip_inline_node_id_lines_from_source. Final module.code never contains @node-id
+    comments.'
 - constraint: docstring is not a named child but positional Expr at body[0]
   workaround: replace_docstring operation detects and handles this pattern explicitly
 - constraint: CSTTransformer matches by object identity (is), not by position
