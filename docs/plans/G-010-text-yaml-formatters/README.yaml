@@ -53,7 +53,10 @@ abstract_formatter_contract:
   required_methods:
   - parse(raw_content) -> document
   - render(document) -> raw_content
-  - validate(document) -> validation_result
+  - validate_content(raw_content, *, file_path=null, schema=null, options=null) ->
+    validation_result
+  - validate_document(document, *, schema=null, options=null) -> validation_result
+  - validate(document) -> validation_result compatibility alias for validate_document
   - normalize_address(address) -> normalized_address
   - copy_fragment(document, source_address) -> fragment
   - cut_fragment(document, source_address) -> document, fragment, changed_addresses
