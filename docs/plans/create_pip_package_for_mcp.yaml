@@ -227,6 +227,23 @@ public_api:
     - errors
     - warnings
     - diagnostics
+  - name: formatter_commands
+    layer: formatter_discovery
+    purpose: Return standard and formatter-specific command metadata plus OpenAPI-compatible
+      schemas for a formatter selected by explicit name, buffer_id, or file_path extension.
+    request:
+      formatter: optional formatter name
+      buffer_id: optional string
+      file_path: optional string
+      include_openapi: boolean
+    response_fields:
+    - success
+    - formatter
+    - formatter_version
+    - standard_commands
+    - specific_commands
+    - openapi_schemas
+    - diagnostics
   - name: copy
     layer: edit
     purpose: Copy a formatter-defined fragment from a source BufferAddress into the
