@@ -8,10 +8,10 @@ source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
 global_intent: 'Own AbstractFormatter and the first formatter backends used by buffers:
-  text and AI (YAML-backed). A formatter defines document parsing, rendering, validation,
-  address normalization, fragment editing, unit iteration, unit retrieval, diagnostics,
-  and unit comparison hooks. Formatters must not open, save, close, or otherwise own
-  file lifecycle.'
+  text, AI (YAML-backed), and CST (Python-backed, see G-013). A formatter defines
+  document parsing, rendering, validation, address normalization, fragment editing,
+  unit iteration, unit retrieval, diagnostics, and unit comparison hooks. Formatters
+  must not open, save, close, or otherwise own file lifecycle.'
 why_this_block_exists: The technical specification separates formatter editing semantics
   from file/buffer lifecycle and from universal search. YAML and text have different
   address meanings, fragment types, paste modes, and unit comparison rules. The editor
