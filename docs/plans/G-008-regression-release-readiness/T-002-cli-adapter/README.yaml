@@ -73,6 +73,11 @@ cli_policy:
     load: Thin wrapper over yaml_load.
     validate: Thin wrapper over yaml_validate or yaml_validate_plan_task.
     get: Thin wrapper over yaml_get or specialized read helpers.
+    clipboard-copy: Thin wrapper over yaml_clipboard_copy.
+    clipboard-get: Thin wrapper over yaml_clipboard_get.
+    clipboard-list: Thin wrapper over yaml_clipboard_list.
+    clipboard-clear: Thin wrapper over yaml_clipboard_clear.
+    clipboard-paste: Thin wrapper over yaml_clipboard_paste.
     write-checked: Thin wrapper over yaml_write_checked.
     version: Report installed package version.
   output_policy:
