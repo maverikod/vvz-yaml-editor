@@ -235,45 +235,27 @@ save_orchestration:
     line, then JSON body, atomically to .cst/<stem>.tree.'
   - 5. tree.disk_source_sha256_hex = source_sha256.
 mutation_operations:
-  note: All operations accept and return stable_id as address. node_id is internal.
-  stable_id_survival_mechanism: 'Before mutation: snapshot tree.metadata_map as previous_metadata_map.
-    After mutation: call _build_tree_index with previous_metadata_map + previous_obj_to_id.
-    stable_id restored via exact_key matching (start_line, start_col, end_line, end_col,
-    type). No inline comment transport.'
   inline_comment_transport:
-    trigger: Structural mutations ONLY (insert, delete, move) that cause LibCST to
-      recreate node objects, breaking object-identity lookup. Does NOT apply to replace
-      or replace_docstring.
-    why_needed: 'LibCST is immutable: any tree transformation recreates all parent
-      nodes. After insert/delete/move, node object identities change throughout the
-      tree. previous_obj_to_id (id(obj)->node_id) becomes stale for repositioned nodes.
-      exact_key matching (by line/col) also fails for nodes that shifted position.
-      Without an additional mechanism, stable_id is lost for shifted nodes.'
-    mechanism: 'Before structural mutation (insert/delete/move): walk all FunctionDef
-      and ClassDef nodes in tree.module, call set_stable_id(node, stable_id) to embed
-      stable_id as a leading_lines comment ''# @node-id: <uuid>''. Mutation happens.
-      After mutation: walk new tree.module, call get_stable_id(node) to recover stable_id
-      from leading_lines. Remove all @node-id comments from module source via strip_inline_node_id_lines_from_source(module.code).
-      Rebuild index with recovered stable_ids in previous_metadata_map.'
-    scope: Only FunctionDef and ClassDef nodes support inline embedding (set_stable_id/get_stable_id).
-      All other node types rely solely on previous_metadata_map exact_key + previous_obj_to_id.
-    invariant: '@node-id comments exist only transiently between before_mutation and
-      after_mutation steps. They are NEVER present in render() output or on disk.'
-    source_reference: See cst-code/code_analysis/core/cst_tree/node_stable_id.py for
-      set_stable_id, get_stable_id, strip_inline_node_id_lines_from_source.
+    invariant: THIS MECHANISM IS NOT USED IN THE ADAPTED CSTFORMATTER. set_stable_id/get_stable_id
+      inline comment transport violated the single-assignment rule. Legacy reference
+      only — do not implement.
+    legacy_note: cst-code tree_builder.py used @node-id leading_lines comments in
+      FunctionDef/ClassDef as a mutation transport. This is superseded by previous_metadata_map
+      + previous_obj_to_id approach.
+    status: REMOVED
   libcst_constraints_requiring_workarounds:
-    SimpleStatementSuite_expansion: 'SimpleStatementSuite cannot accept inserted children.
-      Workaround: auto-expand one-liner to IndentedBlock before insert.'
-    Match_node_rejection: 'Match node body is not directly insertable. Workaround:
-      require MatchCase as parent_stable_id; reject Match with clear error.'
-    immutable_tree_recreation: 'All nodes recreated after any transformation. Workaround:
-      stable_id transport via inline leading_lines comments for FunctionDef/ClassDef
-      before/after structural mutation; exact_key + previous_obj_to_id for all others.'
-    docstring_positional: 'Docstring is not a named child but positional Expr at body[0].
-      Workaround: replace_docstring detects and handles this pattern explicitly.'
-    transformer_object_identity: 'CSTTransformer matches by object identity (is),
-      not by position. Workaround: node_map holds pre-mutation objects; find_parent_in_module_by_position
-      resolves post-mutation.'
+    Match_node_rejection: Match node body is not directly insertable. Require MatchCase
+      as parent_stable_id; reject Match with clear error.
+    SimpleStatementSuite_expansion: SimpleStatementSuite cannot accept inserted children.
+      Auto-expand one-liner to IndentedBlock before insert.
+    docstring_positional: Docstring is positional Expr at body[0]. replace_docstring
+      detects and handles this explicitly.
+    immutable_tree_recreation: 'All nodes recreated after any transformation. Stable_id
+      survival: previous_metadata_map exact_key matching + previous_obj_to_id (id(obj)->node_id).
+      No inline comment transport.'
+    transformer_object_identity: CSTTransformer matches by object identity. node_map
+      holds pre-mutation objects; previous_obj_to_id maps post-mutation recovery.
+  note: All operations accept and return stable_id as address. node_id is internal.
   operations:
   - op: insert
     params:
@@ -284,38 +266,44 @@ mutation_operations:
     - first
     - last
     - after:<stable_id>
-    stable_id_transport: inline comment (FunctionDef/ClassDef) + exact_key (all others)
     special_cases:
     - empty file: create Module with docstring + first node
     - SimpleStatementSuite parent: auto-expand to IndentedBlock before insert
     - Match node as parent: reject with hint to use MatchCase
-  - op: delete
+    stable_id_survival: previous_metadata_map exact_key + previous_obj_to_id in _build_tree_index
+      after mutation
+  - note: descendants deleted automatically by LibCST
+    op: delete
     params:
     - node_stable_id
-    note: descendants deleted automatically by LibCST
-    stable_id_transport: inline comment (FunctionDef/ClassDef) + exact_key (all others)
-  - op: move
+    stable_id_survival: previous_metadata_map exact_key + previous_obj_to_id
+  - note: atomic delete + insert preserving node code
+    op: move
     params:
     - node_stable_id
     - parent_stable_id
     - position
-    note: atomic delete + insert preserving node code
-    stable_id_transport: inline comment (FunctionDef/ClassDef) + exact_key (all others)
-  - op: replace
+    stable_id_survival: previous_metadata_map exact_key + previous_obj_to_id
+  - note: full node replacement; header-only replace for ClassDef/FunctionDef preserves
+      body
+    op: replace
     params:
     - node_stable_id
     - code
-    note: full node replacement; header-only replace for ClassDef/FunctionDef preserves
-      body
-    stable_id_transport: previous_metadata_map exact_key only (no structural shift,
-      no inline comment needed)
-  - op: replace_docstring
+    stable_id_survival: previous_metadata_map exact_key
+  - note: specialized replace for file/class/method docstring; inserts if absent,
+      replaces if present
+    op: replace_docstring
     params:
     - node_stable_id
     - text
-    note: specialized replace for file/class/method docstring; inserts if absent,
-      replaces if present
-    stable_id_transport: previous_metadata_map exact_key only
+    stable_id_survival: previous_metadata_map exact_key
+  stable_id_survival_mechanism: 'Before mutation: snapshot tree.metadata_map as previous_metadata_map
+    and build previous_obj_to_id = {id(libcst_node): node_id for each node in node_map}.
+    Run mutation. After mutation: call _build_tree_index(previous_metadata_map=previous_metadata_map,
+    previous_obj_to_id=previous_obj_to_id). For each rebuilt node: try exact_key (start_line,
+    start_col, end_line, end_col, type) -> get stable_id from prev_meta; if not found
+    try previous_obj_to_id; if not found: new node, new UUID4. No inline comments.'
 libcst_constraints_and_workarounds:
   inline_comment_transport_removed: set_stable_id / get_stable_id inline @node-id
     comment transport is NOT used. This mechanism violates the single-assignment rule
