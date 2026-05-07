@@ -1,0 +1,138 @@
+format: tactical_step_v1
+parent_step_id: G-002
+parent_step_name: document_io
+tactical_step_id: T-004
+tactical_step_name: deterministic_renderer
+title: Deterministic YAML rendering from YamlDocument
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-002-document-model-and-paths/README.yaml
+intent: Define render_yaml_document so in-memory YAML round-trips to text deterministically
+  enough for downstream validation and writer subsystems, without path parsing, mutation,
+  semantic validation, filesystem writes, CLI, or MCP wrapper behavior.
+owned_code_paths:
+- ai_editor/document_io/renderer.py
+owned_test_paths:
+- tests/document_io/test_renderer.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- ai_editor/contracts/
+- ai_editor/document_io/__init__.py
+- ai_editor/document_io/document.py
+- ai_editor/document_io/loader.py
+- ai_editor/document_io/summary.py
+- ai_editor/document_io/diagnostics.py
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - T-001-document-io-package-boundary
+  - T-002-document-model
+  - T-003-ai-parser-loader
+  may_be_used_by:
+  - T-005-document-summary
+  - T-007-document-io-verification
+  - future_validation_subsystem
+  - future_transaction_writer_subsystem
+public_contracts_provided:
+- render_yaml_document(document)
+renderer_contract:
+  entry_point:
+    render_yaml_document:
+      input: YamlDocument from T-002
+      output: YAML text string
+      side_effects_allowed: []
+      side_effects_forbidden:
+      - read files
+      - write files
+      - create backups
+      - mutate the input document as an observable operation
+      - parse structural paths
+      - validate semantic plan_task_v1 rules
+  deterministic_policy:
+  - Rendering the same document state twice must produce identical text for controlled
+    fixtures.
+  - Rendering must be local to document_io renderer behavior and must not rely on
+    mutable global singleton state.
+  - Formatting preservation is best-effort within ruamel.yaml round-trip capabilities
+    and controlled by document_io only.
+  structural_equivalence_policy:
+  - Renderer tests may reparse rendered text to compare basic YAML structure for controlled
+    fixtures.
+  - Structural equivalence here means parsed mapping/sequence/scalar content matches
+    for supported fixture cases.
+  - This step must not implement validation subsystem equivalence rules.
+  non_goals:
+  - No path parsing.
+  - No mutation application.
+  - No checked write pipeline.
+  - No backup creation.
+  - No schema or semantic validation.
+responsibilities:
+- Render YamlDocument to YAML text preserving formatting constraints owned by document_io.
+- Keep rendering independent from path resolution, mutations, validation, and filesystem
+  writes.
+implementation_notes:
+- Renderer must not perform structural path parsing or import path_language.
+- Cross-check expectations with tech_spec checked-write pipeline as future consumers
+  only, without implementing that pipeline here.
+- Renderer must not import T-006 diagnostics; parse/render diagnostics belong to their
+  owning steps.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/document_io/test_renderer.py
+  expected:
+  - Rendered text reparses into an equivalent basic structure for controlled fixtures.
+  - Output is stable across repeated render calls for the same document state.
+  - render_yaml_document has no filesystem side effects.
+  - Renderer imports no forbidden subsystem modules.
+acceptance_criteria:
+- Rendering logic is isolated under renderer-owned paths.
+- render_yaml_document contract and determinism policy are explicit.
+- No path, mutation, validation, summary, diagnostics, or atomic write behavior is
+  implemented here.
+- This tactical step edits only its owned renderer module and test.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on document_io renderer and its tests. Do not implement loader
+    configuration, summary extraction, diagnostics production, path parsing, mutations,
+    validation, transaction writer, CLI, or MCP wrappers. Do not edit document model,
+    loader, summary, diagnostics, package index, .venv, venv, site-packages, or installed
+    dependencies.
+observations_template:
+- actual: ''
+  command: ''
+  error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-002/T-004
+  problem: render_yaml_document lacked explicit side-effect, determinism, and structural-equivalence
+    policies
+  action: added renderer_contract with entry point, side effects, deterministic policy,
+    structural equivalence policy, and non-goals
+  status: fixed
+- iteration: 1
+  point: G-002/T-004
+  problem: may_be_used_by included T-006 parse diagnostics, creating unclear renderer/diagnostics
+    coupling
+  action: removed T-006 as direct consumer and stated renderer must not import T-006
+    diagnostics
+  status: fixed
