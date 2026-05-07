@@ -158,12 +158,17 @@ verification:
   - Save/save_as call formatter.validate_document before render and abort on failure.
   - Stale file-backed buffers are rejected before disk write.
   - Editor core never parses YAML addresses or text line ranges directly.
-  - open_as_text=True opens file with text formatter regardless of extension.
-  - Parse exception from structural formatter causes fallback to text formatter and
-    sets buffer status to format_fallback.
+  - open_as_text=True opens file with text formatter regardless of extension or size.
+  - Parse exception from structural formatter causes fallback to text formatter; buffer
+    status is format_fallback.
+  - File smaller than small_file_threshold uses text formatter without structural
+    parse; buffer status is small_file.
   - validate(buffer_id) returns ValidationResult without writing file or changing
     dirty state.
   - Save aborts when validate returns success=false.
+  - Config loaded from ai_editor/config/editor.json; missing key uses default 1k threshold.
+  - 0 value for threshold disables size-based fallback; structural formatter always
+    attempted.
 acceptance_criteria:
 - AbstractBuffer owns file/buffer lifecycle and does not implement formatter semantics.
 - Editor core has no YAML-specific path, text range, or search query logic.
