@@ -1,0 +1,448 @@
+format: implementation_plan_v1
+plan_id: yaml_editor_pip_package_for_mcp
+project: yaml_editor
+source_documents:
+- docs/tech_spec.md
+created_for: mcp_server_usage
+status: draft
+language_policy:
+  documentation_language: English
+  code_logs_commands_prompts_and_specs: English
+summary:
+  goal: Create a production-ready Python pip package that provides a structural YAML
+    editing interface for MCP servers and AI models. The package must edit YAML by
+    tree paths, not by line ranges, and must guarantee checked, atomic writes.
+  main_principle: read -> parse -> patch in memory -> validate -> render -> validate
+    rendered YAML -> write
+  non_goals:
+  - Do not implement regular editing through line ranges.
+  - Do not patch .venv, site-packages, or installed dependency code.
+  - Do not allow write commands to persist invalid YAML or semantically invalid plan
+    tasks.
+package_target:
+  distribution_name: yaml-editor-mcp
+  import_package: yaml_editor
+  python_requires: '>=3.10'
+  license: TBD
+  build_backend: hatchling
+  runtime_dependencies:
+  - ruamel.yaml
+  - jsonschema
+  - jsonpath-ng
+  optional_dependencies:
+    dev:
+    - pytest
+    - pytest-cov
+    - mypy
+    - ruff
+    - build
+    - twine
+  public_entry_points:
+    console_scripts:
+    - yaml-editor=yaml_editor.interfaces.cli:main
+  repository_constraints:
+    forbidden_paths:
+    - .venv
+    - venv
+    - site-packages
+    editable_scope:
+    - pyproject.toml
+    - README.md
+    - yaml_editor
+    - tests
+    - docs
+module_architecture:
+  package_layout:
+  - path: yaml_editor/__init__.py
+    purpose: Public package exports and version.
+  - path: yaml_editor/api.py
+    purpose: High-level API functions intended for MCP command handlers.
+  - path: yaml_editor/models.py
+    purpose: Typed request and response dataclasses or pydantic-free DTOs.
+  - path: yaml_editor/path_parser.py
+    purpose: YAML path parser for keys, indexes, and list filters such as commands[name=buf_diff].
+  - path: yaml_editor/loader.py
+    purpose: File read, ruamel.yaml parse, tree summary, and parse diagnostics.
+  - path: yaml_editor/operations.py
+    purpose: In-memory set, replace_block, append, delete, and move operations.
+  - path: yaml_editor/validator.py
+    purpose: YAML syntax validation, rendered YAML validation, schema validation,
+      and semantic validation.
+  - path: yaml_editor/renderer.py
+    purpose: Deterministic ruamel.yaml rendering with formatting preservation.
+  - path: yaml_editor/writer.py
+    purpose: Atomic checked write flow, backups, hashes, changed_paths, and dry-run
+      support.
+  - path: yaml_editor/schemas/plan_task_v1.schema.json
+    purpose: JSON Schema for plan_task_v1 structural checks.
+  - path: yaml_editor/cli.py
+    purpose: Small CLI wrapper for manual testing and MCP diagnostics.
+  - path: tests/
+    purpose: Unit and integration tests over real YAML fixtures.
+public_api:
+  core_commands:
+  - name: yaml_load
+    purpose: Read YAML and return the parsed tree plus a compact summary.
+    request:
+      file_path: string
+    response_fields:
+    - format
+    - node_id
+    - commands
+    - top_level_keys
+    - valid_yaml
+    - diagnostics
+  - name: yaml_validate
+    purpose: Validate YAML parse, optional schema, semantic constraints, and deterministic
+      rendering.
+    request:
+      file_path: string
+      validate_schema: optional string
+    response_fields:
+    - success
+    - validation
+    - errors
+  - name: yaml_get
+    purpose: Return an exact YAML subtree selected by structural path.
+    request:
+      file_path: string
+      path: string
+  - name: yaml_set
+    purpose: Replace scalar or structured value at a path.
+    request:
+      file_path: string
+      path: string
+      value: any
+      dry_run: boolean
+  - name: yaml_replace_block
+    purpose: Replace a whole mapping or sequence block at a path.
+    request:
+      file_path: string
+      path: string
+      value: object_or_array
+      dry_run: boolean
+  - name: yaml_append
+    purpose: Append a value to a YAML list with optional duplicate protection.
+    request:
+      file_path: string
+      path: string
+      value: any
+      dedupe: boolean
+      dry_run: boolean
+  - name: yaml_delete
+    purpose: Delete a mapping key or list item by structural path.
+    request:
+      file_path: string
+      path: string
+      dry_run: boolean
+  - name: yaml_move
+    purpose: Move a selected list item to a new index.
+    request:
+      file_path: string
+      from_path: string
+      to_index: integer
+      dry_run: boolean
+  - name: yaml_write_checked
+    purpose: Apply multiple operations atomically using the full checked write pipeline.
+    request:
+      file_path: string
+      operations: list
+      validate_schema: optional string
+      dry_run: boolean
+    response_fields:
+    - success
+    - would_change
+    - backup_uuid
+    - old_hash
+    - new_hash
+    - changed_paths
+    - validation_result
+    - render_preview
+  model_friendly_helpers:
+  - name: yaml_get_command
+    purpose: Return commands item by command_name.
+  - name: yaml_update_command
+    purpose: Deep-merge a patch into one command item and validate the result.
+  - name: yaml_get_verification
+    purpose: Return the verification list.
+  - name: yaml_append_verification
+    purpose: Append a verification item with dedupe=true by default.
+  - name: yaml_validate_plan_task
+    purpose: Run plan_task_v1 parse, schema, semantic, and render validation.
+  fallback_unsafe_commands:
+  - name: yaml_read_lines
+    allowed_usage: Emergency diagnostics only.
+  - name: yaml_write_lines_unsafe
+    allowed_usage: Emergency low-level repair only; must be visibly marked unsafe.
+yaml_path_requirements:
+  supported_syntax:
+  - top_level_key
+  - dotted.path.to.key
+  - list[0]
+  - commands[name=buf_diff]
+  - commands[name=buf_diff].metadata.best_practices[1]
+  parser_rules:
+  - Reject empty paths for replace operations unless the command explicitly supports
+    full-document replacement.
+  - Return a typed error for no match.
+  - Return a typed error for non-unique list filter matches.
+  - Preserve mapping order and comments where ruamel.yaml can preserve them.
+  - Report changed_paths exactly as normalized structural paths.
+validation_requirements:
+  generic:
+  - YAML must parse before any operation is applied.
+  - Patched in-memory tree must remain valid YAML.
+  - Rendered YAML must parse back to an equivalent tree.
+  - Rendering must be deterministic for the same input tree.
+  - Write must be rejected if changed paths differ from expected operation paths.
+  plan_task_v1:
+  - format must equal plan_task_v1.
+  - node_id must match the file level conventions used by the plans repository.
+  - kind must be one of spec, global, tactical, atomic.
+  - depends_on must be a list of strings.
+  - commands must be a list of objects.
+  - commands[].name values must be unique.
+  - commands[].schema.required must reference only existing properties.
+  - read_model.sees_live_tmpfs_worktree must be false for read-only plan_* disk commands.
+  - buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
+      no merge, lock retained.
+  - verification must be a non-empty list.
+  - status must be one of draft, ready_for_review, ready_for_implementation, blocked.
+error_model:
+  typed_errors:
+  - YAML_PARSE_FAILED
+  - PATH_PARSE_FAILED
+  - PATH_NOT_FOUND
+  - PATH_NOT_UNIQUE
+  - TARGET_TYPE_MISMATCH
+  - VALIDATION_FAILED
+  - SCHEMA_VALIDATION_FAILED
+  - SEMANTIC_VALIDATION_FAILED
+  - RENDER_NOT_DETERMINISTIC
+  - CHANGED_PATH_MISMATCH
+  - WRITE_FAILED
+  - BACKUP_FAILED
+  response_contract:
+    success: boolean
+    error_code: optional string
+    message: string
+    details: object
+    diagnostics: object
+implementation_steps:
+- id: step_01
+  title: Initialize package skeleton
+  actions:
+  - Create pyproject.toml with hatchling build backend.
+  - Create yaml_editor package and tests directory.
+  - Define package metadata, runtime dependencies, and dev optional dependencies.
+  deliverables:
+  - pyproject.toml
+  - yaml_editor/__init__.py
+  - tests/conftest.py
+  verification:
+  - python -m build succeeds locally.
+  - pip install -e . installs yaml_editor from the repository source.
+- id: step_02
+  title: Implement YAML loading and summary
+  actions:
+  - Implement ruamel.yaml based loader.
+  - Preserve comments, order, quotes, and block styles where possible.
+  - Return top-level keys, format, node_id, command names, valid_yaml, and diagnostics.
+  deliverables:
+  - yaml_editor/loader.py
+  - tests/test_loader.py
+  verification:
+  - yaml_load returns expected summary for plan_task_v1 fixtures.
+  - Invalid YAML returns YAML_PARSE_FAILED without writing files.
+- id: step_03
+  title: Implement structural YAML path parser
+  actions:
+  - Parse dotted keys, list indexes, and list filters.
+  - Support commands[name=...] lookup.
+  - Normalize paths for diagnostics and changed_paths.
+  deliverables:
+  - yaml_editor/path_parser.py
+  - tests/test_path_parser.py
+  verification:
+  - Parser resolves commands[name=buf_diff].metadata.
+  - Parser rejects ambiguous or malformed paths with typed errors.
+- id: step_04
+  title: Implement read-only tree access
+  actions:
+  - Implement yaml_get.
+  - Implement yaml_get_command and yaml_get_verification helpers.
+  - Ensure returned fragments are exact structural fragments, not line ranges.
+  deliverables:
+  - yaml_editor/api.py
+  - tests/test_get_api.py
+  verification:
+  - yaml_get returns only the selected block.
+  - Missing path returns PATH_NOT_FOUND.
+- id: step_05
+  title: Implement in-memory mutation operations
+  actions:
+  - Implement set, replace_block, append, delete, and move operations.
+  - Add dedupe handling for append.
+  - Track changed paths for every operation.
+  deliverables:
+  - yaml_editor/operations.py
+  - tests/test_operations.py
+  verification:
+  - Operations mutate only intended nodes.
+  - Append with dedupe=true is idempotent.
+  - Move changes list order only at the requested path.
+- id: step_06
+  title: Implement schema and semantic validation
+  actions:
+  - Add plan_task_v1 JSON Schema.
+  - Implement generic YAML validation.
+  - Implement semantic checks from docs/tech_spec.md.
+  deliverables:
+  - yaml_editor/validator.py
+  - yaml_editor/schemas/plan_task_v1.schema.json
+  - tests/test_validator.py
+  verification:
+  - Invalid required references are rejected.
+  - Empty verification is rejected.
+  - Invalid status is rejected.
+- id: step_07
+  title: Implement deterministic rendering
+  actions:
+  - Render YAML through ruamel.yaml.
+  - Reparse rendered YAML and compare structural equivalence.
+  - Detect non-deterministic rendering by rendering twice.
+  deliverables:
+  - yaml_editor/renderer.py
+  - tests/test_renderer.py
+  verification:
+  - Rendered YAML parses successfully.
+  - Two renders of the same tree are identical.
+- id: step_08
+  title: Implement atomic checked writer
+  actions:
+  - Implement read-parse-patch-validate-render-validate-write pipeline.
+  - Add dry_run mode.
+  - Add backup creation before real write.
+  - Compute old_hash and new_hash.
+  - Return backup_uuid, changed_paths, validation_result, and render_preview.
+  deliverables:
+  - yaml_editor/writer.py
+  - tests/test_writer.py
+  verification:
+  - Dry run returns would_change without modifying the file.
+  - Failed validation leaves the file byte-for-byte unchanged.
+  - Successful write returns old_hash and new_hash.
+- id: step_09
+  title: Implement public API wrappers
+  actions:
+  - Expose yaml_load, yaml_validate, yaml_get, yaml_set, yaml_replace_block, yaml_append,
+    yaml_delete, yaml_move, and yaml_write_checked.
+  - Expose model-friendly helper functions.
+  - Ensure API responses are JSON-serializable for MCP servers.
+  deliverables:
+  - yaml_editor/api.py
+  - tests/test_public_api.py
+  verification:
+  - Every public function has success and error response contracts.
+  - API responses can be serialized with json.dumps.
+- id: step_10
+  title: Add CLI for diagnostics
+  actions:
+  - Implement yaml-editor load, validate, get, write-checked commands.
+  - Keep CLI thin and delegate to public API.
+  deliverables:
+  - yaml_editor/cli.py
+  - tests/test_cli.py
+  verification:
+  - yaml-editor --help exits with code 0.
+  - yaml-editor validate fixture.yaml reports validation result.
+- id: step_11
+  title: Add MCP integration guide
+  actions:
+  - Document how an MCP server imports yaml_editor.api functions.
+  - Document request and response JSON examples.
+  - Document that MCP command handlers must never use yaml_write_lines_unsafe for
+    normal operation.
+  deliverables:
+  - docs/mcp_integration.md
+  verification:
+  - Guide includes examples for yaml_write_checked and yaml_get_command.
+- id: step_12
+  title: Add packaging and release checks
+  actions:
+  - Run ruff, mypy, pytest, build, and twine check.
+  - Confirm wheel contains schemas.
+  - Confirm import works from installed wheel in a clean virtual environment.
+  deliverables:
+  - dist/*.whl
+  - dist/*.tar.gz
+  - release checklist in docs/release_checklist.md
+  verification:
+  - python -m build succeeds.
+  - twine check dist/* succeeds.
+  - python -c "import yaml_editor; print(yaml_editor.__version__)" succeeds after
+    wheel install.
+model_assignment_spec:
+  title: Implement yaml-editor-mcp pip package from docs/tech_spec.md
+  role: coding_agent
+  scope: Work only inside the yaml_editor source repository. Do not edit .venv, venv,
+    site-packages, or installed packages. Build a reusable pip package that MCP servers
+    can import to perform structural YAML edits safely.
+  required_behavior:
+  - Prefer structural YAML tree operations over line-based edits.
+  - Preserve formatting and comments using ruamel.yaml where feasible.
+  - Make every write operation checked and atomic.
+  - Return truthful, typed errors instead of partial success.
+  - Provide JSON-serializable responses suitable for MCP command handlers.
+  - Validate behavior with actual commands and tests, not only code inspection.
+  implementation_order:
+  - package_skeleton
+  - loader
+  - path_parser
+  - read_api
+  - operations
+  - validator
+  - renderer
+  - writer
+  - public_api
+  - cli
+  - mcp_integration_docs
+  - packaging_release_checks
+  acceptance_criteria:
+  - The package can be installed as a wheel.
+  - The package can be imported by an MCP server without side effects.
+  - yaml_write_checked never writes invalid YAML.
+  - dry_run mode never changes files.
+  - Failed schema or semantic validation leaves files unchanged.
+  - plan_task_v1 validation covers all checks listed in docs/tech_spec.md.
+  - Tests cover success, failure, dry-run, dedupe, ambiguous path, and invalid YAML
+    cases.
+  - CLI diagnostics work for load, validate, get, and write-checked flows.
+  prohibited_actions:
+  - Do not edit .venv, venv, site-packages, or dependency internals.
+  - Do not implement normal model workflows through yaml_write_lines_unsafe.
+  - Do not silently coerce invalid operation targets.
+  - Do not return completed or success when validation failed.
+regression_commands:
+  local:
+  - python -m pytest
+  - python -m ruff check .
+  - python -m mypy yaml_editor
+  - python -m build
+  - python -m twine check dist/*
+  mcp_level:
+  - Import yaml_editor.api in the target MCP server.
+  - Register wrapper commands for yaml_load, yaml_get, yaml_write_checked, and yaml_validate_plan_task.
+  - Execute yaml_load against a real plan YAML fixture.
+  - Execute yaml_write_checked with dry_run=true and verify no file change.
+  - Execute yaml_write_checked with dry_run=false and verify the result through a
+    separate yaml_get or yaml_load call.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
