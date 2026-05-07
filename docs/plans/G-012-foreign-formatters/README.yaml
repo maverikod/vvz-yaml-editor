@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-012
 step_name: foreign_formatters
 title: ForeignFormatter and external OpenAPI/MCP formatter adapter subsystem
@@ -10,7 +10,7 @@ source_documents:
 global_intent: 'Own ForeignFormatter: an AbstractFormatter implementation that delegates
   complex formatter operations to external servers through OpenAPI calls backed by
   mcp-proxy-adapter. Foreign formatters must follow the same formatter contract as
-  local text/yaml formatters while preserving truthful nested success/error semantics.'
+  local text/AI formatters while preserving truthful nested success/error semantics.'
 why_this_block_exists: Some document formats require specialized CST, AST, semantic,
   or language-server-like logic that should not live inside the base editor package.
   The editor must be able to call such formatters through the same AbstractFormatter
@@ -18,16 +18,16 @@ why_this_block_exists: Some document formats require specialized CST, AST, seman
   address normalization, unit iteration, search matching, comparison, copy/cut/paste,
   and diagnostics.
 owned_code_paths:
-- yaml_editor/formatters/foreign.py
+- ai_editor/formatters/foreign.py
 - tests/formatters/foreign/
 owned_docs_paths:
 - docs/foreign_formatters.md
 forbidden_code_paths:
-- yaml_editor/editor_core/
-- yaml_editor/search/
-- yaml_editor/interfaces/
-- yaml_editor/formatters/text/
-- yaml_editor/formatters/yaml/
+- ai_editor/editor_core/
+- ai_editor/search/
+- ai_editor/interfaces/
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
 - .venv
 - venv
 - site-packages
@@ -109,7 +109,7 @@ model_assignment_spec:
     implement the AbstractFormatter contract by delegating operations to external
     OpenAPI/MCP-proxy-adapter backed formatter commands. Preserve nested success/error
     semantics: transport completion is not success unless the nested formatter result
-    reports success=true. Do not edit editor core, local text/yaml formatters, search
+    reports success=true. Do not edit editor core, local text/AI formatters, search
     internals, public CLI, MCP wrappers outside this adapter, .venv, venv, site-packages,
     or installed dependencies.'
 observations_template:
