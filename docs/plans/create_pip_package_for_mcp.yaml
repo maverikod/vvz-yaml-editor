@@ -531,6 +531,8 @@ model_assignment_spec:
   - Validate behavior with actual commands and tests, not only code inspection.
   implementation_order:
   - package_skeleton
+  - editor_core_buffer_registry
+  - text_yaml_formatters
   - loader
   - path_parser
   - read_api
