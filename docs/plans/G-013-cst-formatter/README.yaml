@@ -313,23 +313,22 @@ mutation_operations:
       replaces if present
     stable_id_transport: previous_metadata_map exact_key only
 libcst_constraints_and_workarounds:
-- constraint: SimpleStatementSuite cannot accept inserted children
-  workaround: auto-expand one-liner to IndentedBlock before insert
-- constraint: Match node body is not directly insertable
-  workaround: require MatchCase as parent_stable_id; reject Match with clear error
-- constraint: all nodes recreated after any transformation (immutable tree)
-  workaround: 'stable_id survives via previous_metadata_map (exact_key + previous_obj_to_id)
-    as the primary mechanism. For structural mutations (insert/delete/move) where
-    node positions shift: additionally use inline leading_lines comments (set_stable_id/get_stable_id
-    from node_stable_id.py) for FunctionDef/ClassDef nodes before and after mutation
-    to survive position shifts. Comments are stripped immediately after _build_tree_index
-    via strip_inline_node_id_lines_from_source. Final module.code never contains @node-id
-    comments.'
-- constraint: docstring is not a named child but positional Expr at body[0]
-  workaround: replace_docstring operation detects and handles this pattern explicitly
-- constraint: CSTTransformer matches by object identity (is), not by position
-  workaround: node_map holds pre-mutation objects; find_parent_in_module_by_position
-    resolves post-mutation
+  inline_comment_transport_removed: set_stable_id / get_stable_id inline @node-id
+    comment transport is NOT used. This mechanism violates the single-assignment rule
+    and was a legacy approach in cst-code. In the adapted CSTFormatter, stable_id
+    never moves through source code.
+  libcst_immutable_tree: 'All nodes recreated after any transformation. Workaround:
+    previous_metadata_map exact_key + previous_obj_to_id in _build_tree_index. This
+    is the ONLY stable_id survival mechanism.'
+  match_node_rejection: 'Match node body is not directly insertable. Workaround: require
+    MatchCase as parent_stable_id; reject Match with clear error.'
+  simple_statement_suite_expansion: 'SimpleStatementSuite cannot accept inserted children.
+    Workaround: auto-expand one-liner to IndentedBlock before insert.'
+  docstring_positional: 'Docstring is not a named child but positional Expr at body[0].
+    Workaround: replace_docstring detects and handles this pattern explicitly.'
+  transformer_object_identity: 'CSTTransformer matches by object identity (is), not
+    by position. Workaround: node_map holds pre-mutation objects; previous_obj_to_id
+    maps id(libcst_object)->node_id for post-mutation recovery.'
 read_operations:
   default_buffer_format: declarative. When editor core opens a .py file via CSTFormatter
     the view returned to the caller is the declarative overview, not full source.
