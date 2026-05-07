@@ -674,42 +674,60 @@ coverage_gap_closures:
     and paste to provide target BufferAddress; address is opaque to editor core and
     interpreted only by formatter.
 workflow_clipboard:
-  purpose: Runtime workflow property for copying YAML nodes, YAML blocks, and text
-    fragments between checked editing steps without adding clipboard data to plan_task_v1
-    documents.
+  purpose: Format-aware runtime clipboard for editor copy/cut/paste operations between
+    buffers. Clipboard state is workflow/cache state and must not be stored inside
+    edited documents.
   storage_modes:
   - memory
   - persistent_project_local_cache
   default_storage_mode: persistent_project_local_cache
   persistent_storage_path: .yaml_editor_clipboard/
   git_policy: Clipboard storage is workflow/cache state and must not be committed.
-  supported_payload_kinds:
-  - yaml_node
-  - yaml_block
-  - text
-  required_source_checks:
-  - source file exists
-  - source YAML parses for YAML payloads
-  - source path exists
-  - source path resolves uniquely
-  - selected payload can be serialized
-  required_target_checks:
-  - target file exists
-  - target YAML parses for YAML paste operations
-  - clipboard item exists
-  - target path exists
-  - target path resolves uniquely
-  - paste mode is compatible with target node type
-  write_policy: Paste operations must use the checked write pipeline and support dry_run=true.
+  clipboard_item_contract:
+    required_fields:
+    - item_id
+    - source_buffer_id
+    - source_formatter
+    - source_address
+    - source_revision
+    - payload_kind
+    - payload
+    rules:
+    - source_address replaces YAML-specific source_path at the editor-core level
+    - payload_kind is defined by the source formatter
+    - payload is a formatter-produced fragment or rendered text snapshot
+    - clipboard item may use snapshot mode or reject_if_source_revision_changed mode
+  paste_request_contract:
+    required_fields:
+    - target_buffer_id
+    - target_formatter
+    - target_address
+    - mode
+    - clipboard_item_id
+    rules:
+    - target_address replaces YAML-specific target_path at the editor-core level
+    - mode is formatter-specific
+    - paste never writes files directly
+    - paste marks the target buffer dirty on success
+  compatibility_rules:
+  - text -> text paste is allowed
+  - yaml -> yaml paste is allowed
+  - yaml -> text paste is allowed only when paste mode explicitly requests rendered
+    text
+  - text -> yaml paste is rejected by default unless paste mode explicitly requests
+    parse_as_yaml
+  - unsupported combinations return CLIPBOARD_FORMAT_MISMATCH
+  - source revision policy violations return CLIPBOARD_SOURCE_STALE
   commands:
-  - yaml_clipboard_copy
-  - yaml_clipboard_get
-  - yaml_clipboard_list
-  - yaml_clipboard_clear
-  - yaml_clipboard_paste
+  - copy
+  - cut
+  - paste
   typed_errors:
+  - CLIPBOARD_EMPTY
   - CLIPBOARD_ITEM_NOT_FOUND
   - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_FORMAT_MISMATCH
+  - CLIPBOARD_SOURCE_STALE
   - CLIPBOARD_INVALID_MODE
-  - SOURCE_PATH_NOT_FOUND
-  - TARGET_PATH_NOT_FOUND
+  - ADDRESS_INVALID
+  - ADDRESS_NOT_FOUND
