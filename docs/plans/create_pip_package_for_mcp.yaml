@@ -481,6 +481,7 @@ model_assignment_spec:
   - path_parser
   - read_api
   - operations
+  - workflow_clipboard
   - validator
   - renderer
   - writer
