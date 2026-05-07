@@ -144,3 +144,11 @@ tactical_decomposition:
   readme_path: docs/plans/G-006-checked-write-pipeline/T-009-validation-docs-and-integration-verification/README.yaml
   purpose: Own validation documentation and integration verification planning without
     production edits.
+branch_self_containment_policy:
+- Technical Specification -> this G-006 README.yaml -> any one T-YYY README.yaml under
+  this directory must give an implementer the full picture for that tactical branch.
+- Tactical README files under G-006 must repeat the relevant parent context and must
+  not require reading sibling T branches.
+- Maximizing tactical steps means maximizing independent steps inside G-006 only;
+  no T step under G-006 may include work from mutations, transaction writer, interfaces,
+  CLI, MCP, reader, path_language, or direct file-writing branches.
