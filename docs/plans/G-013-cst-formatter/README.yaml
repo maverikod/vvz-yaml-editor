@@ -417,42 +417,33 @@ verification:
 acceptance_criteria:
 - CSTFormatter implements AbstractFormatter contract in full.
 - document model is CSTTree; public address is stable_id; node_id is internal only.
-- stable_id is stored in TreeNodeMetadata.stable_id and persists in sidecar metadata_map.
+- stable_id is assigned EXACTLY ONCE per node at first _build_tree_index. Value =
+  UUID4. Never reassigned, never changed, never re-embedded in source.
+- stable_id is stored in TreeNodeMetadata.stable_id and persisted in sidecar metadata_map.
 - stable_id survives mutations via previous_metadata_map exact_key + previous_obj_to_id
-  as primary mechanism.
-- 'For structural mutations (insert/delete/move): set_stable_id/get_stable_id used
-  transiently in-memory for FunctionDef/ClassDef position shifts; strip_inline_node_id_lines_from_source
-  called after recovery; comments never reach render() or disk.'
-- 'Sidecar has two checksums: source_sha256 (SHA-256 of logical Python source) and
-  tree_sha256 (SHA-256 of sidecar JSON body). Both validated on load.'
-- 'If either checksum fails or sidecar is missing: tree built from scratch via libcst.parse_module
-  + _build_tree_index.'
-- Sidecar is written only from save orchestration (buffer.save / buffer.save_as),
-  not from parse.
-- parse(raw_content) receives string content from editor core. Editor core owns disk
-  I/O. file_path is optional and used only to locate sidecar.
-- 'render(document) produces clean Python source with no markers of any kind. No @node-id
-  comments. No # cst-node-ids blocks.'
-- 'Default read format is declarative: skeleton() / build_declarative_overview().
-  Full source available via get_unit(stable_id).'
-- 'skeleton() shows: file docstring, imports, class headers+docstrings+properties+method
-  signatures+method docstrings, function signatures+docstrings. Every element prefixed
-  with [stable_id].'
-- get_unit(stable_id) returns full source code of a single node including body.
-- list_units() returns flat list of all nodes with stable_id, type, kind, name, qualname,
-  start_line, end_line. No bodies.
-- cst_query results presented in declarative format (signature + docstring, no bodies).
-  Full body via get_unit(stable_id).
-- CSTFormatter has no global state (_trees, TTL loop). Tree lifetime managed by editor
-  core buffer registry.
-- 'validate_content: libcst.parse_module raises -> FORMAT_VALIDATION_FAILED + CST_PARSE_FAILED
-  diagnostic.'
-- 'validate_document: compile(tree.module.code) -> diagnostics on SyntaxError.'
-- append_persisted_node_ids and render_marker_block absent from adapted code.
-- All five mutation operations (insert, delete, replace, move, replace_docstring)
-  work correctly with stable_id addressing.
-- SimpleStatementSuite parent auto-expanded to IndentedBlock before insert. Match
-  node rejected with clear error.
+  ONLY. No inline @node-id comment transport. No set_stable_id. No get_stable_id in
+  mutation flow.
+- node_stable_id.py is used ONLY for strip_inline_node_id_lines_from_source at parse
+  time (defensive cleaner for legacy files).
+- 'Sidecar has two checksums: source_sha256 and tree_sha256. Both validated on load.'
+- 'If either checksum fails or sidecar is missing: tree built from scratch via _build_tree_index,
+  all stable_ids are new UUID4.'
+- Sidecar is written only from save orchestration, not from parse.
+- parse(raw_content) receives string from editor core. file_path optional for sidecar
+  lookup only.
+- 'render(document) produces clean Python. No @node-id comments. No # cst-node-ids
+  blocks. No markers of any kind.'
+- 'Default read format is declarative: skeleton(). Full source via get_unit(stable_id).'
+- skeleton() shows structure with [stable_id] prefix on every element. No bodies.
+- get_unit(stable_id) returns full source including body.
+- 'list_units() returns flat list: stable_id, type, kind, name, qualname, start_line,
+  end_line. No bodies.'
+- cst_query results in declarative format. Full body via get_unit(stable_id).
+- CSTFormatter has no global state. Tree lifetime managed by editor core.
+- append_persisted_node_ids, render_marker_block, set_stable_id (in mutation), get_stable_id
+  (in mutation) absent from adapted code.
+- All five mutation operations work with stable_id. SimpleStatementSuite auto-expanded.
+  Match rejected with clear error.
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
