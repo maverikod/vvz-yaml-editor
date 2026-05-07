@@ -45,6 +45,9 @@ owned_test_paths:
 - tests/contracts/test_package_metadata.py
 owned_docs_paths: []
 forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
 - README.md
 - ai_editor/contracts/result.py
 - ai_editor/contracts/errors.py
