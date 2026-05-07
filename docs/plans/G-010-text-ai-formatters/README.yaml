@@ -1,0 +1,231 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-010
+step_name: text_ai_formatters
+title: AbstractFormatter contract and initial text/AI formatter backends subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+global_intent: 'Own AbstractFormatter and the first formatter backends used by buffers:
+  text and AI (YAML-backed). A formatter defines document parsing, rendering, validation,
+  address normalization, fragment editing, unit iteration, unit retrieval, diagnostics,
+  and unit comparison hooks. Formatters must not open, save, close, or otherwise own
+  file lifecycle.'
+why_this_block_exists: The technical specification separates formatter editing semantics
+  from file/buffer lifecycle and from universal search. YAML and text have different
+  address meanings, fragment types, paste modes, and unit comparison rules. The editor
+  core treats address as opaque and delegates all format-specific behavior to the
+  attached formatter.
+owned_code_paths:
+- ai_editor/formatters/base.py
+- ai_editor/formatters/text/
+- ai_editor/formatters/ai/
+- tests/formatters/ai/
+- tests/formatters/ai/
+owned_docs_paths:
+- docs/formatters.md
+forbidden_code_paths:
+- ai_editor/editor_core/
+- ai_editor/search/
+- ai_editor/interfaces/
+- ai_editor/transaction_writer/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-002 YAML document model and deterministic renderer concepts
+  - G-003 YAML path language concepts
+  - G-006 validation contracts
+  may_be_used_by:
+  - G-009 editor core and buffer registry
+  - G-011 universal search layer
+  - G-008 public interfaces and CLI adapter
+public_contracts_provided:
+- AbstractFormatter
+- text formatter backend
+- AI formatter backend
+- formatter unit contract
+- formatter unit comparison contract
+- formatter paste compatibility contract
+abstract_formatter_contract:
+  required_methods:
+  - parse(raw_content) -> document
+  - render(document) -> raw_content
+  - validate_content(raw_content, *, file_path=null, schema=null, options=null) ->
+    validation_result
+  - validate_document(document, *, schema=null, options=null) -> validation_result
+  - validate(document) -> validation_result compatibility alias for validate_document
+  - list_commands() -> FormatterCommandCatalog
+  - normalize_address(address) -> normalized_address
+  - copy_fragment(document, source_address) -> fragment
+  - cut_fragment(document, source_address) -> document, fragment, changed_addresses
+  - paste_fragment(document, target_address, fragment, mode) -> document, changed_addresses
+  - get_unit(document, address) -> unit
+  - iter_units(document, scope) -> units
+  - match_unit(unit, query) -> boolean or score
+  - compare_units(unit_a, unit_b, options) -> ComparisonResult
+  - diagnostics(document) -> diagnostics
+  required_metadata:
+  - formatter_name
+  - supported_payload_kinds
+  - supported_address_kinds
+  - supported_paste_modes
+  - can_render_to_text
+  - can_parse_from_text
+  forbidden_responsibilities:
+  - open files
+  - save files
+  - close buffers
+  - own buffer registry
+  - own stale disk checks
+  - own search result policy
+unit_contract:
+  purpose: Provide a common shape for search without forcing all formatters to expose
+    the same document tree model.
+  minimum_fields:
+  - address
+  - unit_kind
+  - display_text
+  - metadata
+  formatter_specific_fields_allowed: true
+initial_formatters:
+  text:
+    document_model: array_of_lines
+    address_model: line_range_or_insertion_point_or_whole_document
+    unit_model: line_or_line_range_or_text_block
+    payload_kinds:
+    - text_lines
+    - text_block
+    paste_modes:
+    - insert
+    - replace_range
+    - append
+    - prepend
+    compare_units_semantics:
+    - exact line text
+    - normalized text
+    - substring
+    - regex
+    - line number
+    - line range overlap
+    responsibilities:
+    - Preserve line order and exact text content where possible.
+    - Support copy/cut/paste over line ranges and whole-document text.
+    - Validate basic text document constraints without YAML parsing.
+  yaml:
+    document_model: yaml_tree
+    address_model: structural_yaml_address
+    unit_model: yaml_node_or_scalar_or_mapping_or_sequence_item
+    payload_kinds:
+    - yaml_node
+    - yaml_block
+    - rendered_text
+    paste_modes:
+    - set
+    - replace_block
+    - append
+    - insert_before
+    - insert_after
+    compare_units_semantics:
+    - node type
+    - key
+    - scalar value
+    - normalized scalar value
+    - mapping fields
+    - list item identity
+    - semantic name field such as name=buf_diff
+    responsibilities:
+    - Preserve YAML mapping order, comments, and formatting where ruamel.yaml allows
+      it.
+    - Support structural YAML addresses such as commands[name=...].metadata.
+    - Validate YAML parse, semantic constraints, deterministic render, and changed_addresses.
+clipboard_compatibility:
+  rules:
+  - source_formatter and target_formatter must be checked before paste.
+  - text -> text paste is allowed.
+  - yaml -> yaml paste is allowed.
+  - yaml -> text paste is allowed only when paste mode explicitly requests rendered
+    text.
+  - text -> yaml paste is rejected by default unless paste mode explicitly requests
+    parse_as_yaml.
+  - Unsupported combinations return CLIPBOARD_FORMAT_MISMATCH.
+  stale_source_policy:
+    default: snapshot
+    allowed_modes:
+    - snapshot
+    - reject_if_source_revision_changed
+    required_error: CLIPBOARD_SOURCE_STALE
+verification:
+  scope: global_completion_gate
+  commands:
+  - python -m pytest tests/formatters/text tests/formatters/yaml
+  expected:
+  - Text formatter parses documents as arrays of lines and supports line-range addresses.
+  - AI formatter parses documents as YAML trees and supports structural YAML addresses.
+  - Formatter copy/cut/paste methods require source_address or target_address.
+  - Formatter compare_units works for text units and YAML units.
+  - AI formatter preserves formatting where ruamel.yaml supports it.
+  - Clipboard compatibility rejects text -> yaml by default.
+  - Clipboard compatibility allows yaml -> text only as explicit rendered text.
+acceptance_criteria:
+- AbstractFormatter does not open, save, or close files.
+- Text and AI formatters implement the same formatter contract.
+- Every formatter defines address, unit, payload, paste mode, and comparison semantics.
+- Search can use iter_units, match_unit, and compare_units without knowing formatter
+  internals.
+- Clipboard payloads carry source_formatter, source_address, payload_kind, and payload.
+- Paste compatibility is decided through formatter contracts, not ad hoc editor-core
+  logic.
+- Future json and markdown formatters can be added by implementing AbstractFormatter.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only AbstractFormatter contracts and the initial text/AI
+    formatters under ai_editor/formatters and tests/formatters. Text formatter represents
+    documents as arrays of lines and owns text address/unit/compare semantics. AI
+    formatter represents documents as YAML trees and owns YAML address/unit/compare
+    semantics. Ensure copy/cut require source_address, paste requires target_address,
+    and clipboard compatibility uses source_formatter, source_address, payload_kind,
+    and payload. Do not edit editor core internals, universal search, public interfaces,
+    CLI, MCP wrappers, .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+formatter_command_discovery:
+  purpose: Allow every formatter to publish standard and formatter-specific commands
+    with metadata and OpenAPI-compatible schemas.
+  required_static_method: list_commands() -> FormatterCommandCatalog
+  catalog_fields:
+  - formatter_name
+  - formatter_version
+  - standard_commands
+  - specific_commands
+  - openapi_schemas
+  - diagnostics
+  command_metadata_fields:
+  - name
+  - 'kind: standard|formatter_specific'
+  - description
+  - input_schema
+  - output_schema
+  - openapi_operation
+  - side_effects
+  - writes_files
+  - requires_buffer
+  - requires_file_path
+  - examples
+  rules:
+  - standard_commands must cover AbstractFormatter methods
+  - specific_commands may be formatter-defined but must expose OpenAPI-compatible
+    schemas
+  - commands that write separate derived artifacts must set writes_files=true
+  - formatter-specific artifact writes must not masquerade as editor save/save_as
+  - editor core must not interpret formatter-specific command semantics
+  - public API may expose formatter_commands(formatter|buffer_id|file_path) for discovery
