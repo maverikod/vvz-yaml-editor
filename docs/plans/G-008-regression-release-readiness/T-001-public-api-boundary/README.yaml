@@ -34,6 +34,12 @@ self_contained_context:
     - yaml_move
     - yaml_update_command
     - yaml_append_verification
+    clipboard_functions:
+    - yaml_clipboard_copy
+    - yaml_clipboard_get
+    - yaml_clipboard_list
+    - yaml_clipboard_clear
+    - yaml_clipboard_paste
   boundaries:
   - Public API must import public subsystem contracts only.
   - Public API must not implement YAML parser internals.
