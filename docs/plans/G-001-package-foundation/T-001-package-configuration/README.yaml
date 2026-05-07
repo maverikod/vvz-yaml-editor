@@ -192,6 +192,7 @@ project_metadata:
   dependencies:
   - ruamel.yaml>=0.18
   - jsonschema>=4
+  - jsonpath-ng>=1.6
   optional_dependencies:
     experimental:
     - jsonpath-ng>=1.6
