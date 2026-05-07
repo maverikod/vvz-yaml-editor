@@ -39,6 +39,7 @@ forbidden_code_paths:
 allowed_dependencies:
   may_depend_on:
   - G-010 formatter backends public contracts
+  - mcp_proxy_adapter SimpleConfig/SimpleConfigModel/BaseValidator for config integration
   may_be_used_by:
   - G-011 universal search layer
   - G-008 public interfaces and CLI adapter
