@@ -468,168 +468,227 @@ implementation_steps:
   - python -m build succeeds locally.
   - pip install -e . installs yaml_editor from the repository source.
 - id: step_02
-  title: Implement YAML loading and summary
+  title: Implement AbstractBuffer and editor core
   actions:
-  - Implement ruamel.yaml based loader.
-  - Preserve comments, order, quotes, and block styles where possible.
-  - Return top-level keys, format, node_id, command names, valid_yaml, and diagnostics.
+  - Implement dynamic buffer registry.
+  - Implement file-backed and unsaved buffers.
+  - Implement open, new, save, save_as, close, reload, get_state, and get_formatter.
+  - Track original_hash, current_hash, dirty, revision, and status.
+  - Ensure one file_path cannot have multiple open buffers.
+  - Keep address values opaque and formatter-owned.
   deliverables:
-  - yaml_editor/loader.py
-  - tests/test_loader.py
+  - yaml_editor/editor_core/
+  - tests/editor_core/
   verification:
-  - yaml_load returns expected summary for plan_task_v1 fixtures.
-  - Invalid YAML returns YAML_PARSE_FAILED without writing files.
+  - Opening the same file twice returns the same buffer_id.
+  - Unsaved buffers have file_path=null and dirty=true.
+  - save/save_as are the only operations that write files.
+  - Editor core does not parse YAML addresses, text line ranges, or formatter-specific
+    command semantics.
 - id: step_03
-  title: Implement structural YAML path parser
+  title: Implement AbstractFormatter contract and formatter registry
   actions:
-  - Parse dotted keys, list indexes, and list filters.
-  - Support commands[name=...] lookup.
-  - Normalize paths for diagnostics and changed_paths.
+  - Define formatter base interface for parse, render, validate_content, validate_document,
+    validate, list_commands, normalize_address, copy_fragment, cut_fragment, paste_fragment,
+    get_unit, iter_units, match_unit, compare_units, and diagnostics.
+  - 'Define formatter metadata: formatter_name, formatter_version, supported_payload_kinds,
+    supported_address_kinds, supported_paste_modes, can_render_to_text, and can_parse_from_text.'
+  - Define FormatterCommandCatalog and FormatterCommandMetadata contracts.
+  - Implement formatter registry and extension-based formatter resolution for validate_file
+    and open(formatter=auto).
   deliverables:
-  - yaml_editor/path_parser.py
-  - tests/test_path_parser.py
+  - yaml_editor/formatters/base.py
+  - yaml_editor/formatters/registry.py
+  - tests/formatters/test_base_contract.py
+  - tests/formatters/test_registry.py
   verification:
-  - Parser resolves commands[name=buf_diff].metadata.
-  - Parser rejects ambiguous or malformed paths with typed errors.
+  - Formatter contract does not include open, save, close, buffer registry, or stale
+    disk checks.
+  - Every formatter exposes list_commands() with standard command metadata.
+  - Registry resolves .yaml/.yml to yaml formatter and text extensions to text formatter.
+  - Invalid command schema returns FORMATTER_COMMAND_SCHEMA_INVALID.
 - id: step_04
-  title: Implement read-only tree access
+  title: Implement text formatter
   actions:
-  - Implement yaml_get.
-  - Implement yaml_get_command and yaml_get_verification helpers.
-  - Ensure returned fragments are exact structural fragments, not line ranges.
+  - Represent text documents as arrays of lines.
+  - Implement text addresses as line range, insertion point, or whole document.
+  - Implement validate_content and validate_document for text constraints.
+  - Implement copy/cut/paste over text units.
+  - 'Implement text compare_units semantics: exact text, normalized text, substring,
+    regex, line number, and range overlap.'
+  - Expose text formatter command catalog.
   deliverables:
-  - yaml_editor/api.py
-  - tests/test_get_api.py
+  - yaml_editor/formatters/text/
+  - tests/formatters/text/
   verification:
-  - yaml_get returns only the selected block.
-  - Missing path returns PATH_NOT_FOUND.
+  - Text formatter parses and renders arrays of lines.
+  - Text validate_content reports encoding/line diagnostics without opening a buffer.
+  - Text copy/cut require source_address.
+  - Text paste requires target_address.
+  - Text list_commands includes standard commands and text-specific metadata.
 - id: step_05
-  title: Implement in-memory mutation operations
+  title: Implement YAML formatter
   actions:
-  - Implement set, replace_block, append, delete, and move operations.
-  - Add dedupe handling for append.
-  - Track changed paths for every operation.
+  - Represent YAML documents as ruamel.yaml trees.
+  - Implement YAML structural addresses for keys, indexes, and list filters such as
+    commands[name=buf_diff].
+  - Implement validate_content and validate_document for YAML parse, schema, semantic,
+    and render checks.
+  - 'Implement YAML copy/cut/paste modes: set, replace_block, append, insert_before,
+    insert_after.'
+  - Implement YAML compare_units semantics for node type, key, scalar value, mapping
+    fields, list item identity, and semantic name fields.
+  - Expose YAML formatter command catalog.
   deliverables:
-  - yaml_editor/operations.py
-  - tests/test_operations.py
+  - yaml_editor/formatters/yaml/
+  - yaml_editor/schemas/plan_task_v1.schema.json
+  - tests/formatters/yaml/
   verification:
-  - Operations mutate only intended nodes.
-  - Append with dedupe=true is idempotent.
-  - Move changes list order only at the requested path.
+  - YAML formatter parses real plan fixtures.
+  - YAML validate_content validates a file's raw YAML without opening a buffer.
+  - YAML addresses resolve uniquely or return ADDRESS_NOT_FOUND/ADDRESS_NOT_UNIQUE.
+  - YAML copy/cut require source_address.
+  - YAML paste requires target_address.
+  - YAML list_commands includes standard and YAML-specific command metadata.
 - id: step_06
-  title: Implement workflow clipboard
+  title: Implement ForeignFormatter
   actions:
-  - Implement runtime clipboard storage for YAML nodes, YAML blocks, and text fragments.
-  - Support memory and project-local persistent cache storage modes.
-  - Implement yaml_clipboard_copy, yaml_clipboard_get, yaml_clipboard_list, yaml_clipboard_clear,
-    and yaml_clipboard_paste.
-  - Validate source files, source paths, target files, target paths, clipboard item
-    existence, and paste compatibility before mutation.
-  - Ensure paste delegates to the checked write pipeline and supports dry_run=true.
+  - Implement ForeignFormatter as an AbstractFormatter implementation.
+  - Delegate operations to external OpenAPI/MCP-proxy-adapter backed formatter commands.
+  - Implement validate_content, validate_document, and list_commands through external
+    calls.
+  - Normalize external OpenAPI operations into FormatterCommandCatalog.
+  - Map nested success=false, missing success fields, timeouts, and transport failures
+    to typed local errors.
+  deliverables:
+  - yaml_editor/formatters/foreign.py
+  - tests/formatters/foreign/
+  - docs/foreign_formatters.md
+  verification:
+  - ForeignFormatter implements the same AbstractFormatter contract as local formatters.
+  - ForeignFormatter validate_content maps successful external results.
+  - Nested success=false is returned as local success=false.
+  - Missing nested result.success returns FOREIGN_FORMATTER_CONTRACT_VIOLATION.
+  - External discovery schema problems return FORMATTER_COMMAND_SCHEMA_INVALID.
+  - ForeignFormatter never writes files or owns buffer lifecycle.
+- id: step_07
+  title: Implement validate_file orchestration
+  actions:
+  - Implement validate_file(file_path|buffer_id, formatter=auto).
+  - Resolve formatter by extension, explicit formatter name, or buffer formatter.
+  - Validate raw file content with formatter.validate_content when file_path is used.
+  - Validate in-memory document with formatter.validate_document when buffer_id is
+    used.
+  - Return unified validation_result, errors, warnings, diagnostics, formatter_name,
+    file_path, and buffer_id.
+  - Ensure validate_file never writes files and never changes buffer dirty state.
+  deliverables:
+  - yaml_editor/file_validation.py
+  - tests/test_file_validation.py
+  verification:
+  - validate_file validates a YAML plan file by extension.
+  - validate_file validates a text file by extension.
+  - validate_file validates a dirty in-memory buffer without writing.
+  - Unknown extension or formatter returns FORMATTER_NOT_FOUND or FORMATTER_UNSUPPORTED.
+  - Invalid content returns FORMAT_VALIDATION_FAILED with diagnostics.
+- id: step_08
+  title: Implement AbstractSearch
+  actions:
+  - Implement find, find_one, list_units, and select over formatter-provided units.
+  - Use formatter.iter_units, formatter.match_unit, and formatter.compare_units.
+  - Return formatter-provided addresses suitable for BufferAddress in copy/cut/paste.
+  - Implement search typed errors for invalid query, no match, non-unique match, invalid
+    scope, and unsupported formatter search.
+  deliverables:
+  - yaml_editor/search/
+  - tests/search/
+  verification:
+  - Search works over text units and YAML units.
+  - find_one returns SEARCH_NO_MATCH for zero matches.
+  - find_one returns SEARCH_NOT_UNIQUE for multiple matches.
+  - Search does not parse YAML paths or text line ranges directly.
+- id: step_09
+  title: Implement format-aware clipboard
+  actions:
+  - Implement clipboard item contract with source_buffer_id, source_formatter, source_address,
+    source_revision, payload_kind, and payload.
+  - Implement paste request contract with target_buffer_id, target_formatter, target_address,
+    mode, and clipboard_item_id.
+  - Implement compatibility rules for text->text, yaml->yaml, yaml->text rendered
+    text, and text->yaml parse_as_yaml.
+  - Implement CLIPBOARD_FORMAT_MISMATCH and CLIPBOARD_SOURCE_STALE.
   deliverables:
   - yaml_editor/clipboard.py
   - tests/test_clipboard.py
-  - docs/mcp_integration.md
   verification:
-  - Copying a missing source path returns SOURCE_PATH_NOT_FOUND or PATH_NOT_FOUND
-    without creating a clipboard item.
-  - Pasting a missing clipboard item returns CLIPBOARD_ITEM_NOT_FOUND without changing
-    the target file.
-  - Dry-run paste returns would_change without modifying the file.
-  - Real paste is verified through a separate yaml_get or yaml_load call.
-- id: step_07
-  title: Implement schema and semantic validation
+  - copy does not mark buffers dirty.
+  - cut marks source buffer dirty.
+  - paste marks target buffer dirty without writing files.
+  - Incompatible formatter paste returns CLIPBOARD_FORMAT_MISMATCH.
+- id: step_10
+  title: Implement checked persistence helpers
   actions:
-  - Add plan_task_v1 JSON Schema.
-  - Implement generic YAML validation.
-  - Implement semantic checks from docs/tech_spec.md.
-  deliverables:
-  - yaml_editor/validator.py
-  - yaml_editor/schemas/plan_task_v1.schema.json
-  - tests/test_validator.py
-  verification:
-  - Invalid required references are rejected.
-  - Empty verification is rejected.
-  - Invalid status is rejected.
-- id: step_08
-  title: Implement deterministic rendering
-  actions:
-  - Render YAML through ruamel.yaml.
-  - Reparse rendered YAML and compare structural equivalence.
-  - Detect non-deterministic rendering by rendering twice.
-  deliverables:
-  - yaml_editor/renderer.py
-  - tests/test_renderer.py
-  verification:
-  - Rendered YAML parses successfully.
-  - Two renders of the same tree are identical.
-- id: step_09
-  title: Implement atomic checked writer
-  actions:
-  - Implement read-parse-patch-validate-render-validate-write pipeline.
-  - Add dry_run mode.
-  - Add backup creation before real write.
-  - Compute old_hash and new_hash.
-  - Return backup_uuid, changed_paths, validation_result, and render_preview.
+  - Implement stale disk checks for save/save_as.
+  - Implement backup creation before real write.
+  - Implement atomic write and read-back diagnostics.
+  - Ensure save/save_as call formatter.validate_document and formatter.render before
+    writing.
   deliverables:
   - yaml_editor/writer.py
   - tests/test_writer.py
   verification:
-  - Dry run returns would_change without modifying the file.
-  - Failed validation leaves the file byte-for-byte unchanged.
-  - Successful write returns old_hash and new_hash.
-- id: step_10
-  title: Implement public API wrappers
+  - Failed formatter validation leaves disk unchanged.
+  - Stale file-backed buffer returns BUFFER_STALE.
+  - Successful save returns old_hash and new_hash.
+  - save_as respects overwrite=false with SAVE_TARGET_EXISTS.
+- id: step_11
+  title: Implement public API and YAML compatibility wrappers
   actions:
-  - Expose yaml_load, yaml_validate, yaml_get, yaml_set, yaml_replace_block, yaml_append,
-    yaml_delete, yaml_move, yaml_clipboard_copy, yaml_clipboard_get, yaml_clipboard_list,
-    yaml_clipboard_clear, yaml_clipboard_paste, and yaml_write_checked.
-  - Expose model-friendly helper functions.
-  - Ensure API responses are JSON-serializable for MCP servers.
+  - 'Expose generic editor commands: open, new, save, save_as, close, validate_file,
+    formatter_commands, copy, cut, paste, find, find_one, list_units, validate.'
+  - Expose YAML compatibility wrappers as mappings over generic buffer/search/formatter/save
+    architecture.
+  - Ensure all responses are JSON-serializable and preserve nested success=false truthfully.
   deliverables:
   - yaml_editor/api.py
   - tests/test_public_api.py
   verification:
-  - Every public function has success and error response contracts.
+  - Generic editor commands satisfy the public_api contract.
+  - validate_file is visible as a standalone public API command.
+  - formatter_commands returns standard and formatter-specific command schemas.
+  - yaml_get uses search/get_unit compatibility instead of separate YAML-only architecture.
+  - yaml_write_checked uses formatter operations plus save/save_as compatibility flow.
   - API responses can be serialized with json.dumps.
-- id: step_11
-  title: Add CLI for diagnostics
+- id: step_12
+  title: Add CLI and MCP integration docs
   actions:
-  - Implement yaml-editor load, validate, get, clipboard-copy, clipboard-get, clipboard-list,
-    clipboard-clear, clipboard-paste, and write-checked commands.
-  - Keep CLI thin and delegate to public API.
+  - Implement CLI as a thin diagnostic wrapper over public API.
+  - Document MCP request/response examples for generic editor commands.
+  - Document validate_file for project-manager file checks.
+  - Document formatter_commands and formatter-specific OpenAPI command discovery.
+  - Document YAML compatibility examples as compatibility wrappers, not core architecture.
   deliverables:
   - yaml_editor/interfaces/cli.py
-  - tests/test_cli.py
+  - docs/mcp_integration.md
+  - docs/cli_usage.md
+  - tests/interfaces/test_cli.py
   verification:
   - yaml-editor --help exits with code 0.
-  - yaml-editor validate fixture.yaml reports validation result.
-  - yaml-editor clipboard-copy followed by clipboard-paste dry-run reports expected
-    changed_paths.
-- id: step_12
-  title: Add MCP integration guide
-  actions:
-  - Document how an MCP server imports yaml_editor.api functions.
-  - Document request and response JSON examples.
-  - Document clipboard copy/paste workflow for splitting one step into two checked
-    edits.
-  - Document that MCP command handlers must never use yaml_write_lines_unsafe for
-    normal operation.
-  deliverables:
-  - docs/mcp_integration.md
-  verification:
-  - Guide includes examples for yaml_write_checked, yaml_get_command, yaml_clipboard_copy,
-    and yaml_clipboard_paste.
+  - CLI can run validate-file by file_path.
+  - CLI can list formatter-commands for a file_path or formatter name.
+  - CLI can open/find/copy/paste/save through generic commands.
+  - Docs show BufferAddress with source.address and target.address.
 - id: step_13
   title: Add packaging and release checks
   actions:
   - Run ruff, mypy, pytest, build, and twine check.
-  - Confirm wheel contains schemas.
+  - Confirm wheel contains schemas and formatter packages.
   - Confirm import works from installed wheel in a clean virtual environment.
   deliverables:
   - dist/*.whl
   - dist/*.tar.gz
-  - release checklist in docs/release_checklist.md
+  - docs/release_checklist.md
+  - docs/regression_observations.md
   verification:
   - python -m build succeeds.
   - twine check dist/* succeeds.
