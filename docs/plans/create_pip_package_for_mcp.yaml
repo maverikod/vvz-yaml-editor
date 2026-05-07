@@ -120,179 +120,203 @@ module_architecture:
       YAML formatter, and real fixtures.
 public_api:
   core_commands:
-  - name: yaml_load
-    purpose: Read YAML and return the parsed tree plus a compact summary.
+  - name: open
+    layer: buffer
+    purpose: Open a file-backed buffer or return the existing buffer_id when the file
+      is already open.
     request:
       file_path: string
+      formatter: auto|text|yaml
     response_fields:
-    - format
-    - node_id
-    - commands
-    - top_level_keys
-    - valid_yaml
+    - success
+    - buffer_id
+    - file_path
+    - formatter
+    - dirty
+    - revision
     - diagnostics
-  - name: yaml_validate
-    purpose: Validate YAML parse, optional schema, semantic constraints, and deterministic
-      rendering.
+  - name: new
+    layer: buffer
+    purpose: Create a new unsaved buffer with an explicit formatter.
     request:
+      formatter: text|yaml
+      display_name: optional string
+    response_fields:
+    - success
+    - buffer_id
+    - formatter
+    - dirty
+    - revision
+    - diagnostics
+  - name: save
+    layer: buffer
+    purpose: Validate, render, stale-check, back up, and atomically write a file-backed
+      buffer.
+    request:
+      buffer_id: string
+    response_fields:
+    - success
+    - buffer_id
+    - file_path
+    - old_hash
+    - new_hash
+    - dirty
+    - diagnostics
+  - name: save_as
+    layer: buffer
+    purpose: Validate, render, and atomically write a buffer to a target file_path,
+      then bind the buffer to that file.
+    request:
+      buffer_id: string
       file_path: string
-      validate_schema: optional string
+      overwrite: boolean
+    response_fields:
+    - success
+    - buffer_id
+    - file_path
+    - old_hash
+    - new_hash
+    - dirty
+    - diagnostics
+  - name: close
+    layer: buffer
+    purpose: Close a buffer using an explicit unsaved-changes policy.
+    request:
+      buffer_id: string
+      save: boolean
+      policy: discard|save|error_if_dirty
+    response_fields:
+    - success
+    - buffer_id
+    - closed
+    - diagnostics
+  - name: copy
+    layer: edit
+    purpose: Copy a formatter-defined fragment from a source BufferAddress into the
+      format-aware clipboard.
+    request:
+      source:
+        buffer_id: string
+        address: formatter-specific value
+      clipboard_item_id: optional string
+    response_fields:
+    - success
+    - clipboard_item_id
+    - source_buffer_id
+    - source_formatter
+    - source_address
+    - payload_kind
+    - diagnostics
+  - name: cut
+    layer: edit
+    purpose: Cut a formatter-defined fragment from a source BufferAddress into the
+      format-aware clipboard and mark the source buffer dirty.
+    request:
+      source:
+        buffer_id: string
+        address: formatter-specific value
+      clipboard_item_id: optional string
+    response_fields:
+    - success
+    - clipboard_item_id
+    - source_buffer_id
+    - source_formatter
+    - source_address
+    - changed_addresses
+    - dirty
+    - diagnostics
+  - name: paste
+    layer: edit
+    purpose: Paste a clipboard fragment into a target BufferAddress using formatter-defined
+      paste semantics and mark the target buffer dirty.
+    request:
+      target:
+        buffer_id: string
+        address: formatter-specific value
+      mode: formatter-specific string
+      clipboard_item_id: optional string
+    response_fields:
+    - success
+    - target_buffer_id
+    - target_formatter
+    - target_address
+    - changed_addresses
+    - dirty
+    - diagnostics
+  - name: find
+    layer: search
+    purpose: Find formatter units in a buffer using AbstractSearch over formatter-provided
+      units.
+    request:
+      buffer_id: string
+      query: formatter/search query object
+      scope: optional formatter-specific scope
+    response_fields:
+    - success
+    - matches
+    - diagnostics
+  - name: find_one
+    layer: search
+    purpose: Return exactly one matching formatter unit or a typed search error.
+    request:
+      buffer_id: string
+      query: formatter/search query object
+      scope: optional formatter-specific scope
+    response_fields:
+    - success
+    - match
+    - address
+    - diagnostics
+  - name: list_units
+    layer: search
+    purpose: List formatter-provided units for a buffer and optional scope.
+    request:
+      buffer_id: string
+      scope: optional formatter-specific scope
+    response_fields:
+    - success
+    - units
+    - diagnostics
+  - name: validate
+    layer: formatter
+    purpose: Run formatter validation for a buffer without writing it.
+    request:
+      buffer_id: string
+      schema: optional string
     response_fields:
     - success
     - validation
     - errors
-  - name: yaml_get
-    purpose: Return an exact YAML subtree selected by structural path.
-    request:
-      file_path: string
-      path: string
-  - name: yaml_set
-    purpose: Replace scalar or structured value at a path.
-    request:
-      file_path: string
-      path: string
-      value: any
-      dry_run: boolean
-  - name: yaml_replace_block
-    purpose: Replace a whole mapping or sequence block at a path.
-    request:
-      file_path: string
-      path: string
-      value: object_or_array
-      dry_run: boolean
-  - name: yaml_append
-    purpose: Append a value to a YAML list with optional duplicate protection.
-    request:
-      file_path: string
-      path: string
-      value: any
-      dedupe: boolean
-      dry_run: boolean
-  - name: yaml_delete
-    purpose: Delete a mapping key or list item by structural path.
-    request:
-      file_path: string
-      path: string
-      dry_run: boolean
-  - name: yaml_move
-    purpose: Move a selected list item to a new index.
-    request:
-      file_path: string
-      from_path: string
-      to_index: integer
-      dry_run: boolean
-  - name: yaml_clipboard_copy
-    purpose: Copy a YAML node, YAML block, or text fragment into workflow clipboard
-      after validating the source file and source selection.
-    request:
-      file_path: string
-      path: string
-      clipboard_id: string
-      item_name: string
-      payload_kind: yaml_node|yaml_block|text
-      overwrite: boolean
-    response_fields:
-    - success
-    - clipboard_id
-    - item_name
-    - source_file_path
-    - source_path
-    - payload_kind
-    - source_hash
     - diagnostics
-  - name: yaml_clipboard_get
-    purpose: Return clipboard item metadata and, when requested, the stored payload
-      for diagnostics without mutating YAML files.
-    request:
-      clipboard_id: string
-      item_name: string
-      include_payload: boolean
-    response_fields:
-    - success
-    - clipboard_id
-    - item_name
-    - payload_kind
-    - source_file_path
-    - source_path
-    - source_hash
-    - payload
-    - diagnostics
-  - name: yaml_clipboard_list
-    purpose: List clipboard item metadata for one clipboard_id or for all visible
-      workflow clipboard namespaces.
-    request:
-      clipboard_id: optional string
-    response_fields:
-    - success
-    - items
-    - diagnostics
-  - name: yaml_clipboard_clear
-    purpose: Clear one clipboard item or one clipboard namespace without touching
-      plan_task_v1 YAML documents.
-    request:
-      clipboard_id: string
-      item_name: optional string
-    response_fields:
-    - success
-    - clipboard_id
-    - cleared_items
-    - diagnostics
-  - name: yaml_clipboard_paste
-    purpose: Paste one clipboard item into a target YAML file through the checked
-      write pipeline.
-    request:
-      file_path: string
-      target_path: string
-      clipboard_id: string
-      item_name: string
-      paste_mode: append|replace_block|set
-      validate_schema: optional string
-      dry_run: boolean
-    response_fields:
-    - success
-    - would_change
-    - clipboard_id
-    - item_name
-    - changed_paths
-    - old_hash
-    - new_hash
-    - validation_result
-    - render_preview
-  - name: yaml_write_checked
-    purpose: Apply multiple operations atomically using the full checked write pipeline.
-    request:
-      file_path: string
-      operations: list
-      validate_schema: optional string
-      dry_run: boolean
-    response_fields:
-    - success
-    - would_change
-    - backup_uuid
-    - old_hash
-    - new_hash
-    - changed_paths
-    - validation_result
-    - render_preview
-  model_friendly_helpers:
-  - name: yaml_get_command
-    purpose: Return commands item by command_name.
-  - name: yaml_update_command
-    purpose: Deep-merge a patch into one command item and validate the result.
-  - name: yaml_get_verification
-    purpose: Return the verification list.
-  - name: yaml_append_verification
-    purpose: Append a verification item with dedupe=true by default.
-  - name: yaml_validate_plan_task
-    purpose: Run plan_task_v1 parse, schema, semantic, and render validation.
-  - name: yaml_split_step_with_clipboard
-    purpose: Model-friendly workflow helper that copies a selected part of one implementation
-      step into clipboard, then pastes it as a second checked step at a target path.
+  compatibility_commands:
+    yaml_compatibility:
+    - yaml_load -> open(file_path, formatter=yaml) plus yaml formatter summary
+    - yaml_write_checked -> open/apply formatter operations/save compatibility flow
+    - yaml_validate -> validate(buffer_id) through yaml formatter
+    - yaml_get -> find_one/get_unit through yaml formatter address
+    - yaml_get_command -> find_one with YAML query over units
+    - yaml_set -> paste(mode=set) on YAML formatter
+    - yaml_replace_block -> paste(mode=replace_block) on YAML formatter
+    - yaml_append -> paste(mode=append) on YAML formatter
+    - yaml_delete -> cut and discard clipboard fragment on YAML formatter
+    - yaml_move -> cut + paste on YAML formatter
+    - yaml_clipboard_* -> editor copy/cut/paste plus clipboard internals
+  buffer_address_contract:
+    name: BufferAddress
+    required_fields:
+    - buffer_id
+    - address
+    rules:
+    - address is opaque to editor core
+    - address is interpreted only by the buffer formatter
+    - YAML formatter treats address as structural YAML path
+    - Text formatter treats address as line range, insertion point, or whole document
   fallback_unsafe_commands:
   - name: yaml_read_lines
     allowed_usage: Emergency diagnostics only.
   - name: yaml_write_lines_unsafe
-    allowed_usage: Emergency low-level repair only; must be visibly marked unsafe.
+    allowed_usage: Emergency low-level repair only; must be visibly marked unsafe
+      and must not be part of normal editor workflows.
 yaml_path_requirements:
   supported_syntax:
   - top_level_key
