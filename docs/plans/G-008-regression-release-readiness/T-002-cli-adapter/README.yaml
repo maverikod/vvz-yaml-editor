@@ -1,0 +1,117 @@
+format: tactical_step_v1
+parent_step_id: G-008
+parent_step_name: interfaces_release
+tactical_step_id: T-002
+tactical_step_name: cli_adapter
+title: CLI adapter for yaml-editor diagnostics
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-008-regression-release-readiness/README.yaml
+intent: Own the yaml-editor console command as a thin diagnostic wrapper over yaml_editor.interfaces.public_api.
+  This tactical step exposes load, validate, get, write-checked, and version commands
+  without implementing parser, path, mutation, validation, transaction writer, or
+  MCP server internals.
+self_contained_context:
+  global_goal: G-008 owns outer user-facing interfaces and release verification.
+  cli_surface:
+    executable: yaml-editor
+    commands:
+    - load
+    - validate
+    - get
+    - write-checked
+    - version
+  boundaries:
+  - CLI must import the public API boundary only.
+  - CLI must not import internal subsystem modules directly.
+  - CLI must pass through nested success=false results honestly.
+  - CLI must provide deterministic exit codes and JSON-compatible output for diagnostics.
+  - CLI must not implement MCP wrappers.
+owned_code_paths:
+- yaml_editor/interfaces/cli.py
+owned_test_paths:
+- tests/interfaces/test_cli_adapter.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/public_api.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/mutations/
+- tests/validation/
+- tests/transaction_writer/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-008/T-001 public API boundary
+  may_be_used_by:
+  - packaging console script configuration
+  - release verification
+public_contracts_provided:
+- yaml_editor.interfaces.cli
+- yaml-editor console command behavior
+cli_policy:
+  commands:
+    load: Thin wrapper over yaml_load.
+    validate: Thin wrapper over yaml_validate or yaml_validate_plan_task.
+    get: Thin wrapper over yaml_get or specialized read helpers.
+    write-checked: Thin wrapper over yaml_write_checked.
+    version: Report installed package version.
+  output_policy:
+  - Prefer machine-readable JSON-compatible output for command results.
+  - Preserve nested result.success fields in output.
+  - Use non-zero exit code when the requested operation result is success=false.
+responsibilities:
+- Implement CLI command routing to public API functions.
+- Preserve truthful success/failure and diagnostics.
+- Keep CLI behavior diagnostic and thin.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/interfaces/test_cli_adapter.py
+  - yaml-editor --help
+  - yaml-editor version
+  expected:
+  - CLI help is available.
+  - CLI version reports package version.
+  - CLI commands call public API and preserve nested failures.
+  - CLI does not import internal subsystem modules directly.
+acceptance_criteria:
+- CLI is a thin wrapper over public API.
+- CLI output and exit codes are deterministic and truthful.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/interfaces/cli.py and tests/interfaces/test_cli_adapter.py.
+    Implement the yaml-editor CLI as a thin diagnostic wrapper over yaml_editor.interfaces.public_api.
+    Do not implement parser, path, mutation, validation, transaction writer, or MCP
+    internals. Do not edit .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-008/T-002
+  problem: Tactical README did not exist for CLI adapter.
+  action: Created a self-contained tactical README constrained to G-008 CLI adapter
+    ownership.
+  status: fixed
