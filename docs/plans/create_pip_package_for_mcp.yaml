@@ -465,7 +465,7 @@ implementation_steps:
     clipboard-clear, clipboard-paste, and write-checked commands.
   - Keep CLI thin and delegate to public API.
   deliverables:
-  - yaml_editor/cli.py
+  - yaml_editor/interfaces/cli.py
   - tests/test_cli.py
   verification:
   - yaml-editor --help exits with code 0.
