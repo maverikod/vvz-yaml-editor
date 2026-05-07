@@ -340,17 +340,30 @@ verification:
   commands:
   - python -m pytest tests/formatters/cst
   expected:
-  - parse round-trips without loss (render(parse(src)) == src for valid Python)
-  - stable_id survives insert, delete, replace, move operations
-  - no node-id comments appear in render() output
-  - no marker block appears in .py file after buffer.save
-  - sidecar written after save; reloaded correctly on next parse if sha256 matches
-  - skeleton returns only declarative elements with stable_id
-  - cst_query returns correct nodes for XPath selectors
-  - replace_docstring inserts docstring when absent, replaces when present
-  - SimpleStatementSuite parent is auto-expanded before insert
-  - delete removes node and all descendants
-  - move is atomic (no partial state on failure)
+  - 'parse round-trips without loss: render(parse(src)) == src for valid Python.'
+  - stable_id survives insert, delete, replace, move operations via previous_metadata_map.
+  - 'stable_id not in source: no @node-id comments and no # cst-node-ids blocks in
+    .py after any operation.'
+  - 'sidecar written after save with two checksums: source_sha256 and tree_sha256.'
+  - 'sidecar fast path: if both checksums match on reload tree is not re-parsed via
+    _build_tree_index.'
+  - 'sidecar corrupted (tree_sha256 mismatch): tree rebuilt from scratch.'
+  - 'source changed (source_sha256 mismatch): tree rebuilt from scratch.'
+  - skeleton returns only declarative elements with stable_id; method bodies replaced
+    by placeholder comment.
+  - 'skeleton shows: file docstring, imports, class headers+docstrings+properties,
+    method signatures+docstrings, function signatures+docstrings. All prefixed with
+    [stable_id].'
+  - get_unit(stable_id) returns full source code of single node including body.
+  - list_units() returns flat list with stable_id and no bodies.
+  - cst_query returns matching nodes in declarative format; full body via get_unit.
+  - replace_docstring inserts docstring when absent, replaces when present.
+  - SimpleStatementSuite parent auto-expanded to IndentedBlock before insert.
+  - delete removes node and all descendants.
+  - move is atomic (no partial state on failure).
+  - CSTFormatter.parse raises FORMAT_VALIDATION_FAILED on libcst.ParserSyntaxError;
+    editor core applies text fallback.
+  - validate_document uses compile() not libcst.parse_module and does not write files.
 acceptance_criteria:
 - CSTFormatter implements AbstractFormatter contract in full.
 - document model is CSTTree; public address is stable_id; node_id is internal only.
