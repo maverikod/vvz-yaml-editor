@@ -55,6 +55,7 @@ write_pipeline:
 - compute_old_hash
 - load_document_with_document_io
 - apply_operations_with_mutations
+- validate_changed_paths_against_expected_operations
 - validate_document_with_validation
 - render_with_document_io
 - validate_rendered_output_with_validation
