@@ -214,6 +214,9 @@ public_api:
     purpose: Append a verification item with dedupe=true by default.
   - name: yaml_validate_plan_task
     purpose: Run plan_task_v1 parse, schema, semantic, and render validation.
+  - name: yaml_split_step_with_clipboard
+    purpose: Model-friendly workflow helper that copies a selected part of one implementation
+      step into clipboard, then pastes it as a second checked step at a target path.
   fallback_unsafe_commands:
   - name: yaml_read_lines
     allowed_usage: Emergency diagnostics only.
