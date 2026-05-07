@@ -88,7 +88,7 @@ forbidden_code_paths:
 - ai_editor/interfaces/
 - ai_editor/transaction_writer/
 - ai_editor/formatters/text/
-- ai_editor/formatters/ai/
+- ai_editor/formatters/yaml/
 - ai_editor/formatters/foreign.py
 - .venv
 - venv
