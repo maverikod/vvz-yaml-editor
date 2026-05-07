@@ -103,6 +103,12 @@ buffer_model:
   - Paste changes the target buffer and sets dirty=true.
   - Save and save_as are the only editor operations that write files.
   - Save rejects stale file-backed buffers when disk_hash differs from original_hash.
+  - Save aborts when formatter.validate_document returns success=false.
+  - open_as_text=True always uses text formatter regardless of file extension.
+  - Parse exception from structural formatter triggers fallback to text formatter;
+    buffer status is set to format_fallback.
+  - validate(buffer_id) can be called at any time without changing buffer state or
+    writing files.
 buffer_address_contract:
   required_fields:
   - buffer_id
