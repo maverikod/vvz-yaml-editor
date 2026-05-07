@@ -1,0 +1,138 @@
+format: tactical_step_v1
+parent_step_id: G-005
+parent_step_name: mutation_operations
+tactical_step_id: T-004
+tactical_step_name: append_operation
+title: Append mutation operation with dedupe semantics
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-005-validation-and-rendering/README.yaml
+intent: Own the pure in-memory append operation for already loaded YAML document objects.
+  This tactical step appends values to sequence targets selected by structural paths
+  and defines optional dedupe behavior, while avoiding file reads, schema validation,
+  rendering, writing, CLI, MCP, and other mutation operations.
+self_contained_context:
+  global_goal: G-005 owns structural in-memory mutation operations over already loaded
+    YAML document objects.
+  technical_spec_basis:
+  - yaml_append adds an item to a list selected by structural YAML path.
+  - yaml_append supports dedupe=true to protect against duplicate list entries.
+  - Ordinary model workflows must use structural YAML paths, not line ranges.
+  - changed_paths must be exact normalized structural paths.
+  parent_boundaries:
+  - Use public path_language contracts for sequence target resolution.
+  - Do not implement path parsing inside this step.
+  - Do not validate plan_task_v1 schema or semantics.
+  - Do not render or write YAML text.
+  - Do not implement set, replace_block, delete, move, batch rollback, CLI, or MCP
+    wrappers.
+owned_code_paths:
+- yaml_editor/mutations/append_ops.py
+owned_test_paths:
+- tests/mutations/test_append_ops.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/mutations/__init__.py
+- yaml_editor/mutations/package_boundary.py
+- yaml_editor/mutations/contracts.py
+- yaml_editor/mutations/replace_ops.py
+- yaml_editor/mutations/delete_ops.py
+- yaml_editor/mutations/move_ops.py
+- yaml_editor/mutations/engine.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/validation/
+- tests/transaction_writer/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 in-memory YAML document model concepts
+  - G-003 structural path resolution public contracts
+  - G-005/T-002 mutation contract models
+  may_be_used_by:
+  - G-005 batch dispatch and rollback step
+  - G-007 checked write pipeline
+public_contracts_provided:
+- append operation implementation
+- dedupe behavior for sequence append
+operation_policy:
+  append:
+    purpose: Append a scalar or structured value to an existing sequence selected
+      by structural path.
+    changed_paths_rule: Report the normalized sequence path or appended item path
+      according to the shared mutation contract; tests must make the selected convention
+      explicit.
+    invalid_targets: Return typed failure for missing, ambiguous, or non-sequence
+      target paths.
+  dedupe:
+    purpose: When dedupe=true, avoid appending a value that is already structurally
+      equal to an existing sequence item.
+    no_change_rule: Existing equal item must produce deterministic success/no-change
+      behavior and must not report a false changed path.
+    equality_basis: Structural equality of the in-memory YAML value, not rendered
+      text and not line ranges.
+responsibilities:
+- Append exactly one value to the selected in-memory sequence when dedupe does not
+  suppress the operation.
+- Preserve existing sequence order and unrelated document branches.
+- Return typed errors for non-sequence, missing, or ambiguous targets.
+- Keep dedupe behavior deterministic and idempotent.
+implementation_notes:
+- This step must not duplicate structural path parser logic; it must call public G-003
+  path resolution contracts.
+- Dedupe must compare YAML values structurally in memory.
+- This step must not call validation, rendering, writer, CLI, or MCP modules.
+- Batch rollback belongs to a later G-005 tactical step, not here.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/mutations/test_append_ops.py
+  expected:
+  - append adds exactly one item to a selected sequence.
+  - append with dedupe=true is idempotent for an existing equal item.
+  - append to a mapping or scalar returns a typed target mismatch error.
+  - Missing or ambiguous targets return typed errors.
+  - No file I/O, validation, rendering, writer, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- append is implemented independently from set, replace_block, delete, move, and batch
+  orchestration.
+- dedupe behavior is deterministic, idempotent, and covered by tactical tests.
+- Every successful change reports exact normalized changed_paths.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/mutations/append_ops.py and tests/mutations/test_append_ops.py.
+    Implement pure in-memory append behavior with dedupe semantics for sequence targets
+    over already loaded YAML document objects using public path_language resolution
+    contracts and G-005 mutation contracts. Do not implement set, replace_block, delete,
+    move, batch rollback, validation, rendering, file I/O, transaction writing, CLI,
+    or MCP wrappers. Do not edit .venv, venv, site-packages, installed dependencies,
+    or sibling-owned mutation files.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-005/T-004
+  problem: Tactical README did not exist for append and dedupe behavior.
+  action: Created a self-contained tactical README constrained to G-005 append semantics.
+  status: fixed
