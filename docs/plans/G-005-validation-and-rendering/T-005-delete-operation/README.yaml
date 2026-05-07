@@ -1,0 +1,138 @@
+format: tactical_step_v1
+parent_step_id: G-005
+parent_step_name: mutation_operations
+tactical_step_id: T-005
+tactical_step_name: delete_operation
+title: Delete mutation operation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-005-validation-and-rendering/README.yaml
+intent: Own the pure in-memory delete operation for already loaded YAML document objects.
+  This tactical step removes a mapping key or sequence item selected by structural
+  path and reports exact normalized changed_paths without reading files, validating
+  schemas, rendering YAML, writing files, or exposing CLI/MCP wrappers.
+self_contained_context:
+  global_goal: G-005 owns structural in-memory mutation operations over already loaded
+    YAML document objects.
+  technical_spec_basis:
+  - yaml_delete deletes a field or list item selected by structural YAML path.
+  - Example structural paths include commands[name=buf_diff].metadata.best_practices[1].
+  - Ordinary model workflows must use structural YAML paths, not line ranges.
+  - changed_paths must be exact normalized structural paths.
+  parent_boundaries:
+  - Use public path_language contracts for target and parent resolution.
+  - Deletion requires parent resolution, not only target resolution.
+  - Do not implement path parsing inside this step.
+  - Do not validate plan_task_v1 schema or semantics.
+  - Do not render or write YAML text.
+  - Do not implement set, replace_block, append, move, batch rollback, CLI, or MCP
+    wrappers.
+owned_code_paths:
+- yaml_editor/mutations/delete_ops.py
+owned_test_paths:
+- tests/mutations/test_delete_ops.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/mutations/__init__.py
+- yaml_editor/mutations/package_boundary.py
+- yaml_editor/mutations/contracts.py
+- yaml_editor/mutations/replace_ops.py
+- yaml_editor/mutations/append_ops.py
+- yaml_editor/mutations/move_ops.py
+- yaml_editor/mutations/engine.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/validation/
+- tests/transaction_writer/
+- tests/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 in-memory YAML document model concepts
+  - G-003 structural path resolution and parent resolution public contracts
+  - G-005/T-002 mutation contract models
+  may_be_used_by:
+  - G-005 batch dispatch and rollback step
+  - G-007 checked write pipeline
+public_contracts_provided:
+- delete operation implementation
+operation_policy:
+  delete:
+    purpose: Delete an existing mapping key or sequence item selected by structural
+      path.
+    changed_paths_rule: Report the normalized deleted path and any parent-path convention
+      required by the shared mutation contract.
+    invalid_targets: Return typed failure for missing, ambiguous, unsupported, or
+      unsafe root-delete targets.
+  mapping_key_delete:
+    requirement: Remove only the selected key from its parent mapping.
+    non_goal: Do not reorder or normalize unrelated mapping keys.
+  sequence_item_delete:
+    requirement: Remove only the selected item index or resolved filtered item from
+      its parent sequence.
+    non_goal: Do not alter unrelated sequence values beyond natural index shifting
+      after deletion.
+responsibilities:
+- Resolve the selected node and its parent through public path_language contracts.
+- Remove only the selected mapping key or sequence item.
+- Return typed errors for missing, ambiguous, unsupported, or unsafe delete targets.
+- Preserve unrelated document branches, mapping order, and sequence content where
+  possible.
+implementation_notes:
+- This step must not silently ignore missing paths.
+- Root/full-document delete is out of scope unless the parent G-005 contract is explicitly
+  expanded by a human decision.
+- Sequence deletion should use the resolved item index at operation time.
+- Batch rollback belongs to a later G-005 tactical step, not here.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/mutations/test_delete_ops.py
+  expected:
+  - delete removes only the selected mapping key.
+  - delete removes only the selected sequence item.
+  - Missing, ambiguous, unsupported, or unsafe targets return typed errors.
+  - Unrelated document branches remain unchanged.
+  - No file I/O, validation, rendering, writer, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- delete is implemented independently from set, replace_block, append, move, and batch
+  orchestration.
+- Every successful delete reports exact normalized changed_paths.
+- Invalid delete targets return typed errors defined by the mutation contracts.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/mutations/delete_ops.py and tests/mutations/test_delete_ops.py.
+    Implement pure in-memory delete behavior for mapping keys and sequence items over
+    already loaded YAML document objects using public path_language parent resolution
+    contracts and G-005 mutation contracts. Do not implement set, replace_block, append,
+    move, batch rollback, validation, rendering, file I/O, transaction writing, CLI,
+    or MCP wrappers. Do not edit .venv, venv, site-packages, installed dependencies,
+    or sibling-owned mutation files.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-005/T-005
+  problem: Tactical README did not exist for delete behavior.
+  action: Created a self-contained tactical README constrained to G-005 delete semantics.
+  status: fixed
