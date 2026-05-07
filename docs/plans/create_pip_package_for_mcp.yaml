@@ -459,3 +459,43 @@ coverage_gap_closures:
 - gap: console_entry_point_alignment
   resolution: Root console script target is yaml-editor=yaml_editor.interfaces.cli:main
     and G-008/T-010 owns alignment verification with G-001 metadata coordination.
+workflow_clipboard:
+  purpose: Runtime workflow property for copying YAML nodes, YAML blocks, and text
+    fragments between checked editing steps without adding clipboard data to plan_task_v1
+    documents.
+  storage_modes:
+  - memory
+  - persistent_project_local_cache
+  default_storage_mode: persistent_project_local_cache
+  persistent_storage_path: .yaml_editor_clipboard/
+  git_policy: Clipboard storage is workflow/cache state and must not be committed.
+  supported_payload_kinds:
+  - yaml_node
+  - yaml_block
+  - text
+  required_source_checks:
+  - source file exists
+  - source YAML parses for YAML payloads
+  - source path exists
+  - source path resolves uniquely
+  - selected payload can be serialized
+  required_target_checks:
+  - target file exists
+  - target YAML parses for YAML paste operations
+  - clipboard item exists
+  - target path exists
+  - target path resolves uniquely
+  - paste mode is compatible with target node type
+  write_policy: Paste operations must use the checked write pipeline and support dry_run=true.
+  commands:
+  - yaml_clipboard_copy
+  - yaml_clipboard_get
+  - yaml_clipboard_list
+  - yaml_clipboard_clear
+  - yaml_clipboard_paste
+  typed_errors:
+  - CLIPBOARD_ITEM_NOT_FOUND
+  - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_INVALID_MODE
+  - SOURCE_PATH_NOT_FOUND
+  - TARGET_PATH_NOT_FOUND
