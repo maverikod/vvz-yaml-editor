@@ -461,8 +461,8 @@ implementation_steps:
 - id: step_11
   title: Add CLI for diagnostics
   actions:
-  - Implement yaml-editor load, validate, get, clipboard-copy, clipboard-paste, and
-    write-checked commands.
+  - Implement yaml-editor load, validate, get, clipboard-copy, clipboard-get, clipboard-list,
+    clipboard-clear, clipboard-paste, and write-checked commands.
   - Keep CLI thin and delegate to public API.
   deliverables:
   - yaml_editor/cli.py
