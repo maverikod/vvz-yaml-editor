@@ -297,3 +297,23 @@ observations_template:
   fix: ''
   post_fix_verification: ''
   status: ''
+formatter_contract_extensions:
+  parse_exception_contract:
+    behavior: libcst.parse_module raises cst.ParserSyntaxError; CSTFormatter.parse
+      catches it and re-raises as FORMAT_VALIDATION_FAILED with CST_PARSE_FAILED diagnostic
+    caller_behavior: editor core catches FORMAT_VALIDATION_FAILED and falls back to
+      text formatter (see G-009 formatter_fallback_policy)
+    must_raise_on:
+    - any Python source that libcst.parse_module cannot parse
+    - structurally corrupt .py file
+    must_not_raise_on:
+    - syntactically valid Python regardless of style
+    - 'empty file: return empty CSTTree with empty module body'
+  validate_document_contract:
+    behavior: compile tree.module.code via compile() built-in; return ValidationResult
+      with syntax diagnostics on failure
+    called_by: editor core as first stage of save/save_as pipeline and by validate(buffer_id)
+    must_not:
+    - write files
+    - modify document
+    - re-parse from disk
