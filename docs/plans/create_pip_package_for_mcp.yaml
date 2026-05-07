@@ -1,6 +1,6 @@
 format: implementation_plan_v1
-plan_id: yaml_editor_pip_package_for_mcp
-project: yaml_editor
+plan_id: ai_editor_pip_package_for_mcp
+project: ai_editor
 source_documents:
 - docs/tech_spec.md
 created_for: mcp_server_usage
@@ -32,8 +32,8 @@ summary:
   - Do not treat external OpenAPI/MCP proxy completion as formatter success unless
     nested result.success is true.
 package_target:
-  distribution_name: yaml-editor-mcp
-  import_package: yaml_editor
+  distribution_name: ai-editor-mcp
+  import_package: ai_editor
   python_requires: '>=3.10'
   license: TBD
   build_backend: hatchling
@@ -51,7 +51,7 @@ package_target:
     - twine
   public_entry_points:
     console_scripts:
-    - yaml-editor=yaml_editor.interfaces.cli:main
+    - ai-editor=ai_editor.interfaces.cli:main
   repository_constraints:
     forbidden_paths:
     - .venv
@@ -60,80 +60,81 @@ package_target:
     editable_scope:
     - pyproject.toml
     - README.md
-    - yaml_editor
+    - ai_editor
     - tests
     - docs
 module_architecture:
   package_layout:
-  - path: yaml_editor/__init__.py
+  - path: ai_editor/__init__.py
     purpose: Public package exports and version.
-  - path: yaml_editor/editor_core/
+  - path: ai_editor/editor_core/
     purpose: 'AbstractBuffer and buffer registry: file-backed/unsaved buffers, dirty
       state, revision/hash state, open/save/save_as/close/reload lifecycle, stale
       checks, and atomic persistence orchestration.'
-  - path: yaml_editor/formatters/base.py
+  - path: ai_editor/formatters/base.py
     purpose: 'AbstractFormatter contract: parse, render, validate_content, validate_document,
       validate, normalize_address, copy_fragment, cut_fragment, paste_fragment, get_unit,
       iter_units, diagnostics, and unit comparison hooks.'
-  - path: yaml_editor/formatters/registry.py
+  - path: ai_editor/formatters/registry.py
     purpose: Formatter registry and extension-based formatter resolution for validate_file/open(formatter=auto),
       including local and foreign formatter registrations.
-  - path: yaml_editor/formatters/text/
+  - path: ai_editor/formatters/text/
     purpose: Text formatter backend. Represents documents as arrays of lines and owns
       text address, text unit, text validation, and text copy/cut/paste semantics.
-  - path: yaml_editor/formatters/yaml/
-    purpose: YAML formatter backend. Represents documents as YAML trees and owns YAML
+  - path: ai_editor/formatters/yaml/
+    purpose: YAML formatter backend. Represents documents as YAML trees (ruamel.yaml) and owns YAML
       address, YAML unit, structural path, format validation, render validation, and
       YAML copy/cut/paste semantics.
-  - path: yaml_editor/formatters/foreign.py
+      YAML copy/cut/paste semantics.
+  - path: ai_editor/formatters/foreign.py
     purpose: ForeignFormatter implementation of AbstractFormatter that delegates complex
       formatter operations to external OpenAPI/MCP-proxy-adapter backed servers while
       preserving the local formatter contract.
-  - path: yaml_editor/file_validation.py
+  - path: ai_editor/file_validation.py
     purpose: 'validate_file orchestration: resolve formatter by extension or explicit
       name, validate raw file content or in-memory buffer document, and return unified
       validation diagnostics without writes.'
-  - path: yaml_editor/search/
+  - path: ai_editor/search/
     purpose: 'AbstractSearch and universal search engine over formatter units: find,
       find_one, list_units, select, match_unit, and formatter-driven compare_units.'
-  - path: yaml_editor/api.py
+  - path: ai_editor/api.py
     purpose: High-level model-facing API for buffer lifecycle, validate_file, copy/cut/paste,
       search, validation, and YAML compatibility wrappers intended for MCP command
       handlers and project managers.
-  - path: yaml_editor/models.py
+  - path: ai_editor/models.py
     purpose: Typed request and response dataclasses or pydantic-free DTOs, including
       BufferAddress, validation, buffer, formatter, foreign formatter, search, clipboard,
       and compatibility request/response contracts.
-  - path: yaml_editor/path_parser.py
+  - path: ai_editor/path_parser.py
     purpose: YAML structural address parser for keys, indexes, and list filters such
-      as commands[name=buf_diff], owned by the YAML formatter path layer.
-  - path: yaml_editor/loader.py
+      as commands[name=buf_diff], owned by the AI formatter path layer.
+  - path: ai_editor/loader.py
     purpose: YAML raw-content parse, tree summary, and parse diagnostics, used by
-      the YAML formatter backend rather than by buffer lifecycle.
-  - path: yaml_editor/operations.py
+      the AI formatter backend rather than by buffer lifecycle.
+  - path: ai_editor/operations.py
     purpose: 'YAML in-memory formatter operations: set, replace_block, append, delete,
       move, and paste modes.'
-  - path: yaml_editor/clipboard.py
+  - path: ai_editor/clipboard.py
     purpose: Format-aware clipboard payloads for editor copy/cut/paste operations,
       including source_formatter, source_address, source_revision, payload_kind, and
       payload.
-  - path: yaml_editor/validator.py
+  - path: ai_editor/validator.py
     purpose: YAML syntax validation, rendered YAML validation, schema validation,
-      and semantic validation, used by the YAML formatter backend.
-  - path: yaml_editor/renderer.py
+      and semantic validation, used by the AI formatter backend.
+  - path: ai_editor/renderer.py
     purpose: Deterministic ruamel.yaml rendering with formatting preservation, used
-      by the YAML formatter backend.
-  - path: yaml_editor/writer.py
+      by the AI formatter backend.
+  - path: ai_editor/writer.py
     purpose: 'Checked persistence helper used by AbstractBuffer save/save_as: backups,
       hashes, atomic write, and read-back diagnostics.'
-  - path: yaml_editor/schemas/plan_task_v1.schema.json
+  - path: ai_editor/schemas/plan_task_v1.schema.json
     purpose: JSON Schema for plan_task_v1 structural checks.
-  - path: yaml_editor/interfaces/cli.py
+  - path: ai_editor/interfaces/cli.py
     purpose: Small CLI wrapper for manual testing and MCP diagnostics; console script
-      target is yaml_editor.interfaces.cli:main.
+      target is ai_editor.interfaces.cli:main.
   - path: tests/
     purpose: Unit and integration tests over buffer lifecycle, format validation,
-      foreign formatter contract, search, text formatter, YAML formatter, and real
+      foreign formatter contract, search, text formatter, AI formatter, and real
       fixtures.
 public_api:
   core_commands:
@@ -143,7 +144,7 @@ public_api:
       is already open.
     request:
       file_path: string
-      formatter: auto|text|yaml|foreign formatter name
+      formatter: auto|text|ai|foreign formatter name
     response_fields:
     - success
     - buffer_id
@@ -156,7 +157,7 @@ public_api:
     layer: buffer
     purpose: Create a new unsaved buffer with an explicit formatter.
     request:
-      formatter: text|yaml|foreign formatter name
+      formatter: text|ai|foreign formatter name
       display_name: optional string
     response_fields:
     - success
@@ -215,7 +216,7 @@ public_api:
     request:
       file_path: optional string
       buffer_id: optional string
-      formatter: auto|text|yaml|foreign formatter name
+      formatter: auto|text|ai|foreign formatter name
       schema: optional string
       options: optional object
     response_fields:
@@ -345,17 +346,17 @@ public_api:
     - warnings
     - diagnostics
   compatibility_commands:
-    yaml_compatibility:
-    - yaml_load -> open(file_path, formatter=yaml) plus yaml formatter summary
+    ai_compatibility:
+    - yaml_load -> open(file_path, formatter=ai) plus AI formatter summary
     - yaml_write_checked -> open/apply formatter operations/save compatibility flow
-    - yaml_validate -> validate(buffer_id) through yaml formatter
-    - yaml_get -> find_one/get_unit through yaml formatter address
+    - yaml_validate -> validate(buffer_id) through AI formatter
+    - yaml_get -> find_one/get_unit through AI formatter address
     - yaml_get_command -> find_one with YAML query over units
-    - yaml_set -> paste(mode=set) on YAML formatter
-    - yaml_replace_block -> paste(mode=replace_block) on YAML formatter
-    - yaml_append -> paste(mode=append) on YAML formatter
-    - yaml_delete -> cut and discard clipboard fragment on YAML formatter
-    - yaml_move -> cut + paste on YAML formatter
+    - yaml_set -> paste(mode=set) on AI formatter
+    - yaml_replace_block -> paste(mode=replace_block) on AI formatter
+    - yaml_append -> paste(mode=append) on AI formatter
+    - yaml_delete -> cut and discard clipboard fragment on AI formatter
+    - yaml_move -> cut + paste on AI formatter
     - yaml_clipboard_* -> editor copy/cut/paste plus clipboard internals
   buffer_address_contract:
     name: BufferAddress
@@ -365,7 +366,7 @@ public_api:
     rules:
     - address is opaque to editor core
     - address is interpreted only by the buffer formatter
-    - YAML formatter treats address as structural YAML path
+    - AI formatter treats address as structural YAML path
     - Text formatter treats address as line range, insertion point, or whole document
   fallback_unsafe_commands:
   - name: yaml_read_lines
@@ -458,15 +459,15 @@ implementation_steps:
   title: Initialize package skeleton
   actions:
   - Create pyproject.toml with hatchling build backend.
-  - Create yaml_editor package and tests directory.
+  - Create ai_editor package and tests directory.
   - Define package metadata, runtime dependencies, and dev optional dependencies.
   deliverables:
   - pyproject.toml
-  - yaml_editor/__init__.py
+  - ai_editor/__init__.py
   - tests/conftest.py
   verification:
   - python -m build succeeds locally.
-  - pip install -e . installs yaml_editor from the repository source.
+  - pip install -e . installs ai_editor from the repository source.
 - id: step_02
   title: Implement AbstractBuffer and editor core
   actions:
@@ -477,7 +478,7 @@ implementation_steps:
   - Ensure one file_path cannot have multiple open buffers.
   - Keep address values opaque and formatter-owned.
   deliverables:
-  - yaml_editor/editor_core/
+  - ai_editor/editor_core/
   - tests/editor_core/
   verification:
   - Opening the same file twice returns the same buffer_id.
@@ -497,15 +498,15 @@ implementation_steps:
   - Implement formatter registry and extension-based formatter resolution for validate_file
     and open(formatter=auto).
   deliverables:
-  - yaml_editor/formatters/base.py
-  - yaml_editor/formatters/registry.py
+  - ai_editor/formatters/base.py
+  - ai_editor/formatters/registry.py
   - tests/formatters/test_base_contract.py
   - tests/formatters/test_registry.py
   verification:
   - Formatter contract does not include open, save, close, buffer registry, or stale
     disk checks.
   - Every formatter exposes list_commands() with standard command metadata.
-  - Registry resolves .yaml/.yml to yaml formatter and text extensions to text formatter.
+  - Registry resolves .yaml/.yml to AI formatter and text extensions to text formatter.
   - Invalid command schema returns FORMATTER_COMMAND_SCHEMA_INVALID.
 - id: step_04
   title: Implement text formatter
@@ -518,7 +519,7 @@ implementation_steps:
     regex, line number, and range overlap.'
   - Expose text formatter command catalog.
   deliverables:
-  - yaml_editor/formatters/text/
+  - ai_editor/formatters/text/
   - tests/formatters/text/
   verification:
   - Text formatter parses and renders arrays of lines.
@@ -527,7 +528,7 @@ implementation_steps:
   - Text paste requires target_address.
   - Text list_commands includes standard commands and text-specific metadata.
 - id: step_05
-  title: Implement YAML formatter
+  title: Implement AI formatter
   actions:
   - Represent YAML documents as ruamel.yaml trees.
   - Implement YAML structural addresses for keys, indexes, and list filters such as
@@ -538,13 +539,13 @@ implementation_steps:
     insert_after.'
   - Implement YAML compare_units semantics for node type, key, scalar value, mapping
     fields, list item identity, and semantic name fields.
-  - Expose YAML formatter command catalog.
+  - Expose AI formatter command catalog.
   deliverables:
-  - yaml_editor/formatters/yaml/
-  - yaml_editor/schemas/plan_task_v1.schema.json
-  - tests/formatters/yaml/
+  - ai_editor/formatters/ai/
+  - ai_editor/schemas/plan_task_v1.schema.json
+  - tests/formatters/ai/
   verification:
-  - YAML formatter parses real plan fixtures.
+  - AI formatter parses real plan fixtures.
   - YAML validate_content validates a file's raw YAML without opening a buffer.
   - YAML addresses resolve uniquely or return ADDRESS_NOT_FOUND/ADDRESS_NOT_UNIQUE.
   - YAML copy/cut require source_address.
@@ -561,7 +562,7 @@ implementation_steps:
   - Map nested success=false, missing success fields, timeouts, and transport failures
     to typed local errors.
   deliverables:
-  - yaml_editor/formatters/foreign.py
+  - ai_editor/formatters/foreign.py
   - tests/formatters/foreign/
   - docs/foreign_formatters.md
   verification:
@@ -583,7 +584,7 @@ implementation_steps:
     file_path, and buffer_id.
   - Ensure validate_file never writes files and never changes buffer dirty state.
   deliverables:
-  - yaml_editor/file_validation.py
+  - ai_editor/file_validation.py
   - tests/test_file_validation.py
   verification:
   - validate_file validates a YAML plan file by extension.
@@ -600,7 +601,7 @@ implementation_steps:
   - Implement search typed errors for invalid query, no match, non-unique match, invalid
     scope, and unsupported formatter search.
   deliverables:
-  - yaml_editor/search/
+  - ai_editor/search/
   - tests/search/
   verification:
   - Search works over text units and YAML units.
@@ -618,7 +619,7 @@ implementation_steps:
     text, and text->yaml parse_as_yaml.
   - Implement CLIPBOARD_FORMAT_MISMATCH and CLIPBOARD_SOURCE_STALE.
   deliverables:
-  - yaml_editor/clipboard.py
+  - ai_editor/clipboard.py
   - tests/test_clipboard.py
   verification:
   - copy does not mark buffers dirty.
@@ -634,7 +635,7 @@ implementation_steps:
   - Ensure save/save_as call formatter.validate_document and formatter.render before
     writing.
   deliverables:
-  - yaml_editor/writer.py
+  - ai_editor/writer.py
   - tests/test_writer.py
   verification:
   - Failed formatter validation leaves disk unchanged.
@@ -650,7 +651,7 @@ implementation_steps:
     architecture.
   - Ensure all responses are JSON-serializable and preserve nested success=false truthfully.
   deliverables:
-  - yaml_editor/api.py
+  - ai_editor/api.py
   - tests/test_public_api.py
   verification:
   - Generic editor commands satisfy the public_api contract.
@@ -668,12 +669,12 @@ implementation_steps:
   - Document formatter_commands and formatter-specific OpenAPI command discovery.
   - Document YAML compatibility examples as compatibility wrappers, not core architecture.
   deliverables:
-  - yaml_editor/interfaces/cli.py
+  - ai_editor/interfaces/cli.py
   - docs/mcp_integration.md
   - docs/cli_usage.md
   - tests/interfaces/test_cli.py
   verification:
-  - yaml-editor --help exits with code 0.
+  - ai-editor --help exits with code 0.
   - CLI can run validate-file by file_path.
   - CLI can list formatter-commands for a file_path or formatter name.
   - CLI can open/find/copy/paste/save through generic commands.
@@ -692,13 +693,13 @@ implementation_steps:
   verification:
   - python -m build succeeds.
   - twine check dist/* succeeds.
-  - python -c "import yaml_editor; print(yaml_editor.__version__)" succeeds after
+  - python -c "import ai_editor; print(ai_editor.__version__)" succeeds after
     wheel install.
 model_assignment_spec:
   title: Implement editor-core package with buffer, formatter, and search abstractions
     from docs/tech_spec.md
   role: coding_agent
-  scope: Work only inside the yaml_editor source repository. Do not edit .venv, venv,
+  scope: Work only inside the ai_editor source repository. Do not edit .venv, venv,
     site-packages, or installed packages. Build a reusable package that MCP servers
     can import to edit documents through AbstractBuffer, AbstractFormatter, and AbstractSearch.
     YAML is the first structured formatter and text is the first plain formatter.
@@ -718,12 +719,12 @@ model_assignment_spec:
   implementation_order:
   - package_skeleton
   - editor_core_buffer_registry
-  - text_yaml_formatters
+  - text_ai_formatters
   - foreign_formatters
   - format_validation
   - universal_search
   - format_aware_clipboard
-  - yaml_formatter_compatibility
+  - ai_formatter_compatibility
   - public_api
   - cli
   - mcp_integration_docs
@@ -738,12 +739,12 @@ model_assignment_spec:
   - AbstractSearch owns find/find_one/list_units/select over formatter-provided units
     and no file lifecycle.
   - Text formatter works over array-of-lines documents.
-  - YAML formatter works over YAML-tree documents and structural YAML addresses.
+  - AI formatter works over YAML-tree documents and structural YAML addresses.
   - copy/cut require source BufferAddress and paste requires target BufferAddress.
   - Clipboard payloads carry source_formatter, source_address, source_revision, payload_kind,
     and payload.
   - save/save_as never persist invalid content for the active formatter.
-  - Tests cover buffer lifecycle, text formatter, YAML formatter, search, clipboard
+  - Tests cover buffer lifecycle, text formatter, AI formatter, search, clipboard
     compatibility, stale buffer, invalid content, missing/ambiguous search match,
     and compatibility wrappers.
   - CLI diagnostics work for generic editor commands and YAML compatibility flows.
@@ -760,21 +761,21 @@ regression_commands:
   - python -m pytest tests/editor_core tests/formatters tests/search tests/interfaces
     tests/integration
   - python -m ruff check .
-  - python -m mypy yaml_editor
+  - python -m mypy ai_editor
   - python -m build
   - python -m twine check dist/*
   mcp_level:
-  - Import yaml_editor.api in the target MCP server.
+  - Import ai_editor.api in the target MCP server.
   - Register wrapper commands for open, new, save, save_as, close, copy, cut, paste,
     find, find_one, list_units, and validate.
-  - Open a real YAML plan fixture with formatter=yaml and verify buffer_id, formatter,
+  - Open a real YAML plan fixture with formatter=ai and verify buffer_id, formatter,
     dirty=false, and revision.
   - Open a real text fixture with formatter=text and verify buffer_id, formatter,
     dirty=false, and revision.
   - Execute find_one against the YAML buffer and verify it returns a formatter-provided
     address.
   - Execute copy with source BufferAddress from the YAML buffer and verify clipboard
-    item records source_formatter=yaml and source_address.
+    item records source_formatter=ai and source_address.
   - Execute paste into a YAML target BufferAddress and verify target buffer becomes
     dirty without writing the file.
   - Execute save on the dirty YAML buffer and verify the result through a separate
@@ -806,14 +807,14 @@ coverage_gap_closures:
     yaml_update_command, yaml_append_verification, and yaml_validate_plan_task over
     the generic editor/search/formatter architecture.
 - gap: console_entry_point_alignment
-  resolution: Root console script target is yaml-editor=yaml_editor.interfaces.cli:main
+  resolution: Root console script target is ai-editor=ai_editor.interfaces.cli:main
     and G-008/T-010 owns alignment verification with G-001 metadata coordination.
 - gap: buffer_file_lifecycle_separated_from_formatter
   resolution: G-009 owns AbstractBuffer, dynamic buffer registry, file-backed/unsaved
     buffers, dirty state, stale checks, and open/new/save/save_as/close/reload lifecycle.
     Formatters must not open, save, or close files.
 - gap: formatter_editing_separated_from_buffer_and_search
-  resolution: G-010 owns AbstractFormatter, initial text/yaml formatters, formatter-specific
+  resolution: G-010 owns AbstractFormatter, initial text/AI formatters, formatter-specific
     address semantics, validate_content, validate_document, list_commands, copy/cut/paste
     fragment operations, unit contracts, compare_units, and formatter clipboard compatibility.
 - gap: universal_search_separated_from_file_and_formatter_lifecycle
@@ -845,7 +846,7 @@ workflow_clipboard:
   - memory
   - persistent_project_local_cache
   default_storage_mode: persistent_project_local_cache
-  persistent_storage_path: .yaml_editor_clipboard/
+  persistent_storage_path: .ai_editor_clipboard/
   git_policy: Clipboard storage is workflow/cache state and must not be committed.
   clipboard_item_contract:
     required_fields:
@@ -895,78 +896,3 @@ workflow_clipboard:
   - CLIPBOARD_INVALID_MODE
   - ADDRESS_INVALID
   - ADDRESS_NOT_FOUND
-planning_prompt_application:
-  prompt_template_type: readme_plan_quality_loop_prompt
-  prompt_version: 10
-  applied_to_project: yaml_editor
-  applied_to_project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
-  technical_spec_path: docs/tech_spec.md
-  plans_root: docs/plans
-  default_target_step_ref: G1T1
-  default_chain_scope: remaining_plan_chain
-  authoritative_step_file: README.yaml
-  forbidden_plan_files:
-  - implementation_plan.yaml
-  planning_only_enforcement:
-    allowed_reads:
-    - README.yaml files under docs/plans
-    - technical specification files referenced by source_documents
-    - parent plan README.yaml files
-    - root/master plan YAML files explicitly referenced by the current step
-    allowed_writes:
-    - README.yaml files under resolved plan step directories
-    - new README.yaml files under newly created tactical step directories
-    - root plan YAML only for prompt-application metadata and coverage ownership alignment
-    forbidden_actions:
-    - read production code files
-    - read test code files
-    - create or edit production code files
-    - create or edit test code files
-    - run tests, linters, type checkers, formatters, builds, installs, scripts, CLIs,
-      or runtime verification commands
-    - patch .venv, venv, site-packages, installed packages, or dependency internals
-    - create implementation_plan.yaml
-  strict_quality_loop:
-    required: true
-    max_iterations_per_step: 50
-    clean_step_definition: A clean step README.yaml has no unresolved ambiguity, source-chain
-      contradiction, ownership conflict, forbidden-path leak, weak implementer handoff,
-      or verification/acceptance mismatch.
-    read_back_after_every_write: true
-    do_not_trust_previous_completion_claims: true
-  coverage_gap_audit_loop:
-    required_after_chain_completion: true
-    max_iterations: 50
-    scope: 'Planning files only: docs/tech_spec.md, docs/plans/create_pip_package_for_mcp.yaml,
-      global README.yaml files, and tactical README.yaml files under docs/plans.'
-    coverage_chain: Technical Specification -> root plan -> parent G README.yaml ->
-      one or more T README.yaml files.
-    final_status_values:
-    - coverage_clean
-    - coverage_blocked
-    - coverage_failed_read_back
-    - coverage_max_iterations_reached
-  tactical_decomposition_policy:
-    local_to_parent_global_step: true
-    prefer_many_independent_tactical_steps: true
-    do_not_create_fake_independence: true
-    each_tactical_readme_must_be_self_contained: true
-  self_contained_branch_context_policy:
-    required: true
-    rule: Technical Specification -> parent global README.yaml -> current tactical
-      README.yaml must provide the complete implementation picture without requiring
-      sibling tactical branches or other global branches.
-    model_assignment_spec_must_be_standalone: true
-  problem_reporting_policy:
-    point_format: G-XXX/T-YYY for tactical steps; G-XXX for global steps
-    required_fields_per_problem:
-    - point
-    - field_or_section
-    - problem
-    - expected
-    - actual
-    - classification
-    - action
-    classification_values:
-    - auto_fixable
-    - requires_human_decision
