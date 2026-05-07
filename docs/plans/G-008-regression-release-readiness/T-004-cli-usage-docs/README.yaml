@@ -66,13 +66,15 @@ documentation_policy:
   - installation and executable name
   - yaml-editor --help overview
   - yaml-editor version example
-  - load command usage
-  - validate command usage
-  - get command usage
-  - write-checked dry-run usage
-  - write-checked real-write warning and read-back verification
+  - 'buffer lifecycle commands: open, new, save, save-as, close'
+  - 'validation commands: validate and validate-file'
+  - formatter-commands usage
+  - 'edit commands: copy, cut, paste'
+  - 'search commands: find, find-one, list-units'
+  - yaml-compat command group usage
   - JSON-compatible output shape
   - exit-code policy
+  - real-write warning and read-back verification for save/save-as/yaml-compat writes
   forbidden_claims:
   - CLI implements parser internals.
   - CLI implements mutation internals.
