@@ -108,8 +108,11 @@ runtime_dependencies:
   notes:
   - ruamel.yaml is required for formatting preservation.
   - jsonschema is required for yaml_validate and schema validation.
-  - jsonpath-ng is required for implementing model-friendly structural filters such
-    as commands[name=...], matching the root package runtime dependency policy.
+  - jsonpath-ng is required for structural list filters such as commands[name=...].
+  - libcst>=1.1 is required for the built-in CSTFormatter (G-013); it is a first-class
+    runtime dependency, not optional.
+  - lark>=1.1 is required for the CSTFormatter XPath-like cst_query selector parser
+    (G-013).
 dependency_inclusion_policy:
   project_dependencies:
   - ruamel.yaml>=0.18
