@@ -1,0 +1,299 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-013
+step_name: cst_formatter
+title: Built-in CST formatter backend for Python files
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- cst-code/README.md
+global_intent: Own the built-in CST formatter for .py files. Adapts the existing cst-code
+  subsystem into an AbstractFormatter implementation. The document in buffer is a
+  CSTTree. The formatter owns parse/render/mutate/query semantics for Python source
+  via LibCST. It does not open, save, or close files.
+why_this_block_exists: Python files require structural editing at the AST/CST level,
+  not line ranges. The cst-code subsystem already implements tree loading, stable
+  node identity, mutation operations, sidecar caching, and XPath-like query. This
+  block formalizes that code as a first-class AbstractFormatter so editor core, search,
+  and public interfaces treat .py files uniformly with other formats.
+owned_code_paths:
+- ai_editor/formatters/cst/
+- tests/formatters/cst/
+owned_docs_paths:
+- docs/cst_formatter.md
+source_code_origin:
+  path: cst-code/
+  policy: adapt-not-rewrite
+  take:
+  - code_analysis/core/cst_tree/models.py
+  - code_analysis/core/cst_tree/tree_builder.py
+  - code_analysis/core/cst_tree/tree_modifier.py
+  - code_analysis/core/cst_tree/tree_modifier_ops.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_find.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_insert.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_parse.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_replace.py
+  - code_analysis/core/cst_tree/tree_modifier_validate.py
+  - code_analysis/core/cst_tree/tree_saver.py
+  - code_analysis/core/cst_tree/tree_sidecar.py
+  - code_analysis/core/cst_tree/tree_metadata.py
+  - code_analysis/core/cst_tree/node_stable_id.py
+  - code_analysis/core/cst_tree/node_type_utils.py
+  - code_analysis/core/cst_tree/skeleton.py
+  - code_analysis/core/cst_module/patcher.py
+  - code_analysis/core/cst_module/patcher_insert.py
+  - code_analysis/core/cst_module/patcher_create.py
+  - code_analysis/core/cst_module/blocks.py
+  - code_analysis/core/cst_module/validation.py
+  - code_analysis/core/cst_module/docstring_validator.py
+  - code_analysis/core/cst_module/models.py
+  - code_analysis/core/cst_module/utils.py
+  - code_analysis/core/mutable_cst/
+  - code_analysis/cst_query/
+  do_not_take:
+  - code_analysis/core/cst_tree/node_id_markers.py
+  - code_analysis/commands/
+  - code_analysis/core/database/
+  - code_analysis/core/database_client/
+  - code_analysis/core/database_driver_pkg/
+  - code_analysis/core/file_handlers/
+  - code_analysis/cli/
+  forbidden_patterns:
+  - any code reading or writing trailing marker block: '# cst-node-ids: begin...end'
+  - strip_persisted_node_ids
+  - append_persisted_node_ids
+  - render_marker_block
+  - strip_inline_node_id_lines_from_source
+  - node_id_markers.PersistedNodeIds used for persistence
+forbidden_code_paths:
+- ai_editor/editor_core/
+- ai_editor/search/
+- ai_editor/interfaces/
+- ai_editor/transaction_writer/
+- ai_editor/formatters/text/
+- ai_editor/formatters/ai/
+- ai_editor/formatters/foreign.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-010 AbstractFormatter contract
+  - libcst >= 1.1
+  - lark (cst_query XPath parser)
+  may_be_used_by:
+  - G-009 editor core and buffer registry (opens .py via CSTFormatter)
+  - G-011 universal search layer (iter_units via CSTFormatter)
+  - G-008 public interfaces (validate_file for .py)
+public_contracts_provided:
+- CSTFormatter (implements AbstractFormatter)
+- CSTTree (document model, opaque to editor core)
+- stable_id (durable node address surviving mutations)
+- skeleton view (declarative read mode)
+- cst_query specific command (XPath-like search)
+formatter_registration:
+  extension: .py
+  formatter_name: cst
+document_model:
+  type: CSTTree
+  description: 'In-memory LibCST tree with node index. Opaque to editor core. address
+    is stable_id: a UUID assigned once at first parse, never changed.'
+  key_fields:
+  - tree_id: runtime session UUID
+  - module: libcst.Module object
+  - metadata_map: node_id -> TreeNodeMetadata (carries stable_id)
+  - node_map: node_id -> libcst.CSTNode
+  - node_id_aliases: old_node_id -> current_node_id (transitive, updated after each
+      mutation)
+  - root_node_id: stable_id of module root
+stable_id_contract:
+  rule: assigned once at first _build_tree_index, never changes across mutations
+  address_for_callers: stable_id (not node_id)
+  resolution: find_by_stable_id(stable_id) -> current node_id -> libcst object
+  persistence: sidecar .cst/<stem>.tree stores full metadata_map with stable_id
+  mutation_transport:
+    before_mutation:
+    - for each node call set_stable_id(node) to embed
+    after_mutation:
+    - call get_stable_id(node) for each node to restore stable_id into metadata_map
+    - remove all
+    - run _build_tree_index with previous_metadata_map for exact_key position transfer
+    - update node_id_aliases
+    invariant: '# @node-id comments exist only between before and after steps, never
+      on disk'
+  supported_nodes_for_inline_id:
+  - FunctionDef
+  - ClassDef
+sidecar_contract:
+  path_pattern: '{py_dir}/.cst/{py_stem}.tree'
+  format: 'CST_TREE_V1 sha256=<hex>
+
+    <json_body>'
+  validation:
+  - source_sha256 in header must match SHA256(logical_source of .py)
+  - sidecar_matches_built_tree() must confirm path->node_id layout matches rebuilt
+    tree
+  - both must pass to skip re-parse
+  written_at: buffer.save after .py is written
+  content:
+  - source_sha256
+  - root_node_id
+  - metadata_map with stable_id for all nodes
+  - node_id_aliases
+  - path_to_node_id layout map
+parse_contract:
+  method: parse(raw_content) -> CSTTree
+  steps:
+  - parse raw_content via libcst.parse_module -> logical_source
+  - compute SHA256(logical_source)
+  - check sidecar: if source_sha256 matches AND sidecar_matches_built_tree -> load
+      metadata_map from sidecar
+  - else: _build_tree_index from scratch; stable_id = node_id on first assignment
+  - return CSTTree stored in buffer
+render_contract:
+  method: render(document) -> str
+  output: tree.module.code
+  guarantee: clean Python source, no markers of any kind
+save_orchestration:
+  owner: editor core (buffer.save)
+  steps:
+  - render(document) -> python_source string
+  - write .py file
+  - write_sidecar_atomic() -> .cst/<stem>.tree
+mutation_operations:
+  note: all operations receive and return stable_id as address; node_id is internal
+  operations:
+  - op: insert
+    params:
+    - parent_stable_id
+    - position
+    - code
+    position_values:
+    - first
+    - last
+    - after:<stable_id>
+    special_cases:
+    - empty file: create Module with docstring + first node
+    - SimpleStatementSuite parent: auto-expand to IndentedBlock before insert
+    - Match node as parent: reject with hint to use MatchCase
+  - op: delete
+    params:
+    - node_stable_id
+    note: descendants deleted automatically by LibCST
+  - op: move
+    params:
+    - node_stable_id
+    - parent_stable_id
+    - position
+    note: atomic delete + insert preserving node code
+  - op: replace
+    params:
+    - node_stable_id
+    - code
+    note: full node replacement; header-only replace for ClassDef/FunctionDef preserves
+      body
+  - op: replace_docstring
+    params:
+    - node_stable_id
+    - text
+    note: specialized replace for file/class/method docstring; targets Expr(SimpleString)
+      at position 0 of node body; inserts if absent, replaces if present
+libcst_constraints_and_workarounds:
+- constraint: SimpleStatementSuite cannot accept inserted children
+  workaround: auto-expand one-liner to IndentedBlock before insert
+- constraint: Match node body is not directly insertable
+  workaround: require MatchCase as parent_stable_id; reject Match with clear error
+- constraint: all nodes recreated after any transformation (immutable tree)
+  workaround: stable_id transport via leading_lines comments before/after mutation
+- constraint: docstring is not a named child but positional Expr at body[0]
+  workaround: replace_docstring operation detects and handles this pattern explicitly
+- constraint: CSTTransformer matches by object identity (is), not by position
+  workaround: node_map holds pre-mutation objects; find_parent_in_module_by_position
+    resolves post-mutation
+read_operations:
+  skeleton:
+    method: skeleton(document) -> str
+    description: Declarative view of file structure without implementation bodies.
+      Returns file docstring, class definitions with docstrings and properties, method
+      signatures with docstrings, decorators. Every element carries its stable_id
+      so callers can request full node code.
+    shows:
+    - file_docstring
+    - class_def_header
+    - class_docstring
+    - class_properties
+    - decorators
+    - method_signature
+    - method_docstring
+    hides:
+    - method_bodies
+    - function_bodies
+    - complex_initializers
+  get_node:
+    method: get_unit(document, stable_id) -> unit
+    description: full source code of the node including implementation
+specific_commands:
+  cst_query:
+    description: XPath-like search over document nodes using Lark-based selector parser
+    selector_examples:
+    - //FunctionDef[@name='foo']
+    - class > method:first
+    - Def:*[start_line>=100]
+    - function[@name^='_']:not([name^='__'])
+    returns: list of nodes with stable_id, type, name, qualname, start_line, end_line
+    implementation: cst_query package (existing Lark grammar, parser, executor)
+validation:
+  validate_content:
+    input: raw Python source string
+    behavior: parse via libcst; return syntax errors as diagnostics
+    used_by: validate_file for .py in G-008
+  validate_document:
+    input: CSTTree
+    behavior: compile tree.module.code; return compile errors as diagnostics
+verification:
+  scope: global_completion_gate
+  commands:
+  - python -m pytest tests/formatters/cst
+  expected:
+  - parse round-trips without loss (render(parse(src)) == src for valid Python)
+  - stable_id survives insert, delete, replace, move operations
+  - false
+  - no marker block appears in .py file after buffer.save
+  - sidecar written after save; reloaded correctly on next parse if sha256 matches
+  - skeleton returns only declarative elements with stable_id
+  - cst_query returns correct nodes for XPath selectors
+  - replace_docstring inserts docstring when absent, replaces when present
+  - SimpleStatementSuite parent is auto-expanded before insert
+  - delete removes node and all descendants
+  - move is atomic (no partial state on failure)
+acceptance_criteria:
+- CSTFormatter implements AbstractFormatter contract in full
+- document model is CSTTree; address is stable_id; both are opaque to editor core
+- stable_id never changes across any number of mutations
+- no persistence markers of any kind appear in .py files or render() output
+- sidecar is the only persistence mechanism for node identity
+- all five mutation operations work correctly with stable_id addressing
+- skeleton view is the default read mode for models consuming .py files
+- cst_query XPath search is available as a specific_command
+- validate_content returns LibCST syntax diagnostics usable by validate_file
+- node_id_markers.py and all trailing marker block code is absent from this subsystem
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
+    cst-code as specified in source_code_origin. Do not rewrite from scratch. Do not
+    use node_id_markers.py or any trailing marker block mechanism. stable_id transport
+    between mutation steps uses only set_stable_id/get_stable_id (inline leading_lines
+    comments, FunctionDef and ClassDef only). For all other node types, stable_id
+    is transferred via previous_metadata_map in _build_tree_index using exact_key
+    position matching. Do not edit editor_core, search, interfaces, transaction_writer,
+    text formatter, ai formatter, foreign formatter, .venv, venv, or site-packages.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
