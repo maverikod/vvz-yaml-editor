@@ -54,29 +54,34 @@ core_responsibilities:
 - Run end-to-end regression tests across subsystem boundaries.
 - Verify package build, wheel install, import, and CLI behavior.
 public_api_surface:
-  read_functions:
-  - yaml_load
-  - yaml_get
-  - yaml_get_command
-  - yaml_get_verification
+  buffer_functions:
+  - open
+  - new
+  - save
+  - save_as
+  - close
   validation_functions:
+  - validate
+  - validate_file
+  edit_functions:
+  - copy
+  - cut
+  - paste
+  search_functions:
+  - find
+  - find_one
+  - list_units
+  yaml_compatibility_functions:
+  - yaml_load
   - yaml_validate
-  - yaml_validate_plan_task
-  write_functions:
+  - yaml_get
   - yaml_write_checked
-  - yaml_set
-  - yaml_replace_block
-  - yaml_append
-  - yaml_delete
-  - yaml_move
   - yaml_update_command
   - yaml_append_verification
-  clipboard_functions:
-  - yaml_clipboard_copy
-  - yaml_clipboard_get
-  - yaml_clipboard_list
-  - yaml_clipboard_clear
-  - yaml_clipboard_paste
+  - yaml_validate_plan_task
+  foreign_formatter_functions:
+  - validate_file with foreign formatter selection
+  - ForeignFormatter-backed formatter registry entries
 cli_surface:
   executable: yaml-editor
   commands:
