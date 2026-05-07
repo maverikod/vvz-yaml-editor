@@ -132,21 +132,43 @@ stable_id_contract:
     comment transport.'
 sidecar_contract:
   path_pattern: '{py_dir}/.cst/{py_stem}.tree'
-  format: 'CST_TREE_V1 sha256=<hex>
+  purpose: Persist node identity (stable_id, metadata_map) and checksums so the tree
+    can be reloaded without re-parsing when the source has not changed.
+  two_checksums:
+    source_sha256: SHA-256 of UTF-8 bytes of logical Python source (tree.module.code
+      at write time). Validated on load against SHA-256 of fresh .py content stripped
+      of any legacy trailing marker block.
+    tree_sha256: SHA-256 of the JSON body bytes of the sidecar file. Written into
+      the header line. Validated on load to detect sidecar corruption or partial write.
+  format: 'Line 1: CST_TREE_V1 sha256=<source_sha256_hex> tree_sha256=<tree_body_sha256_hex>
 
-    <json_body>'
-  validation:
-  - source_sha256 in header must match SHA256(logical_source of .py)
-  - sidecar_matches_built_tree() must confirm path->node_id layout matches rebuilt
-    tree
-  - both must pass to skip re-parse
-  written_at: buffer.save after .py is written
-  content:
+    Line 2+: JSON body'
+  json_body_fields:
+  - format_version
   - source_sha256
+  - tree_sha256
   - root_node_id
-  - metadata_map with stable_id for all nodes
+  - path_to_node_id (path_indices string -> node_id)
+  - metadata_map (node_id -> TreeNodeMetadata.to_dict with stable_id)
+  - metadata_node_order
+  - parent_map
   - node_id_aliases
-  - path_to_node_id layout map
+  validation_on_load:
+  - 1. Read sidecar. If missing or unreadable -> skip sidecar, build from scratch.
+  - 2. Parse header. Extract source_sha256 and tree_sha256.
+  - '3. Validate tree_sha256: SHA-256(json_body_bytes) must equal tree_sha256. Mismatch
+    -> sidecar corrupt, build from scratch.'
+  - 4. Compute SHA-256(logical_source) from .py file content (strip legacy trailing
+    marker block first). Must equal source_sha256. Mismatch -> source changed, build
+    from scratch.
+  - 5. Load metadata_map from sidecar. Call sidecar_matches_built_tree to confirm
+    path->node_id layout. Mismatch -> build from scratch.
+  - '6. All checks pass: use sidecar metadata_map directly, skip libcst re-parse.
+    module still parsed from logical_source so libcst object graph is live.'
+  written_at: After editor_core writes .py to disk (buffer.save / buffer.save_as).
+    CSTFormatter.write_sidecar(py_path, tree) called by save orchestration. NOT written
+    during parse.
+  atomic_write: Write to .tmp file in .cst/ dir then os.replace to final path.
 parse_contract:
   method: parse(raw_content) -> CSTTree
   steps:
