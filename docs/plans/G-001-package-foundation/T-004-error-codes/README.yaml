@@ -175,6 +175,11 @@ required_error_code_groups:
   - WRITE_FAILED
   - SAVE_TARGET_EXISTS
   - SAVE_TARGET_MISSING
+  cst_formatter:
+  - CST_PARSE_FAILED
+  - CST_NODE_NOT_FOUND
+  - CST_MUTATION_FAILED
+  - CST_SIDECAR_INVALID
 responsibilities:
 - Define stable error code values referenced by the technical specification.
 - Separate parse, path, validation, render, backup, and write errors.
