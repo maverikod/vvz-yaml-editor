@@ -147,6 +147,46 @@ public_api:
       from_path: string
       to_index: integer
       dry_run: boolean
+  - name: yaml_clipboard_copy
+    purpose: Copy a YAML node, YAML block, or text fragment into workflow clipboard
+      after validating the source file and source selection.
+    request:
+      file_path: string
+      path: string
+      clipboard_id: string
+      item_name: string
+      payload_kind: yaml_node|yaml_block|text
+      overwrite: boolean
+    response_fields:
+    - success
+    - clipboard_id
+    - item_name
+    - source_file_path
+    - source_path
+    - payload_kind
+    - source_hash
+    - diagnostics
+  - name: yaml_clipboard_paste
+    purpose: Paste one clipboard item into a target YAML file through the checked
+      write pipeline.
+    request:
+      file_path: string
+      target_path: string
+      clipboard_id: string
+      item_name: string
+      paste_mode: append|replace_block|set
+      validate_schema: optional string
+      dry_run: boolean
+    response_fields:
+    - success
+    - would_change
+    - clipboard_id
+    - item_name
+    - changed_paths
+    - old_hash
+    - new_hash
+    - validation_result
+    - render_preview
   - name: yaml_write_checked
     purpose: Apply multiple operations atomically using the full checked write pipeline.
     request:
