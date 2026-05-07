@@ -301,9 +301,10 @@ mcp_proxy_adapter_integration:
   no_manual_api: Do NOT write FastAPI routes, OpenAPI YAML, MCP tool definitions,
     or JSON-RPC handlers manually. The adapter reads get_schema() and metadata() and
     generates everything.
-  reference_commands: 'Study as style examples: code_analysis/commands/cst_load_file_command.py
+  reference_commands: 'Study as style examples (actual paths in cst-code/): cst-code/code_analysis/commands/cst_load_file_command.py
     + cst_load_file_metadata.py, cst_modify_tree_command.py + cst_modify_tree_schema.py
-    + cst_modify_tree_metadata.py.'
+    + cst_modify_tree_metadata.py. For ai_editor own commands the layout is: ai_editor/commands/<cmd>_command.py,
+    ai_editor/commands/<cmd>_schema.py, ai_editor/commands/<cmd>_metadata.py.'
   registration_checklist:
   - Command class has name, version, descr, category, author, email.
   - Command is registered with reg.register(..., 'custom') in hooks_register.py.
