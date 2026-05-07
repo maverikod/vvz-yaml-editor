@@ -198,3 +198,34 @@ observations_template:
   fix: ''
   post_fix_verification: ''
   status: ''
+formatter_command_discovery:
+  purpose: Allow every formatter to publish standard and formatter-specific commands
+    with metadata and OpenAPI-compatible schemas.
+  required_static_method: list_commands() -> FormatterCommandCatalog
+  catalog_fields:
+  - formatter_name
+  - formatter_version
+  - standard_commands
+  - specific_commands
+  - openapi_schemas
+  - diagnostics
+  command_metadata_fields:
+  - name
+  - 'kind: standard|formatter_specific'
+  - description
+  - input_schema
+  - output_schema
+  - openapi_operation
+  - side_effects
+  - writes_files
+  - requires_buffer
+  - requires_file_path
+  - examples
+  rules:
+  - standard_commands must cover AbstractFormatter methods
+  - specific_commands may be formatter-defined but must expose OpenAPI-compatible
+    schemas
+  - commands that write separate derived artifacts must set writes_files=true
+  - formatter-specific artifact writes must not masquerade as editor save/save_as
+  - editor core must not interpret formatter-specific command semantics
+  - public API may expose formatter_commands(formatter|buffer_id|file_path) for discovery
