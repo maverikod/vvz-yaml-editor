@@ -58,21 +58,26 @@ module_architecture:
   - path: yaml_editor/api.py
     purpose: High-level API functions intended for MCP command handlers.
   - path: yaml_editor/models.py
-    purpose: Typed request and response dataclasses or pydantic-free DTOs.
+    purpose: Typed request and response dataclasses or pydantic-free DTOs, including
+      clipboard request/response contracts.
   - path: yaml_editor/path_parser.py
     purpose: YAML path parser for keys, indexes, and list filters such as commands[name=buf_diff].
   - path: yaml_editor/loader.py
     purpose: File read, ruamel.yaml parse, tree summary, and parse diagnostics.
   - path: yaml_editor/operations.py
-    purpose: In-memory set, replace_block, append, delete, and move operations.
+    purpose: In-memory set, replace_block, append, delete, move, and clipboard paste
+      operations.
+  - path: yaml_editor/clipboard.py
+    purpose: Workflow clipboard for copying YAML nodes, blocks, and text fragments
+      between checked editing steps.
   - path: yaml_editor/validator.py
     purpose: YAML syntax validation, rendered YAML validation, schema validation,
       and semantic validation.
   - path: yaml_editor/renderer.py
     purpose: Deterministic ruamel.yaml rendering with formatting preservation.
   - path: yaml_editor/writer.py
-    purpose: Atomic checked write flow, backups, hashes, changed_paths, and dry-run
-      support.
+    purpose: Atomic checked write flow, backups, hashes, changed_paths, dry-run support,
+      and clipboard paste persistence.
   - path: yaml_editor/schemas/plan_task_v1.schema.json
     purpose: JSON Schema for plan_task_v1 structural checks.
   - path: yaml_editor/cli.py
