@@ -9,16 +9,20 @@ language_policy:
   documentation_language: English
   code_logs_commands_prompts_and_specs: English
 summary:
-  goal: Create a production-ready Python pip package that provides a structural YAML
-    editing interface for MCP servers and AI models. The package must edit YAML by
-    tree paths, not by line ranges, and must guarantee checked, atomic writes.
-  main_principle: read -> parse -> patch in memory -> validate -> render -> validate
-    rendered YAML -> write
+  goal: Create a production-ready Python pip package that provides a small, familiar
+    editor interface for MCP servers and AI models. The package must separate the
+    editor/buffer/session object model from format-specific document backends. YAML
+    is the first structured backend and text is the first plain backend; JSON and
+    Markdown must be possible later without redesigning the editor core.
+  main_principle: open/new -> edit buffers in memory with copy/cut/paste -> formatter.validate
+    -> formatter.render -> checked save/save_as
   non_goals:
-  - Do not implement regular editing through line ranges.
+  - Do not expose many technical buffer, session, or clipboard internals as normal
+    model-facing commands.
+  - Do not implement regular editing through unsafe line ranges for structured formats.
   - Do not patch .venv, site-packages, or installed dependency code.
-  - Do not allow write commands to persist invalid YAML or semantically invalid plan
-    tasks.
+  - Do not allow save/save_as to persist invalid content for the active formatter.
+  - Do not make YAML-specific assumptions part of the editor core.
 package_target:
   distribution_name: yaml-editor-mcp
   import_package: yaml_editor
