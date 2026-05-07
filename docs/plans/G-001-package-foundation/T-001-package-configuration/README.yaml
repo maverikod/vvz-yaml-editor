@@ -424,4 +424,7 @@ observations_template:
   expected: ''
   actual: ''
   error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
   status: ''
