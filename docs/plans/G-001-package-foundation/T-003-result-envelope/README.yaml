@@ -1,0 +1,143 @@
+format: tactical_step_v1
+parent_step_id: G-001
+parent_step_name: package_contracts_and_distribution
+tactical_step_id: T-003
+tactical_step_name: result_envelope
+title: Shared ResultEnvelope contract
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-001-package-foundation/README.yaml
+intent: Define the shared result envelope used by all future subsystems and MCP-facing
+  functions so success, errors, data, and diagnostics have one stable shape and wrapper-level
+  success cannot hide operation-level failure.
+owned_code_paths:
+- ai_editor/contracts/result.py
+owned_test_paths:
+- tests/contracts/test_result_envelope.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- ai_editor/__init__.py
+- ai_editor/contracts/errors.py
+- ai_editor/contracts/diagnostics.py
+- ai_editor/contracts/validation.py
+- ai_editor/contracts/operations.py
+- ai_editor/contracts/__init__.py
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on: []
+  may_be_used_by:
+  - T-004-error-codes
+  - T-005-diagnostics-contract
+  - T-006-validation-result-contract
+  - T-007-operation-result-contract
+  - T-008-contracts-public-index
+  - future_subsystems
+public_contracts_provided:
+- ResultEnvelope
+result_envelope_contract:
+  required_fields:
+  - success
+  - data
+  - error_code
+  - message
+  - diagnostics
+  field_semantics:
+    success: Overall command success flag. Must be false when the represented operation
+      failed.
+    data: JSON-safe payload for successful or partial informational results; null
+      is allowed.
+    error_code: Machine-readable string or null. Later ErrorCode contract may narrow
+      values.
+    message: Human-readable summary string. Empty string is allowed only for successful
+      empty-result operations.
+    diagnostics: JSON-safe list of diagnostic-like objects. Later Diagnostic contract
+      may narrow item shape.
+  invariants:
+  - success=true requires error_code=null.
+  - success=false requires a non-empty error_code and non-empty message.
+  - diagnostics must always be present as a list, even when empty.
+  - data must be JSON-safe or convertible to a JSON-safe value.
+  - wrapper, queue, or transport completion must not be represented as success=true
+    when the nested command result failed.
+  dependency_policy:
+  - This step must not import T-004 ErrorCode or T-005 Diagnostic because they are
+    defined later.
+  - This step may use primitive string/list/dict shapes that later contracts refine
+    without changing the envelope field names.
+responsibilities:
+- Define common success/failure response shape.
+- Ensure the envelope can carry data, error_code, message, and diagnostics.
+- Ensure envelope instances are JSON-serializable or easily convertible to JSON-safe
+  dicts.
+- Keep the contract independent from concrete YAML parser, validator, writer, CLI,
+  or MCP code.
+- Define truthful success semantics so nested operation failure is not masked by wrapper
+  completion.
+requirements_from_tech_spec:
+- Write and dry-run responses must truthfully expose success, changed paths, validation
+  result, hashes, and diagnostics.
+- Queue or wrapper success must not mask nested operation failure.
+implementation_notes:
+- Prefer dataclasses or TypedDict-style contracts with no runtime dependency on pydantic
+  unless explicitly chosen later.
+- Include helper constructors for success and failure only if they do not import future
+  subsystems.
+- Keep field names stable for MCP server responses.
+- Use primitive error_code and diagnostic-like shapes in this step; later contract
+  steps may refine the allowed values and item structure.
+verification:
+  commands:
+  - python -m pytest tests/contracts/test_result_envelope.py
+  expected:
+  - Success envelope can be converted to a JSON-safe dict.
+  - Failure envelope preserves error_code and message.
+  - success=true cannot carry a non-null error_code.
+  - success=false requires a non-empty error_code and message.
+  - diagnostics is always present as a list.
+  - Envelope does not import forbidden subsystem modules or later contract modules.
+acceptance_criteria:
+- ResultEnvelope is defined in its own file.
+- It defines stable field names and success/failure invariants.
+- It is generic enough for read, validate, mutation, and write results.
+- It does not implement any YAML behavior.
+- It does not depend on later T-004 through T-007 contract implementations.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only the shared ResultEnvelope contract and tests. Do not
+    edit other contract files or any YAML subsystem. The goal is a stable response
+    shape and truthful success semantics for later work. Do not import later ErrorCode,
+    Diagnostic, ValidationResult, or OperationResult contracts from this step; use
+    primitive JSON-safe shapes that later steps can refine.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-001/T-003
+  problem: ResultEnvelope fields and invariants were not explicit enough for implementers
+  action: added result_envelope_contract required fields, semantics, invariants, and
+    dependency policy
+  status: fixed
+- iteration: 1
+  point: G-001/T-003
+  problem: wrapper or queue success masking nested operation failure was only mentioned,
+    not made an invariant
+  action: added invariant requiring represented operation failure to force success=false
+  status: fixed
