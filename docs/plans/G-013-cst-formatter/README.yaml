@@ -60,13 +60,14 @@ source_code_origin:
   - code_analysis/core/file_handlers/
   - code_analysis/cli/
   forbidden_patterns:
+    file_reading_forbidden_in_formatter: 'CSTFormatter.parse receives raw_content:
+      str from editor core. Editor core owns disk I/O.'
+    in_memory_registry_forbidden: _trees dict, get_tree, remove_tree, start_cst_tree_ttl_cleanup,
+      load_file_to_tree belong to the server session layer, not CSTFormatter.
     inline_comment_transport_forbidden: set_stable_id, get_stable_id and ANY use of
       @node-id comments as mutation transport are FORBIDDEN. They violate the single-assignment
       rule for stable_id. node_stable_id.py may only be used for strip_inline_node_id_lines_from_source
-      at parse time (defensive cleaner for legacy files).
-    libcst_immutable_tree_workaround: 'stable_id survival across mutations uses ONLY:
-      previous_metadata_map (exact_key position matching) and previous_obj_to_id (object
-      identity mapping). No inline comment embedding.'
+      at parse time.
     read_side_strip_helpers_allowed: strip_persisted_node_ids and strip_inline_node_id_lines_from_source
       are allowed only as defensive read-time cleaners at parse. They must not write
       files and must not be used in mutation flow.
@@ -76,12 +77,14 @@ source_code_origin:
       _build_tree_index. Never changed, never re-embedded in source, never extracted
       from source during mutation. Persisted in sidecar. This is an immutable data
       binding.
-    write_side_marker_functions_forbidden: append_persisted_node_ids, render_marker_block
-      must not be called anywhere in adapted code.
-    in_memory_registry_forbidden: _trees dict, get_tree, remove_tree, start_cst_tree_ttl_cleanup,
-      load_file_to_tree belong to the server session layer, not CSTFormatter.
-    file_reading_forbidden_in_formatter: 'CSTFormatter.parse receives raw_content:
-      str from editor core. Editor core owns disk I/O.'
+    trailing_marker_block_forbidden: 'The trailing # cst-node-ids: begin...end block
+      mechanism (node_id_markers.py: append_persisted_node_ids, render_marker_block)
+      is the OLD mechanism. FORBIDDEN in adapted code. It pollutes .py source files.
+      The new mechanism is the sidecar file (.cst/<stem>.tree). Do not bring this
+      into the project.'
+    write_side_marker_functions_forbidden: 'append_persisted_node_ids, render_marker_block
+      must not be called anywhere in adapted code. These write trailing # cst-node-ids
+      blocks to .py files.'
 forbidden_code_paths:
 - ai_editor/editor_core/
 - ai_editor/search/
