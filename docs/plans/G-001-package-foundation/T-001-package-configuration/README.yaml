@@ -401,9 +401,10 @@ model_assignment_spec:
     Do not import yaml_editor in the metadata test. Do not declare CLI entry points.
     Do not edit README.md, source modules, contracts, typed marker, package root,
     or future subsystem files. Use static project.version = 0.1.0 and build-system.build-backend
-    = hatchling.build. Put jsonpath-ng only in an experimental optional dependency
-    group. Treat python -m build as cross-step verification, not the T-001 completion
-    gate. The task is package configuration, not YAML editor implementation.
+    = hatchling.build. Put jsonpath-ng in project.dependencies as a mandatory runtime
+    dependency with a lower bound. Treat python -m build as cross-step verification,
+    not the T-001 completion gate. The task is package configuration, not YAML editor
+    implementation.
 observations_template:
 - command: ''
   expected: ''
