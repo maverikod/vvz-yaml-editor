@@ -64,27 +64,28 @@ source_code_origin:
       str from editor core. Editor core owns disk I/O.'
     in_memory_registry_forbidden: _trees dict, get_tree, remove_tree, start_cst_tree_ttl_cleanup,
       load_file_to_tree belong to the server session layer, not CSTFormatter.
-    inline_comment_transport_forbidden: set_stable_id, get_stable_id and ANY use of
-      @node-id comments as mutation transport are FORBIDDEN. They violate the single-assignment
-      rule for stable_id. node_stable_id.py may only be used for strip_inline_node_id_lines_from_source
-      at parse time.
+    inline_comment_scope: set_stable_id and get_stable_id are ALLOWED only within
+      the INSERT/DELETE/MOVE mutation step as a transient in-memory transport. They
+      must not be called outside mutation context. The @node-id comment must never
+      reach render() output or disk. strip_inline_node_id_lines_from_source must be
+      called after get_stable_id recovery, before _build_tree_index.
     read_side_strip_helpers_allowed: strip_persisted_node_ids and strip_inline_node_id_lines_from_source
-      are allowed only as defensive read-time cleaners at parse. They must not write
-      files and must not be used in mutation flow.
+      are allowed as defensive read-time cleaners at parse, and as post-mutation cleanup.
+      They must not write files.
     sidecar_write_forbidden_in_parse: write_sidecar_atomic must not be called from
       CSTFormatter.parse. Sidecar is written only from save orchestration.
-    stable_id_single_assignment: stable_id is assigned exactly once per node at first
-      _build_tree_index. Never changed, never re-embedded in source, never extracted
-      from source during mutation. Persisted in sidecar. This is an immutable data
-      binding.
+    stable_id_single_assignment: stable_id is assigned exactly once per node. The
+      inline comment mechanism (set_stable_id/get_stable_id) transports the already-assigned
+      stable_id through a mutation — it does not reassign it. The value written into
+      the comment and recovered from it must be the same UUID4 that was originally
+      assigned.
     trailing_marker_block_forbidden: 'The trailing # cst-node-ids: begin...end block
-      mechanism (node_id_markers.py: append_persisted_node_ids, render_marker_block)
-      is the OLD mechanism. FORBIDDEN in adapted code. It pollutes .py source files.
-      The new mechanism is the sidecar file (.cst/<stem>.tree). Do not bring this
-      into the project.'
-    write_side_marker_functions_forbidden: 'append_persisted_node_ids, render_marker_block
-      must not be called anywhere in adapted code. These write trailing # cst-node-ids
-      blocks to .py files.'
+      (node_id_markers.py: append_persisted_node_ids, render_marker_block) is the
+      OLD persistence mechanism. FORBIDDEN in adapted code. The new mechanism is the
+      sidecar file (.cst/<stem>.tree). Do not bring trailing marker blocks into the
+      project.'
+    write_side_marker_functions_forbidden: append_persisted_node_ids, render_marker_block
+      must not be called anywhere in adapted code.
 forbidden_code_paths:
 - ai_editor/editor_core/
 - ai_editor/search/
