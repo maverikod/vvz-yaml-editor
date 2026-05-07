@@ -100,6 +100,10 @@ error_code_contract:
   - WRITE_FAILED
   - SAVE_TARGET_EXISTS
   - SAVE_TARGET_MISSING
+  - CST_PARSE_FAILED
+  - CST_NODE_NOT_FOUND
+  - CST_MUTATION_FAILED
+  - CST_SIDECAR_INVALID
   invariants:
   - Every public error code value is a JSON-safe string.
   - Error code values are unique.
