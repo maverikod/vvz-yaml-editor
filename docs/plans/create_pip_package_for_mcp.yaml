@@ -575,6 +575,7 @@ model_assignment_spec:
   - package_skeleton
   - editor_core_buffer_registry
   - text_yaml_formatters
+  - universal_search
   - loader
   - path_parser
   - read_api
