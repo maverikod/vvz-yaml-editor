@@ -25,8 +25,8 @@ self_contained_context:
   - commands[].name values must be unique.
   - commands[].schema.required must reference only existing properties.
   - read_model.sees_live_tmpfs_worktree must be false for read-only plan_* disk commands.
-  - buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
-      no merge, lock retained.
+  - 'buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
+    no merge, lock retained.'
   - verification must be a non-empty list.
   - status must be one of draft, ready_for_review, ready_for_implementation, blocked.
   boundaries:
