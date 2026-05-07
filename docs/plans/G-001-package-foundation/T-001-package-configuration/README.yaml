@@ -112,10 +112,11 @@ dependency_inclusion_policy:
   project_dependencies:
   - ruamel.yaml>=0.18
   - jsonschema>=4
-  project_optional_dependencies_experimental:
   - jsonpath-ng>=1.6
-  reason: jsonpath-ng is not mandatory for T-001 because the future path-language
-    owner may implement commands[name=...] without it.
+  project_optional_dependencies_experimental: []
+  reason: The root implementation plan and tech spec require jsonpath-ng as a runtime
+    dependency for structural filter support, so T-001 must include it in project.dependencies
+    rather than treating it as experimental optional.
 dev_dependencies:
   group_name: dev
   required_packages:
