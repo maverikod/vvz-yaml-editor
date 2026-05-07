@@ -9,10 +9,11 @@ source_documents:
 - docs/tech_spec.md
 - docs/plans/create_pip_package_for_mcp.yaml
 - docs/plans/G-008-regression-release-readiness/README.yaml
-intent: Own the yaml-editor console command as a thin diagnostic wrapper over yaml_editor.interfaces.public_api.
-  This tactical step exposes load, validate, get, clipboard-copy, clipboard-get, clipboard-list,
-  clipboard-clear, clipboard-paste, write-checked, and version commands without implementing
-  parser, path, mutation, validation, transaction writer, or MCP server internals.
+intent: 'Own the yaml-editor console command as a thin diagnostic wrapper over yaml_editor.interfaces.public_api.
+  This tactical step exposes the parent G-008 CLI surface: open, new, save, save-as,
+  close, validate, validate-file, formatter-commands, copy, cut, paste, find, find-one,
+  list-units, yaml-compat, and version commands, without implementing parser, path,
+  mutation, validation, transaction writer, or MCP server internals.'
 self_contained_context:
   global_goal: G-008 owns outer user-facing interfaces and release verification.
   cli_surface:
