@@ -119,6 +119,12 @@ buffer_model:
     writing files.
   - When formatter=auto and len(raw_content) < small_file_threshold, text formatter
     is used without attempting structural parse; buffer status is set to small_file.
+  - open() acquires editing_pid lock in files table before parse. If another live
+    process holds editing_pid -> return BUFFER_LOCKED, do not open buffer.
+  - close() releases editing_pid lock (SET editing_pid = NULL WHERE editing_pid =
+    os.getpid()) in finally block. Guaranteed even on error.
+  - save/save_as verify editing_pid = os.getpid() before writing. If not -> return
+    BUFFER_STALE.
 buffer_address_contract:
   required_fields:
   - buffer_id
