@@ -19,9 +19,9 @@ why_this_block_exists: The technical specification separates formatter editing s
 owned_code_paths:
 - ai_editor/formatters/base.py
 - ai_editor/formatters/text/
-- ai_editor/formatters/ai/
-- tests/formatters/ai/
-- tests/formatters/ai/
+- ai_editor/formatters/yaml/
+- tests/formatters/text/
+- tests/formatters/yaml/
 owned_docs_paths:
 - docs/formatters.md
 forbidden_code_paths:
