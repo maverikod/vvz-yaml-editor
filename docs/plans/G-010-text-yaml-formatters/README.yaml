@@ -1,0 +1,146 @@
+format: global_package_step_v2
+plan_id: yaml_editor_pip_package_for_mcp
+step_id: G-010
+step_name: text_yaml_formatters
+title: Text and YAML formatter backends subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+global_intent: 'Own the first formatter backends used by editor buffers: text and
+  yaml. Each buffer has exactly one formatter, and the formatter defines parse, render,
+  validate, normalize_path, copy_fragment, cut_fragment, paste_fragment, changed_paths,
+  and diagnostics behavior. The editor core must call this formatter API instead of
+  embedding YAML-specific or text-specific rules.'
+why_this_block_exists: The editor must be separated from YAML. YAML remains the first
+  structured formatter, while text is the minimal plain formatter represented as an
+  array of lines. JSON and Markdown are expected future formatters, so the formatter
+  contract must not be hard-coded for YAML only.
+owned_code_paths:
+- yaml_editor/formatters/text/
+- yaml_editor/formatters/yaml/
+- tests/formatters/text/
+- tests/formatters/yaml/
+owned_docs_paths:
+- docs/formatters.md
+forbidden_code_paths:
+- yaml_editor/editor_core/
+- yaml_editor/interfaces/
+- yaml_editor/transaction_writer/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-002 YAML document model and deterministic renderer concepts
+  - G-003 YAML path language concepts
+  - G-006 validation contracts
+  may_be_used_by:
+  - G-009 editor core and buffer registry
+  - G-008 public interfaces and CLI adapter
+public_contracts_provided:
+- formatter interface contract
+- text formatter backend
+- yaml formatter backend
+- formatter compatibility contract for clipboard paste
+formatter_contract:
+  required_methods:
+  - parse
+  - render
+  - validate
+  - normalize_path
+  - copy_fragment
+  - cut_fragment
+  - paste_fragment
+  - changed_paths
+  - diagnostics
+  required_metadata:
+  - formatter_name
+  - supported_payload_kinds
+  - supported_path_kinds
+  - can_render_to_text
+  - can_parse_from_text
+initial_formatters:
+  text:
+    document_model: array_of_lines
+    path_model: line_range_or_document
+    payload_kinds:
+    - text_lines
+    - text_block
+    responsibilities:
+    - Preserve line order and exact text content where possible.
+    - Support copy/cut/paste over line ranges and whole-document text.
+    - Validate basic text document constraints without YAML parsing.
+  yaml:
+    document_model: yaml_tree
+    path_model: structural_yaml_path
+    payload_kinds:
+    - yaml_node
+    - yaml_block
+    - rendered_text
+    responsibilities:
+    - Preserve YAML mapping order, comments, and formatting where ruamel.yaml allows
+      it.
+    - Support structural YAML path operations such as commands[name=...].metadata.
+    - Validate YAML parse, semantic constraints, deterministic render, and changed_paths.
+clipboard_compatibility:
+  rules:
+  - source_formatter and target_formatter must be checked before paste.
+  - text -> text paste is allowed.
+  - yaml -> yaml paste is allowed.
+  - yaml -> text paste is allowed only when paste mode explicitly requests rendered
+    text.
+  - text -> yaml paste is rejected by default unless paste mode explicitly requests
+    parse_as_yaml.
+  - Unsupported combinations return CLIPBOARD_FORMAT_MISMATCH.
+  stale_source_policy:
+    default: snapshot
+    allowed_modes:
+    - snapshot
+    - reject_if_source_revision_changed
+    required_error: CLIPBOARD_SOURCE_STALE
+responsibilities:
+- Define formatter backend interface used by editor core.
+- Implement text formatter as array-of-lines document backend.
+- Implement YAML formatter as structural YAML-tree document backend.
+- Keep YAML path parsing and YAML validation inside the YAML formatter, not the editor
+  core.
+- Provide compatibility decisions for clipboard paste across formatter pairs.
+- Make future JSON and Markdown formatters possible without changing editor core APIs.
+verification:
+  scope: global_completion_gate
+  commands:
+  - python -m pytest tests/formatters/text tests/formatters/yaml
+  expected:
+  - Text formatter parses documents as arrays of lines and supports line-range copy/cut/paste.
+  - YAML formatter parses documents as YAML trees and supports structural path copy/cut/paste.
+  - YAML formatter preserves formatting where ruamel.yaml supports it.
+  - Clipboard compatibility rejects text -> yaml by default.
+  - Clipboard compatibility allows yaml -> text only as explicit rendered text.
+  - Formatter interface can be called by editor core without format-specific branching.
+acceptance_criteria:
+- Every buffer can declare formatter=text or formatter=yaml.
+- Text and YAML formatters implement the same formatter contract.
+- Clipboard payloads carry source_formatter and payload_kind.
+- Paste compatibility is decided by formatter contract, not ad hoc editor-core logic.
+- YAML-specific path and validation behavior does not leak into text formatter or
+  editor core.
+- Future json and markdown formatters can be added by implementing the same formatter
+  contract.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only formatter backend contracts and the initial text/yaml
+    formatters under yaml_editor/formatters and tests/formatters. Text formatter represents
+    documents as arrays of lines. YAML formatter represents documents as YAML trees
+    and owns YAML path behavior. Ensure clipboard payload compatibility uses source_formatter
+    and payload_kind. Do not edit editor core internals, public interfaces, CLI, MCP
+    wrappers, .venv, venv, site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
