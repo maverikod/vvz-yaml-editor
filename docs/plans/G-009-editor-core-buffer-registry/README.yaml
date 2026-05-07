@@ -177,13 +177,20 @@ acceptance_criteria:
 - Save/save_as are the only operations that write files.
 - Copy/cut require source BufferAddress and paste requires target BufferAddress.
 - Search behavior is delegated to G-011, not implemented inside buffer lifecycle.
-- open(file_path, formatter=auto, open_as_text=False) supports explicit text fallback
-  via open_as_text.
+- 'open(file_path, formatter=auto, open_as_text=False): open_as_text=True forces text
+  formatter unconditionally.'
+- When formatter=auto and len(raw_content) < threshold from config, text formatter
+  is used without structural parse; buffer status is small_file.
 - Parse exception from structural formatter triggers automatic fallback to text formatter;
-  buffer status reflects format_fallback.
+  buffer status is format_fallback.
 - validate(buffer_id) exposes in-buffer structure check without writing files.
 - save and save_as call validate as first pipeline stage and abort on failure.
-- fallback buffers use text formatter for validate, render, and all subsequent operations.
+- Config is loaded from ai_editor/config/editor.json in JSON format; missing file
+  or key uses defaults.
+- 'Threshold units: bare integer = characters; k suffix = thousands; m suffix = millions;
+  0 = disabled.'
+- 'Precedence: open_as_text=True > small_file_threshold > parse_error_fallback > structural
+  auto-detect.'
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement only AbstractBuffer and the format-independent editor core
