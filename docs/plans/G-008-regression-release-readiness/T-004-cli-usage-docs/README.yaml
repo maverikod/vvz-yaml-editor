@@ -9,10 +9,11 @@ source_documents:
 - docs/tech_spec.md
 - docs/plans/create_pip_package_for_mcp.yaml
 - docs/plans/G-008-regression-release-readiness/README.yaml
-intent: Own CLI usage documentation for the yaml-editor console command. This tactical
-  step documents load, validate, get, write-checked, and version usage, expected output
-  shape, exit-code policy, and examples without modifying CLI code or internal subsystem
-  code.
+intent: 'Own CLI usage documentation for the yaml-editor console command. This tactical
+  step documents the parent G-008 CLI surface: open, new, save, save-as, close, validate,
+  validate-file, formatter-commands, copy, cut, paste, find, find-one, list-units,
+  yaml-compat, and version usage, expected output shape, exit-code policy, and examples
+  without modifying CLI code or internal subsystem code.'
 self_contained_context:
   global_goal: G-008 owns public interfaces, CLI adapters, MCP integration examples,
     regression checks, and release readiness assets.
