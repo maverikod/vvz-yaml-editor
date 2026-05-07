@@ -271,27 +271,45 @@ pre_save_validation:
     original formatter
   error_code: VALIDATION_FAILED
 config_policy:
-  config_file: ai_editor/config/editor.json
-  format: JSON
-  schema_field: '$schema: ai_editor_config_v1'
-  small_file_threshold_field:
-    key: formatter.small_file_threshold
-    type: string
-    default: 1k
-    units:
-      bare_integer: characters, e.g. 500
-      k_suffix: thousands of characters, e.g. 1k = 1000
-      m_suffix: millions of characters, e.g. 1m = 1000000
-    zero_value: 0 means always use structural formatter; threshold is disabled
-    parsing_rule: strip trailing unit letter; multiply by unit factor; compare against
-      len(raw_content)
-  small_file_formatter_field:
-    key: formatter.small_file_formatter
-    type: string
-    default: text
-    meaning: formatter name to use when file size is below threshold
-  application_rule: threshold applies only when formatter=auto and open_as_text=False;
-    open_as_text=True always overrides threshold
-  rationale: target deployment environment has approximately 1-2GB free RAM; small
-    files must not trigger heavy structural parsing unnecessarily; default 1k is conservative
-    for constrained environments
+  adapter_integration:
+    pattern: add ai_editor section to mcp_proxy_adapter SimpleConfigModel; follow
+      the same pattern as server/auth/queue_manager sections
+    reader: mcp_proxy_adapter SimpleConfig.load() already reads JSON; ai_editor section
+      is loaded as part of the same file
+    steps:
+    - add AiEditorConfig dataclass to ai_editor/config/config_section.py
+    - add ai_editor field to SimpleConfigModel (done by extending adapter model or
+      via plugin pattern)
+    - add AiEditorConfigGenerator to ai_editor/config/config_generator.py (extends
+      SimpleConfigGenerator pattern)
+    - add AiEditorConfigValidator to ai_editor/config/config_validator.py (extends
+      BaseValidator)
+  config_file_location: same config.json used by mcp_proxy_adapter; ai_editor adds
+    its own top-level section
+  format: JSON (same as mcp_proxy_adapter)
+  no_separate_file: ai_editor does NOT use a separate ai_editor/config/editor.json;
+    it extends the adapter config
+  owned_files:
+  - ai_editor/config/config_section.py
+  - ai_editor/config/config_generator.py
+  - ai_editor/config/config_validator.py
+  - ai_editor/config/__init__.py
+  ai_editor_section_schema:
+    section_key: ai_editor
+    fields:
+      formatter:
+        small_file_threshold:
+          default: 1k
+          description: Files smaller than this threshold use text formatter without
+            structural parse
+          type: string
+          units: bare integer = chars; k = thousands; m = millions; 0 = disabled
+        small_file_formatter:
+          default: text
+          description: Formatter to use for files below threshold
+          type: string
+  example_config_snippet:
+    ai_editor:
+      formatter:
+        small_file_threshold: 1k
+        small_file_formatter: text
