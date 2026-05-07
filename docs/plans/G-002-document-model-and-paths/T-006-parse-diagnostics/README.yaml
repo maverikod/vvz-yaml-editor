@@ -1,0 +1,139 @@
+format: tactical_step_v1
+parent_step_id: G-002
+parent_step_name: document_io
+tactical_step_id: T-006
+tactical_step_name: parse_diagnostics
+title: YAML parse diagnostics types and production
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-002-document-model-and-paths/README.yaml
+intent: Define ParseDiagnostic and diagnostic-compatible parse failure reporting for
+  invalid YAML and parse-edge cases consumed by loader entry points, without validating
+  plan_task_v1 semantics, parsing structural paths, or importing higher-level contract
+  modules.
+owned_code_paths:
+- ai_editor/document_io/diagnostics.py
+owned_test_paths:
+- tests/document_io/test_diagnostics.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- ai_editor/contracts/
+- ai_editor/document_io/__init__.py
+- ai_editor/document_io/document.py
+- ai_editor/document_io/loader.py
+- ai_editor/document_io/renderer.py
+- ai_editor/document_io/summary.py
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - T-001-document-io-package-boundary
+  - T-002-document-model
+  may_be_used_by:
+  - T-003-ai-parser-loader
+  - T-007-document-io-verification
+  - future_validation_subsystem
+public_contracts_provided:
+- ParseDiagnostic
+parse_diagnostic_contract:
+  required_fields:
+  - code
+  - message
+  - line
+  - column
+  - details
+  field_semantics:
+    code: YAML_PARSE_FAILED-compatible string value for parse failures; this step
+      must not import G-001 ErrorCode.
+    message: Human-readable parse diagnostic summary; must be non-empty for failures.
+    line: Positive integer line number when available; null when unavailable.
+    column: Positive integer column number when available; null when unavailable.
+    details: JSON-safe object with parser-specific details; empty object is allowed.
+  invariants:
+  - ParseDiagnostic is JSON-safe or convertible to JSON-safe data.
+  - ParseDiagnostic must not import ai_editor.contracts Diagnostic or ErrorCode.
+  - ParseDiagnostic is compatible with later wrapping into G-001 Diagnostic or ResultEnvelope,
+    but does not depend on those modules.
+  - ParseDiagnostic must not encode structural YAML path diagnostics; PATH_* belongs
+    to later path_language ownership.
+  production_policy:
+  - diagnostics.py may define type shapes and factory helpers for YAML parse failures.
+  - loader.py owned by T-003 wires parse failures into these shapes.
+  - This step must not edit loader.py while defining the diagnostic contract.
+responsibilities:
+- Define stable diagnostic codes and messages for YAML_PARSE_FAILED class failures.
+- Keep parse diagnostics independent from structural path diagnostics owned by path_language.
+- Provide JSON-safe parse diagnostic payloads for loader failure paths.
+implementation_notes:
+- Diagnostics module defines types and factories; loader wires them on parse failure.
+- Do not define PATH_* error codes here; those belong to G-003.
+- Do not import ai_editor.contracts from this step; remain shape-compatible only.
+- Do not implement schema validation, semantic validation, rendering, mutation, writing,
+  CLI, or MCP behavior.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/document_io/test_diagnostics.py
+  expected:
+  - Invalid YAML inputs can be represented with YAML_PARSE_FAILED-compatible diagnostic
+    codes.
+  - ParseDiagnostic fields and invariants are explicit and JSON-safe.
+  - Diagnostic payloads are compatible with upper-layer wrapping without importing
+    those layers here.
+  - Diagnostics module imports no forbidden subsystem modules.
+acceptance_criteria:
+- Parse diagnostics are centralized under diagnostics-owned paths.
+- ParseDiagnostic is explicit, JSON-safe, and independent from G-001 contract imports.
+- No plan_task_v1 schema validation or path parsing is implemented here.
+- This tactical step edits only its owned diagnostics module and test.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on parse diagnostics types and tests. Define ParseDiagnostic
+    and YAML_PARSE_FAILED-compatible parse failure helpers only. Do not edit loader,
+    document model, renderer, summary, package index, schema validation, path language,
+    reader, mutation, writer, CLI, or MCP wrappers. Do not import ai_editor.contracts
+    from this step; remain shape-compatible with those contracts. Do not edit .venv,
+    venv, site-packages, or installed dependencies.
+observations_template:
+- actual: ''
+  command: ''
+  error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-002/T-006
+  problem: ParseDiagnostic fields, invariants, and JSON-safety requirements were not
+    explicit
+  action: added parse_diagnostic_contract with fields, semantics, invariants, and
+    production policy
+  status: fixed
+- iteration: 1
+  point: G-002/T-006
+  problem: plan mentioned upper-layer ResultEnvelope/Diagnostic compatibility without
+    forbidding imports of those G-001 contracts
+  action: clarified shape compatibility only and forbade importing ai_editor.contracts
+    from this step
+  status: fixed
+- iteration: 1
+  point: G-002/T-006
+  problem: may_be_used_by coupled parse diagnostics to renderer and summary even though
+    they should not consume parse diagnostics directly
+  action: removed T-004 and T-005 as direct consumers and kept loader/integration/future
+    validation consumers
+  status: fixed
