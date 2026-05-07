@@ -67,6 +67,19 @@ queue_contract:
   - rename never blocks the caller; it always returns job_id immediately
   - MCP wrapper must not treat job enqueue success as rename success
   - job result nested success=false must be surfaced as operation failure
+  ws_delivery:
+    description: rename() returns job_id immediately. Result is delivered via WebSocket,
+      not by polling.
+    flow:
+    - call rename(...) -> job_id
+    - open WebSocket to /ws with same auth as HTTP transport
+    - 'send: {action: subscribe, subscription_type: queue_job, job_id: <job_id>}'
+    - 'wait for terminal event: job_completed | job_failed | job_stopped'
+    - extract RenameJobResult from event payload
+    - 'send: {action: unsubscribe, subscription_type: queue_job, job_id: <job_id>}'
+    implementation: wait_for_job_via_websocket(transport, job_id, timeout) from mcp_proxy_adapter.client.jsonrpc_client.ws_job_status
+    polling_fallback: queue_get_job_status may be used as fallback when WebSocket
+      is unavailable
 rename_target_contract:
   class_name: RenameTarget
   required_fields:
