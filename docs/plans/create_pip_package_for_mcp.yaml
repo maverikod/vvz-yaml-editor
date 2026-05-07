@@ -539,13 +539,13 @@ implementation_steps:
     insert_after.'
   - Implement YAML compare_units semantics for node type, key, scalar value, mapping
     fields, list item identity, and semantic name fields.
-  - Expose AI formatter command catalog.
+  - Expose YAML formatter command catalog.
   deliverables:
-  - ai_editor/formatters/ai/
+  - ai_editor/formatters/yaml/
   - ai_editor/schemas/plan_task_v1.schema.json
-  - tests/formatters/ai/
+  - tests/formatters/yaml/
   verification:
-  - AI formatter parses real plan fixtures.
+  - YAML formatter parses real plan fixtures.
   - YAML validate_content validates a file's raw YAML without opening a buffer.
   - YAML addresses resolve uniquely or return ADDRESS_NOT_FOUND/ADDRESS_NOT_UNIQUE.
   - YAML copy/cut require source_address.
