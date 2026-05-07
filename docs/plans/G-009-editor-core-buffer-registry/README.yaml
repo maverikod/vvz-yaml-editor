@@ -235,11 +235,19 @@ model_assignment_spec:
     formatter, buffer status small_file; (3) formatter=auto and structural formatter
     raises on parse -> fallback to text formatter, buffer status format_fallback;
     (4) structural formatter auto-detected by extension. formatter=explicit: no threshold
-    check, no fallback; return FORMAT_VALIDATION_FAILED on parse error. validate(buffer_id)
-    calls formatter.validate_document(document) and returns ValidationResult without
-    writing files; save and save_as call validate as the first pipeline stage and
-    abort when success=false. Provide buffer registry, file-backed and unsaved buffer
-    lifecycle, dirty/revision/hash state, open/new/save/save_as/close/reload, copy/cut/paste
+    check, no fallback; return FORMAT_VALIDATION_FAILED on parse error. FILE EDIT
+    LOCK: on open(), before parse: check files.editing_pid via SELECT; if editing_lock_holder_is_alive(pid)
+    -> return BUFFER_LOCKED, do not create buffer; if stale (dead pid) clear atomically
+    then acquire; acquire via UPDATE files SET editing_pid = os.getpid() WHERE (editing_pid
+    IS NULL OR editing_pid = <dead>); 0 affected rows -> BUFFER_LOCKED. on close():
+    UPDATE files SET editing_pid = NULL WHERE editing_pid = os.getpid() in finally
+    block. save/save_as: verify editing_pid = os.getpid() before write; mismatch ->
+    BUFFER_STALE. Adapt logic from code_analysis/core/database/file_edit_lock.py (editing_lock_holder_is_alive,
+    try_acquire_file_edit_lock, release_file_edit_lock). validate(buffer_id) calls
+    formatter.validate_document(document) and returns ValidationResult without writing
+    files; save and save_as call validate as the first pipeline stage and abort when
+    success=false. Provide buffer registry, file-backed and unsaved buffer lifecycle,
+    dirty/revision/hash state, open/new/save/save_as/close/reload, copy/cut/paste
     orchestration over BufferAddress. Do not implement YAML path logic, text range
     internals, formatter parsing internals, search/query semantics, CLI, MCP wrappers,
     .venv, venv, site-packages, or installed dependencies.'
