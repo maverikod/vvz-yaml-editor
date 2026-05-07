@@ -83,6 +83,11 @@ cli_surface:
   - load
   - validate
   - get
+  - clipboard-copy
+  - clipboard-get
+  - clipboard-list
+  - clipboard-clear
+  - clipboard-paste
   - write-checked
   - version
 mcp_contract_rules:
