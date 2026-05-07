@@ -559,15 +559,23 @@ implementation_steps:
   - python -c "import yaml_editor; print(yaml_editor.__version__)" succeeds after
     wheel install.
 model_assignment_spec:
-  title: Implement yaml-editor-mcp pip package from docs/tech_spec.md
+  title: Implement editor-core package with buffer, formatter, and search abstractions
+    from docs/tech_spec.md
   role: coding_agent
   scope: Work only inside the yaml_editor source repository. Do not edit .venv, venv,
-    site-packages, or installed packages. Build a reusable pip package that MCP servers
-    can import to perform structural YAML edits safely.
+    site-packages, or installed packages. Build a reusable package that MCP servers
+    can import to edit documents through AbstractBuffer, AbstractFormatter, and AbstractSearch.
+    YAML is the first structured formatter and text is the first plain formatter.
   required_behavior:
-  - Prefer structural YAML tree operations over line-based edits.
-  - Preserve formatting and comments using ruamel.yaml where feasible.
-  - Make every write operation checked and atomic.
+  - Separate file/buffer lifecycle from formatter editing semantics.
+  - Separate search/query behavior from file open/save lifecycle.
+  - Keep editor-core address values opaque and formatter-owned.
+  - Require copy/cut source BufferAddress and paste target BufferAddress.
+  - 'Prefer generic editor commands for normal model-facing workflows: open, new,
+    save, save_as, close, copy, cut, paste, find, find_one, list_units, validate.'
+  - Keep legacy yaml_* commands as compatibility wrappers over the generic editor/search/formatter
+    architecture.
+  - Make every save/save_as checked and atomic.
   - Return truthful, typed errors instead of partial success.
   - Provide JSON-serializable responses suitable for MCP command handlers.
   - Validate behavior with actual commands and tests, not only code inspection.
@@ -576,14 +584,8 @@ model_assignment_spec:
   - editor_core_buffer_registry
   - text_yaml_formatters
   - universal_search
-  - loader
-  - path_parser
-  - read_api
-  - operations
-  - workflow_clipboard
-  - validator
-  - renderer
-  - writer
+  - format_aware_clipboard
+  - yaml_formatter_compatibility
   - public_api
   - cli
   - mcp_integration_docs
@@ -591,21 +593,27 @@ model_assignment_spec:
   acceptance_criteria:
   - The package can be installed as a wheel.
   - The package can be imported by an MCP server without side effects.
-  - yaml_write_checked never writes invalid YAML.
-  - dry_run mode never changes files.
-  - Failed schema or semantic validation leaves files unchanged.
-  - plan_task_v1 validation covers all checks listed in docs/tech_spec.md.
-  - Workflow clipboard state is not written into plan_task_v1 documents.
-  - Clipboard copy validates source file, source path, uniqueness, and payload serializability
-    before storing an item.
-  - Clipboard paste validates target file, target path, clipboard item existence,
-    and paste compatibility before using the checked write pipeline.
-  - Tests cover success, failure, dry-run, dedupe, ambiguous path, invalid YAML, missing
-    clipboard item, and split-step clipboard cases.
-  - CLI diagnostics work for load, validate, get, clipboard-copy, clipboard-get, clipboard-list,
-    clipboard-clear, clipboard-paste, and write-checked flows.
+  - AbstractBuffer owns open/new/save/save_as/close/reload and no formatter-specific
+    address semantics.
+  - AbstractFormatter owns parse/render/validate/address/edit/unit/compare semantics
+    and no file lifecycle.
+  - AbstractSearch owns find/find_one/list_units/select over formatter-provided units
+    and no file lifecycle.
+  - Text formatter works over array-of-lines documents.
+  - YAML formatter works over YAML-tree documents and structural YAML addresses.
+  - copy/cut require source BufferAddress and paste requires target BufferAddress.
+  - Clipboard payloads carry source_formatter, source_address, source_revision, payload_kind,
+    and payload.
+  - save/save_as never persist invalid content for the active formatter.
+  - Tests cover buffer lifecycle, text formatter, YAML formatter, search, clipboard
+    compatibility, stale buffer, invalid content, missing/ambiguous search match,
+    and compatibility wrappers.
+  - CLI diagnostics work for generic editor commands and YAML compatibility flows.
   prohibited_actions:
   - Do not edit .venv, venv, site-packages, or dependency internals.
+  - Do not let formatter implementations open, save, or close files.
+  - Do not let buffer lifecycle logic know YAML paths or text line ranges.
+  - Do not put search/query semantics inside file save/open logic.
   - Do not implement normal model workflows through yaml_write_lines_unsafe.
   - Do not silently coerce invalid operation targets.
   - Do not return completed or success when validation failed.
