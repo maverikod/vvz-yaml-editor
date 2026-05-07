@@ -181,14 +181,16 @@ acceptance_criteria:
 - Future json and markdown formatters can be added by implementing AbstractFormatter.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only AbstractFormatter contracts and the initial text/AI
-    formatters under ai_editor/formatters and tests/formatters. Text formatter represents
-    documents as arrays of lines and owns text address/unit/compare semantics. AI
-    formatter represents documents as YAML trees and owns YAML address/unit/compare
-    semantics. Ensure copy/cut require source_address, paste requires target_address,
-    and clipboard compatibility uses source_formatter, source_address, payload_kind,
-    and payload. Do not edit editor core internals, universal search, public interfaces,
-    CLI, MCP wrappers, .venv, venv, site-packages, or installed dependencies.
+  instruction: Implement only AbstractFormatter contracts and the initial text and
+    YAML formatters under ai_editor/formatters and tests/formatters. Text formatter
+    under ai_editor/formatters/text/. YAML formatter under ai_editor/formatters/yaml/.
+    Text formatter represents documents as arrays of lines and owns text address/unit/compare
+    semantics. YAML formatter represents documents as YAML trees (ruamel.yaml) and
+    owns YAML structural address/unit/compare semantics. Ensure copy/cut require source_address,
+    paste requires target_address, and clipboard compatibility uses source_formatter,
+    source_address, payload_kind, and payload. Do not edit editor core internals,
+    universal search, public interfaces, CLI, MCP wrappers, .venv, venv, site-packages,
+    or installed dependencies.
 observations_template:
 - command: ''
   expected: ''
