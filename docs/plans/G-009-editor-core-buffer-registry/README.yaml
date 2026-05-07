@@ -152,9 +152,15 @@ verification:
   - New unsaved buffers are dirty and have no file_path until save_as.
   - Copy does not mark buffers dirty.
   - Cut and paste mark the correct buffers dirty.
-  - Save/save_as delegate validation and rendering to the attached formatter.
+  - Save/save_as call formatter.validate_document before render and abort on failure.
   - Stale file-backed buffers are rejected before disk write.
   - Editor core never parses YAML addresses or text line ranges directly.
+  - open_as_text=True opens file with text formatter regardless of extension.
+  - Parse exception from structural formatter causes fallback to text formatter and
+    sets buffer status to format_fallback.
+  - validate(buffer_id) returns ValidationResult without writing file or changing
+    dirty state.
+  - Save aborts when validate returns success=false.
 acceptance_criteria:
 - AbstractBuffer owns file/buffer lifecycle and does not implement formatter semantics.
 - Editor core has no YAML-specific path, text range, or search query logic.
