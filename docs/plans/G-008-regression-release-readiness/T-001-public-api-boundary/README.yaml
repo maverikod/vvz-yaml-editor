@@ -1,0 +1,123 @@
+format: tactical_step_v1
+parent_step_id: G-008
+parent_step_name: interfaces_release
+tactical_step_id: T-001
+tactical_step_name: public_api_boundary
+title: Public API boundary for MCP-facing usage
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-008-regression-release-readiness/README.yaml
+intent: Own the stable public API module used by MCP wrappers and user-facing integrations.
+  This tactical step exposes read, validation, and checked-write functions as thin
+  composition over earlier subsystem public contracts without implementing parser,
+  path, mutation, validation, or transaction writer internals.
+self_contained_context:
+  global_goal: G-008 owns public interfaces, CLI adapters, MCP integration examples,
+    regression checks, and release readiness assets.
+  public_api_surface:
+    read_functions:
+    - yaml_load
+    - yaml_get
+    - yaml_get_command
+    - yaml_get_verification
+    validation_functions:
+    - yaml_validate
+    - yaml_validate_plan_task
+    write_functions:
+    - yaml_write_checked
+    - yaml_set
+    - yaml_replace_block
+    - yaml_append
+    - yaml_delete
+    - yaml_move
+    - yaml_update_command
+    - yaml_append_verification
+  boundaries:
+  - Public API must import public subsystem contracts only.
+  - Public API must not implement YAML parser internals.
+  - Public API must not implement path parser internals.
+  - Public API must not implement mutation internals.
+  - Public API must not implement validation internals.
+  - Public API must not implement atomic writer internals.
+  - Public API must not implement CLI or MCP server wrappers in this step.
+owned_code_paths:
+- yaml_editor/interfaces/public_api.py
+- yaml_editor/interfaces/__init__.py
+owned_test_paths:
+- tests/interfaces/test_public_api_boundary.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- README.md
+- yaml_editor/contracts/
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/validation/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/cli.py
+- tests/document_io/
+- tests/path_language/
+- tests/reader/
+- tests/mutations/
+- tests/validation/
+- tests/transaction_writer/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 package contracts and distribution
+  - G-004 reader queries public contracts
+  - G-006 validation rules public contracts
+  - G-007 transaction writer public contracts
+  may_be_used_by:
+  - G-008 CLI adapter
+  - external MCP wrappers
+public_contracts_provided:
+- yaml_editor.interfaces.public_api
+- yaml_editor.interfaces public exports
+responsibilities:
+- Expose stable public functions listed by parent G-008.
+- Compose earlier subsystem public contracts without duplicating internals.
+- Pass through nested success=false results honestly.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/interfaces/test_public_api_boundary.py
+  expected:
+  - Public API exports all parent G-008 public function names.
+  - Public API does not import internal subsystem modules outside public contracts.
+  - Nested failures from lower subsystems are preserved and not converted into success.
+acceptance_criteria:
+- Public API is sufficient for MCP server wrappers to import without internal subsystem
+  access.
+- Public API remains a thin composition layer.
+- This step edits only its owned code and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/interfaces/public_api.py, yaml_editor/interfaces/__init__.py,
+    and tests/interfaces/test_public_api_boundary.py. Implement the public API boundary
+    for user-facing and MCP-facing usage by composing public contracts from reader,
+    validation, and transaction writer. Do not implement parser, path, mutation, validation,
+    writer, CLI, or MCP internals. Do not edit .venv, venv, site-packages, or installed
+    dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-008/T-001
+  problem: Tactical README did not exist for public API boundary.
+  action: Created a self-contained tactical README constrained to G-008 public API
+    ownership.
+  status: fixed
