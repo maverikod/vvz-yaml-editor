@@ -542,8 +542,8 @@ model_assignment_spec:
     and paste compatibility before using the checked write pipeline.
   - Tests cover success, failure, dry-run, dedupe, ambiguous path, invalid YAML, missing
     clipboard item, and split-step clipboard cases.
-  - CLI diagnostics work for load, validate, get, clipboard-copy, clipboard-paste,
-    and write-checked flows.
+  - CLI diagnostics work for load, validate, get, clipboard-copy, clipboard-get, clipboard-list,
+    clipboard-clear, clipboard-paste, and write-checked flows.
   prohibited_actions:
   - Do not edit .venv, venv, site-packages, or dependency internals.
   - Do not implement normal model workflows through yaml_write_lines_unsafe.
