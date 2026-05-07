@@ -204,10 +204,13 @@ model_assignment_spec:
     messages, exceptions, parser logic, validator logic, writer logic, CLI, or MCP
     wrappers.
 observations_template:
-- command: ''
-  expected: ''
-  actual: ''
+- actual: ''
+  command: ''
   error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
   status: ''
 quality_loop_observations:
 - iteration: 1
