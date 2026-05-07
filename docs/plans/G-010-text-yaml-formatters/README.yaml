@@ -2,21 +2,23 @@ format: global_package_step_v2
 plan_id: yaml_editor_pip_package_for_mcp
 step_id: G-010
 step_name: text_yaml_formatters
-title: Text and YAML formatter backends subsystem
+title: AbstractFormatter contract and initial text/yaml formatter backends subsystem
 status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
-global_intent: 'Own the first formatter backends used by editor buffers: text and
-  yaml. Each buffer has exactly one formatter, and the formatter defines parse, render,
-  validate, normalize_path, copy_fragment, cut_fragment, paste_fragment, changed_paths,
-  and diagnostics behavior. The editor core must call this formatter API instead of
-  embedding YAML-specific or text-specific rules.'
-why_this_block_exists: The editor must be separated from YAML. YAML remains the first
-  structured formatter, while text is the minimal plain formatter represented as an
-  array of lines. JSON and Markdown are expected future formatters, so the formatter
-  contract must not be hard-coded for YAML only.
+global_intent: 'Own AbstractFormatter and the first formatter backends used by buffers:
+  text and yaml. A formatter defines document parsing, rendering, validation, address
+  normalization, fragment editing, unit iteration, unit retrieval, diagnostics, and
+  unit comparison hooks. Formatters must not open, save, close, or otherwise own file
+  lifecycle.'
+why_this_block_exists: The technical specification separates formatter editing semantics
+  from file/buffer lifecycle and from universal search. YAML and text have different
+  address meanings, fragment types, paste modes, and unit comparison rules. The editor
+  core treats address as opaque and delegates all format-specific behavior to the
+  attached formatter.
 owned_code_paths:
+- yaml_editor/formatters/base.py
 - yaml_editor/formatters/text/
 - yaml_editor/formatters/yaml/
 - tests/formatters/text/
@@ -25,6 +27,7 @@ owned_docs_paths:
 - docs/formatters.md
 forbidden_code_paths:
 - yaml_editor/editor_core/
+- yaml_editor/search/
 - yaml_editor/interfaces/
 - yaml_editor/transaction_writer/
 - .venv
@@ -37,52 +40,103 @@ allowed_dependencies:
   - G-006 validation contracts
   may_be_used_by:
   - G-009 editor core and buffer registry
+  - G-011 universal search layer
   - G-008 public interfaces and CLI adapter
 public_contracts_provided:
-- formatter interface contract
+- AbstractFormatter
 - text formatter backend
 - yaml formatter backend
-- formatter compatibility contract for clipboard paste
-formatter_contract:
+- formatter unit contract
+- formatter unit comparison contract
+- formatter paste compatibility contract
+abstract_formatter_contract:
   required_methods:
-  - parse
-  - render
-  - validate
-  - normalize_path
-  - copy_fragment
-  - cut_fragment
-  - paste_fragment
-  - changed_paths
-  - diagnostics
+  - parse(raw_content) -> document
+  - render(document) -> raw_content
+  - validate(document) -> validation_result
+  - normalize_address(address) -> normalized_address
+  - copy_fragment(document, source_address) -> fragment
+  - cut_fragment(document, source_address) -> document, fragment, changed_addresses
+  - paste_fragment(document, target_address, fragment, mode) -> document, changed_addresses
+  - get_unit(document, address) -> unit
+  - iter_units(document, scope) -> units
+  - match_unit(unit, query) -> boolean or score
+  - compare_units(unit_a, unit_b, options) -> ComparisonResult
+  - diagnostics(document) -> diagnostics
   required_metadata:
   - formatter_name
   - supported_payload_kinds
-  - supported_path_kinds
+  - supported_address_kinds
+  - supported_paste_modes
   - can_render_to_text
   - can_parse_from_text
+  forbidden_responsibilities:
+  - open files
+  - save files
+  - close buffers
+  - own buffer registry
+  - own stale disk checks
+  - own search result policy
+unit_contract:
+  purpose: Provide a common shape for search without forcing all formatters to expose
+    the same document tree model.
+  minimum_fields:
+  - address
+  - unit_kind
+  - display_text
+  - metadata
+  formatter_specific_fields_allowed: true
 initial_formatters:
   text:
     document_model: array_of_lines
-    path_model: line_range_or_document
+    address_model: line_range_or_insertion_point_or_whole_document
+    unit_model: line_or_line_range_or_text_block
     payload_kinds:
     - text_lines
     - text_block
+    paste_modes:
+    - insert
+    - replace_range
+    - append
+    - prepend
+    compare_units_semantics:
+    - exact line text
+    - normalized text
+    - substring
+    - regex
+    - line number
+    - line range overlap
     responsibilities:
     - Preserve line order and exact text content where possible.
     - Support copy/cut/paste over line ranges and whole-document text.
     - Validate basic text document constraints without YAML parsing.
   yaml:
     document_model: yaml_tree
-    path_model: structural_yaml_path
+    address_model: structural_yaml_address
+    unit_model: yaml_node_or_scalar_or_mapping_or_sequence_item
     payload_kinds:
     - yaml_node
     - yaml_block
     - rendered_text
+    paste_modes:
+    - set
+    - replace_block
+    - append
+    - insert_before
+    - insert_after
+    compare_units_semantics:
+    - node type
+    - key
+    - scalar value
+    - normalized scalar value
+    - mapping fields
+    - list item identity
+    - semantic name field such as name=buf_diff
     responsibilities:
     - Preserve YAML mapping order, comments, and formatting where ruamel.yaml allows
       it.
-    - Support structural YAML path operations such as commands[name=...].metadata.
-    - Validate YAML parse, semantic constraints, deterministic render, and changed_paths.
+    - Support structural YAML addresses such as commands[name=...].metadata.
+    - Validate YAML parse, semantic constraints, deterministic render, and changed_addresses.
 clipboard_compatibility:
   rules:
   - source_formatter and target_formatter must be checked before paste.
@@ -99,42 +153,38 @@ clipboard_compatibility:
     - snapshot
     - reject_if_source_revision_changed
     required_error: CLIPBOARD_SOURCE_STALE
-responsibilities:
-- Define formatter backend interface used by editor core.
-- Implement text formatter as array-of-lines document backend.
-- Implement YAML formatter as structural YAML-tree document backend.
-- Keep YAML path parsing and YAML validation inside the YAML formatter, not the editor
-  core.
-- Provide compatibility decisions for clipboard paste across formatter pairs.
-- Make future JSON and Markdown formatters possible without changing editor core APIs.
 verification:
   scope: global_completion_gate
   commands:
   - python -m pytest tests/formatters/text tests/formatters/yaml
   expected:
-  - Text formatter parses documents as arrays of lines and supports line-range copy/cut/paste.
-  - YAML formatter parses documents as YAML trees and supports structural path copy/cut/paste.
+  - Text formatter parses documents as arrays of lines and supports line-range addresses.
+  - YAML formatter parses documents as YAML trees and supports structural YAML addresses.
+  - Formatter copy/cut/paste methods require source_address or target_address.
+  - Formatter compare_units works for text units and YAML units.
   - YAML formatter preserves formatting where ruamel.yaml supports it.
   - Clipboard compatibility rejects text -> yaml by default.
   - Clipboard compatibility allows yaml -> text only as explicit rendered text.
-  - Formatter interface can be called by editor core without format-specific branching.
 acceptance_criteria:
-- Every buffer can declare formatter=text or formatter=yaml.
+- AbstractFormatter does not open, save, or close files.
 - Text and YAML formatters implement the same formatter contract.
-- Clipboard payloads carry source_formatter and payload_kind.
-- Paste compatibility is decided by formatter contract, not ad hoc editor-core logic.
-- YAML-specific path and validation behavior does not leak into text formatter or
-  editor core.
-- Future json and markdown formatters can be added by implementing the same formatter
-  contract.
+- Every formatter defines address, unit, payload, paste mode, and comparison semantics.
+- Search can use iter_units, match_unit, and compare_units without knowing formatter
+  internals.
+- Clipboard payloads carry source_formatter, source_address, payload_kind, and payload.
+- Paste compatibility is decided through formatter contracts, not ad hoc editor-core
+  logic.
+- Future json and markdown formatters can be added by implementing AbstractFormatter.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only formatter backend contracts and the initial text/yaml
+  instruction: Implement only AbstractFormatter contracts and the initial text/yaml
     formatters under yaml_editor/formatters and tests/formatters. Text formatter represents
-    documents as arrays of lines. YAML formatter represents documents as YAML trees
-    and owns YAML path behavior. Ensure clipboard payload compatibility uses source_formatter
-    and payload_kind. Do not edit editor core internals, public interfaces, CLI, MCP
-    wrappers, .venv, venv, site-packages, or installed dependencies.
+    documents as arrays of lines and owns text address/unit/compare semantics. YAML
+    formatter represents documents as YAML trees and owns YAML address/unit/compare
+    semantics. Ensure copy/cut require source_address, paste requires target_address,
+    and clipboard compatibility uses source_formatter, source_address, payload_kind,
+    and payload. Do not edit editor core internals, universal search, public interfaces,
+    CLI, MCP wrappers, .venv, venv, site-packages, or installed dependencies.
 observations_template:
 - command: ''
   expected: ''
