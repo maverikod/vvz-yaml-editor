@@ -258,7 +258,7 @@ verification:
   expected:
   - parse round-trips without loss (render(parse(src)) == src for valid Python)
   - stable_id survives insert, delete, replace, move operations
-  - false
+  - no node-id comments appear in render() output
   - no marker block appears in .py file after buffer.save
   - sidecar written after save; reloaded correctly on next parse if sha256 matches
   - skeleton returns only declarative elements with stable_id
