@@ -171,7 +171,7 @@ verification:
   - Clipboard compatibility allows yaml -> text only as explicit rendered text.
 acceptance_criteria:
 - AbstractFormatter does not open, save, or close files.
-- Text and AI formatters implement the same formatter contract.
+- Text and YAML formatters implement the same formatter contract.
 - Every formatter defines address, unit, payload, paste mode, and comparison semantics.
 - Search can use iter_units, match_unit, and compare_units without knowing formatter
   internals.
