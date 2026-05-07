@@ -1,0 +1,137 @@
+format: tactical_step_v1
+parent_step_id: G-001
+parent_step_name: package_contracts_and_distribution
+tactical_step_id: T-010
+tactical_step_name: package_readme
+title: Package-level README for foundation scope
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-001-package-foundation/README.yaml
+intent: Create the top-level README that explains the package purpose, installation
+  shape, foundation boundaries, and current non-goals without documenting unimplemented
+  YAML subsystem behavior as if it already exists.
+owned_code_paths:
+- README.md
+owned_test_paths:
+- tests/contracts/test_package_readme.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- ai_editor/__init__.py
+- ai_editor/contracts/
+- ai_editor/py.typed
+- docs/package_contracts.md
+- docs/release_checklist.md
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - T-001-package-configuration
+  may_reference_future_outputs:
+  - T-011-package-boundary-docs
+  - T-012-release-checklist-foundation
+  may_be_used_by:
+  - future_human_readers
+public_contracts_provided:
+- package README overview
+readme_truthfulness_policy:
+  allowed_claims:
+  - package purpose is structural YAML editing for MCP server usage
+  - G-001 foundation defines package shell, boundaries, and contracts
+  - tree/path-based editing is the intended architecture
+  - line-based access is unsafe fallback only for future low-level diagnostics
+  forbidden_claims:
+  - yaml_load, yaml_get, yaml_set, yaml_write_checked, or yaml_validate are implemented
+    by G-001
+  - CLI or MCP wrapper is available in G-001
+  - full YAML editing package is production-ready before later subsystems exist
+  - docs/package_contracts.md or docs/release_checklist.md already exists unless created
+    by its owning step
+  command_reference_policy:
+    allowed:
+    - show future verification commands as roadmap or release-check examples
+    - mention package-install shape from T-001 without requiring wheel build in this
+      step
+    required_qualifier: Commands that depend on future steps must be labeled future
+      or cross-step.
+responsibilities:
+- Explain that ai_editor is intended as a structural YAML editing package for MCP
+  server usage.
+- State that normal editing is tree/path based, while line access is unsafe fallback
+  only.
+- State that the current G-001 foundation owns contracts and package shell only.
+- Avoid promising implemented commands before their owning subsystems exist.
+- Include basic install, test, and build references only as foundation or future verification
+  context.
+requirements_from_tech_spec:
+- Communicate that structural YAML paths are the primary interface.
+- Communicate that writes must be checked and atomic in future implementation.
+requirements_from_g001:
+- Document package purpose and boundaries.
+- Keep README aligned with subsystem independence rules.
+implementation_notes:
+- README.md must not describe future commands as already implemented unless implementation
+  exists.
+- README.md may mention docs/package_contracts.md only as a boundary document owned
+  by T-011.
+- README.md may mention docs/release_checklist.md only as a release checklist owned
+  by T-012.
+- README.md should be concise and foundation-oriented.
+verification:
+  commands:
+  - python -m pytest tests/contracts/test_package_readme.py
+  expected:
+  - README.md exists.
+  - README mentions structural YAML editing purpose.
+  - README mentions package foundation and contracts without claiming YAML behavior
+    is implemented.
+  - README labels future or cross-step commands truthfully.
+  - README does not require docs/package_contracts.md or docs/release_checklist.md
+    to be edited by this step.
+acceptance_criteria:
+- README.md is truthful for the G-001 state.
+- README.md does not require editing any contract, release, boundary, or subsystem
+  file.
+- README.md does not claim future YAML commands, CLI, or MCP wrappers are already
+  implemented.
+- README.md gives future contributors enough context to find package contracts and
+  boundaries once their owning steps create those docs.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on README.md and its README-specific tests. Do not edit package
+    metadata, contracts, typed marker, boundary docs, release docs, or future subsystem
+    files. The README must be truthful for the current G-001 foundation scope and
+    must not claim unimplemented YAML commands, CLI, or MCP wrappers exist. References
+    to docs/package_contracts.md or docs/release_checklist.md must be framed as outputs
+    owned by later tactical steps, not files edited here.
+observations_template:
+- actual: ''
+  command: ''
+  error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-001/T-010
+  problem: README instructions referenced docs/package_contracts.md without making
+    clear that T-011 owns it
+  action: added may_reference_future_outputs and truthfulness rules for future docs
+  status: fixed
+- iteration: 1
+  point: G-001/T-010
+  problem: install/test/build command references could be interpreted as claims of
+    implemented YAML behavior
+  action: added readme_truthfulness_policy and command reference qualifiers
+  status: fixed
