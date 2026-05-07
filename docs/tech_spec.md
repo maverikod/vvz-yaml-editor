@@ -317,41 +317,65 @@ validation_result
 Рекомендация по библиотекам для pip install:ruamel.yaml (обязательно для сохранения форматирования).jsonpath-ng (для реализации поиска по атрибутам типа [name=...]).jsonschema (для реализации yaml_validate).Нужно ли показать пример кода для сложного фильтра commands[name=...], чтобы он корректно находил индекс элемента в списке?
 
 ## Архитектурное уточнение: редактор отдельно от YAML
+## Архитектурное уточнение: editor core отдельно от YAML
 
-Нужен не только набор YAML-команд, а общий объект редактора, отделённый от конкретного формата документа.
+Нужен не набор YAML-команд, а общий редактор документов. YAML — только первый структурный форматтер. Text — первый простой форматтер.
 
-YAML должен быть первым структурным форматтером, но модель редактора не должна быть YAML-специфичной. В дальнейшем туда естественно добавятся:
+Старая группа `yaml_*` смешивала три разных слоя:
+
+```text
+1. File/buffer lifecycle: open/read/save/save_as/close.
+2. Editing: copy/cut/paste/replace/append/delete/move.
+3. Search/query: get/find/list/select.
+```
+
+Новая архитектура должна явно разделять эти слои:
+
+```text
+Editor Core
+  ├─ AbstractBuffer / file-backed document lifecycle
+  ├─ AbstractFormatter / format-specific editing semantics
+  └─ AbstractSearch / universal search over formatter units
+```
+
+На первом этапе обязательны только форматтеры:
 
 ```text
 text
 yaml
+```
+
+Будущие форматтеры должны добавляться без изменения editor core:
+
+```text
 json
 markdown
 ```
 
-На первом этапе обязательны только:
+## AbstractBuffer: файл и буфер
+
+Файл/буфер — не дело форматтера. Буфер отвечает за связь документа с файлом, состояние изменённости и безопасную запись.
 
 ```text
-text
-yaml
+AbstractBuffer
+  open(file_path, formatter=auto) -> buffer_id
+  new(formatter, display_name=New file) -> buffer_id
+  save(buffer_id)
+  save_as(buffer_id, file_path, overwrite=false)
+  close(buffer_id, save=false | true | error_if_dirty)
+  reload(buffer_id)
+  get_state(buffer_id)
+  get_formatter(buffer_id)
 ```
 
-## Реестр буферов
-
-Редактор должен иметь динамически изменяемый реестр буферов:
-
-```text
-buffer_registry
-  buffer_id -> buffer
-```
-
-Один буфер — это один открытый документ. Буфер жёстко связан с файлом либо является новым несохранённым документом.
+Один буфер — один открытый документ. Буфер жёстко связан с файлом либо является новым несохранённым документом.
 
 ```text
 file-backed buffer:
   buffer_id
   file_path
   formatter
+  document
   original_hash
   current_hash
   dirty
@@ -363,6 +387,7 @@ unsaved buffer:
   file_path: null
   display_name: New file / Untitled-N
   formatter
+  document
   original_hash: null
   current_hash
   dirty: true
@@ -370,100 +395,211 @@ unsaved buffer:
   status
 ```
 
-Правила:
+Правила буфера:
 
 ```text
 - один file_path не должен иметь два открытых буфера;
 - повторный open уже открытого файла возвращает существующий buffer_id;
-- buffer содержит formatter/backend, который определяет parse/render/validate/path/copy/paste semantics;
-- dirty показывает, отличается ли текущий документ буфера от последнего сохранённого состояния;
+- formatter хранится в buffer и определяет смысл address, editing и validation;
+- dirty показывает, отличается ли текущий document от последнего сохранённого состояния;
 - save/save_as — единственные операции, которые пишут файл;
-- copy/cut/paste работают только между буферами и не читают/пишут файлы напрямую.
+- save/save_as выполняют formatter.validate -> formatter.render -> stale check -> backup -> atomic write;
+- copy/cut/paste не читают и не пишут файлы напрямую.
 ```
 
-## Минимальный интерфейс редактора
+## AbstractFormatter: редактирование документа
 
-Снаружи интерфейс должен быть привычным, а не техническим:
+Форматтер отвечает за смысл адресов, фрагментов и операций редактирования. Он не открывает и не сохраняет файлы.
 
 ```text
-open
-save
-save_as
-close
-copy
-cut
-paste
+AbstractFormatter
+  parse(raw_content) -> document
+  render(document) -> raw_content
+  validate(document) -> validation_result
+  normalize_address(address) -> normalized_address
+  copy_fragment(document, source_address) -> fragment
+  cut_fragment(document, source_address) -> document, fragment, changed_addresses
+  paste_fragment(document, target_address, fragment, mode) -> document, changed_addresses
+  get_unit(document, address) -> unit
+  iter_units(document, scope) -> units
+  diagnostics(document) -> diagnostics
 ```
 
-Семантика:
+Для YAML:
 
 ```text
-open(file_path, formatter=auto) -> buffer_id
-save(buffer_id)
-save_as(buffer_id, file_path, overwrite=false)
-close(buffer_id, save=false | true | error_if_dirty)
-copy(source_buffer_id, source_path)
-cut(source_buffer_id, source_path)
-paste(target_buffer_id, target_path, mode)
+formatter = yaml
+document = YAML tree
+address = structural YAML path
+unit = YAML node / scalar / mapping / sequence item
 ```
 
-Правила записи:
+Для text:
+
+```text
+formatter = text
+document = array of lines
+address = line range / insertion point / whole document
+unit = line / line range / text block
+```
+
+Editor core не должен знать YAML path details или text line range details. Он передаёт `address` в formatter как opaque value.
+
+## AbstractSearch: поиск отдельно от редактирования
+
+Поиск — отдельный универсальный слой, а не часть YAML formatter и не часть buffer lifecycle.
+
+```text
+AbstractSearch
+  find(buffer_id, query, scope=null) -> matches
+  find_one(buffer_id, query, scope=null) -> match | error
+  list_units(buffer_id, scope=null) -> units
+  select(buffer_id, query, policy) -> address | addresses | error
+```
+
+Search работает через formatter API:
+
+```text
+formatter.iter_units(document, scope)
+formatter.get_unit(document, address)
+formatter.match_unit(unit, query)
+formatter.compare_units(left_unit, right_unit, options)
+```
+
+Форматтер обязан предоставить универсальное сравнение юнитов:
+
+```text
+Formatter.compare_units(unit_a, unit_b, options) -> ComparisonResult
+```
+
+Для YAML сравнение может учитывать:
+
+```text
+- node type;
+- key;
+- scalar value;
+- normalized scalar value;
+- mapping fields;
+- list item identity;
+- semantic name field, например name=buf_diff.
+```
+
+Для text сравнение может учитывать:
+
+```text
+- exact line text;
+- normalized text;
+- substring;
+- regex;
+- line number;
+- line range overlap.
+```
+
+## Единая адресация команд copy/cut/paste
+
+Смысл адреса зависит от formatter, но адрес источника и адрес приёмника обязательны в командах.
+
+Нельзя использовать YAML-специфичное имя `path` на уровне editor core. На уровне editor core используется `address`.
+
+> YAML formatter может трактовать address как YAML path. Text formatter может трактовать address как line range или insertion point.
+
+```text
+BufferAddress:
+  buffer_id
+  address
+```
+
+Команды:
+
+```text
+copy(source: BufferAddress)
+cut(source: BufferAddress)
+paste(target: BufferAddress, mode, clipboard_item_id=last)
+```
+
+Примеры:
+
+```json
+{
+  "source": {
+    "buffer_id": "buf-yaml-1",
+    "address": "commands[name=buf_diff].metadata"
+  }
+}
+```
+
+```json
+{
+  "source": {
+    "buffer_id": "buf-text-1",
+    "address": {
+      "start_line": 10,
+      "end_line": 18
+    }
+  }
+}
+```
+
+```json
+{
+  "target": {
+    "buffer_id": "buf-yaml-2",
+    "address": "verification"
+  },
+  "mode": "append"
+}
+```
+
+```json
+{
+  "target": {
+    "buffer_id": "buf-text-2",
+    "address": {
+      "line": 25,
+      "position": "after"
+    }
+  },
+  "mode": "insert"
+}
+```
+
+Правила:
 
 ```text
 copy не меняет буфер.
-cut меняет source buffer и выставляет dirty=true.
-paste меняет target buffer и выставляет dirty=true.
-save проверяет formatter.validate/render и пишет связанный file_path атомарно.
-save_as связывает unsaved buffer с file_path и пишет его атомарно.
-close dirty buffer без save должен либо явно discard-ить изменения, либо вернуть BUFFER_HAS_UNSAVED_CHANGES.
+cut вызывает formatter.cut_fragment и выставляет source buffer dirty=true.
+paste вызывает formatter.paste_fragment и выставляет target buffer dirty=true.
+paste не пишет файл; запись выполняется только save/save_as.
+move внутри одного буфера выражается как cut + paste.
+replace/append/delete являются formatter-specific modes или helper operations, а не отдельным базовым editor core API.
 ```
-
-## Форматтер в буфере
-
-Каждый буфер обязан содержать formatter:
-
-```text
-formatter: text | yaml
-```
-
-На первом этапе:
-
-```text
-text formatter: документ представлен как массив строк; операции работают с диапазонами/строковыми блоками.
-yaml formatter: документ представлен как YAML-дерево; операции работают со структурными YAML path.
-```
-
-Formatter отвечает за:
-
-```text
-parse
-render
-validate
-normalize_path
-copy_fragment
-cut_fragment
-paste_fragment
-changed_paths
-diagnostics
-```
-
-Editor core не должен знать YAML path details. Он вызывает formatter API.
 
 ## Format-aware clipboard
 
 Буфер обмена должен понимать, для какого formatter предназначено содержимое.
 
-Clipboard item должен хранить минимум:
+Clipboard item хранит:
 
 ```text
 clipboard_item:
   item_id
   source_buffer_id
   source_formatter
+  source_address
+  source_revision
   payload_kind
   payload
-  source_path
-  source_revision
+```
+
+Paste command хранит:
+
+```text
+paste_request:
+  target_buffer_id
+  target_formatter
+  target_address
+  mode
+  clipboard_item_id
 ```
 
 Правила совместимости:
@@ -477,9 +613,41 @@ clipboard_item:
 - если source buffer изменился после copy/cut, paste должен либо использовать snapshot, либо вернуть CLIPBOARD_SOURCE_STALE согласно выбранной политике.
 ```
 
-## Ошибки редактора
+## Старые YAML-команды как совместимость
 
-Нужны отдельные ошибки уровня editor core:
+Старые команды не должны определять архитектуру. Они раскладываются по слоям:
+
+```text
+yaml_load            -> buffer.open + yaml_formatter.parse
+yaml_write_checked   -> buffer.save / buffer.save_as
+yaml_validate        -> yaml_formatter.validate
+yaml_get             -> search.find_one or formatter.get_unit
+yaml_get_command     -> search.find_one with YAML query
+yaml_set             -> formatter.paste_fragment(mode=set)
+yaml_replace_block   -> formatter.paste_fragment(mode=replace_block)
+yaml_append          -> formatter.paste_fragment(mode=append)
+yaml_delete          -> formatter.cut_fragment + discard fragment
+yaml_move            -> formatter.cut_fragment + formatter.paste_fragment
+yaml_clipboard_*     -> editor copy/cut/paste + clipboard internals
+```
+
+Новый нормальный model-facing API:
+
+```text
+open
+save
+save_as
+close
+copy
+cut
+paste
+find
+find_one
+list_units
+validate
+```
+
+## Ошибки editor core / formatter / search
 
 ```text
 BUFFER_NOT_FOUND
@@ -489,6 +657,12 @@ BUFFER_STALE
 BUFFER_INVALID
 FORMATTER_NOT_FOUND
 FORMATTER_UNSUPPORTED
+ADDRESS_INVALID
+ADDRESS_NOT_FOUND
+ADDRESS_NOT_UNIQUE
+SEARCH_QUERY_INVALID
+SEARCH_NO_MATCH
+SEARCH_NOT_UNIQUE
 CLIPBOARD_EMPTY
 CLIPBOARD_FORMAT_MISMATCH
 CLIPBOARD_SOURCE_STALE
@@ -499,5 +673,5 @@ SAVE_TARGET_MISSING
 Главный принцип обновляется так:
 
 ```text
-open/new -> edit buffers in memory with copy/cut/paste -> formatter.validate -> formatter.render -> checked save/save_as
+open/new -> search/select addresses -> copy/cut/paste in buffers -> formatter.validate -> formatter.render -> checked save/save_as
 ```
