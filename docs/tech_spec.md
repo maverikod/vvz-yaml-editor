@@ -834,3 +834,98 @@ SAVE_TARGET_MISSING
 ```text
 open/new -> validate_file or search/select addresses -> copy/cut/paste in buffers -> formatter.validate_document -> formatter.render -> checked save/save_as
 ```
+
+## Formatter command discovery
+
+Форматтер может поддерживать не только стандартный `AbstractFormatter` contract, но и собственные специфические команды.
+
+Примеры:
+
+```text
+CST formatter:
+  xpath-like tree search
+  save extracted CST tree to a separate file
+  return node parents/children/siblings
+  run language-specific normalization
+
+Markdown formatter:
+  find heading
+  extract section
+  move section
+
+JSON formatter:
+  json pointer lookup
+  json schema focused validation
+```
+
+Поэтому у форматтера должен быть статический capability discovery метод:
+
+```text
+AbstractFormatter
+  list_commands() -> FormatterCommandCatalog
+```
+
+Для класса также допустим статический вариант:
+
+```text
+@staticmethod
+list_commands() -> FormatterCommandCatalog
+```
+
+Каталог команд должен включать стандартные и formatter-specific команды:
+
+```text
+FormatterCommandCatalog:
+  formatter_name
+  formatter_version
+  standard_commands
+  specific_commands
+  openapi_schemas
+  diagnostics
+```
+
+Каждая команда должна иметь метаданные:
+
+```text
+FormatterCommandMetadata:
+  name
+  kind: standard | formatter_specific
+  description
+  input_schema
+  output_schema
+  openapi_operation
+  side_effects
+  writes_files
+  requires_buffer
+  requires_file_path
+  examples
+```
+
+Правила:
+
+```text
+- standard_commands должны покрывать AbstractFormatter methods;
+- specific_commands могут быть любыми, но обязаны иметь OpenAPI-compatible schema;
+- команда, которая пишет отдельный файл, должна явно иметь writes_files=true;
+- команда, которая сохраняет производный артефакт форматтера, не должна маскироваться под editor save/save_as;
+- editor core не должен знать смысл formatter-specific commands;
+- public API может предоставить formatter_commands(formatter|buffer_id|file_path) для discovery;
+- менеджер проектов может получить список команд после open или через file_path/extension без открытия буфера;
+- foreign formatter должен возвращать OpenAPI schema внешнего сервиса или нормализованную схему из неё.
+```
+
+Для внешнего сервиса это по сути OpenAPI схема:
+
+```text
+ForeignFormatter.list_commands()
+  -> calls external OpenAPI/MCP-proxy-adapter command discovery
+  -> normalizes result into FormatterCommandCatalog
+```
+
+Ошибки:
+
+```text
+FORMATTER_COMMAND_DISCOVERY_FAILED
+FORMATTER_COMMAND_SCHEMA_INVALID
+FORMATTER_COMMAND_UNSUPPORTED
+```
