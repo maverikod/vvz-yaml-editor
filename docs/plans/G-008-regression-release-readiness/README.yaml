@@ -188,3 +188,12 @@ tactical_decomposition:
   tactical_step_name: release_checklist_and_final_readiness
   readme_path: docs/plans/G-008-regression-release-readiness/T-007-release-checklist-and-final-readiness/README.yaml
   purpose: Own release checklist consolidation, final readiness decision, and handoff.
+branch_self_containment_policy:
+- Technical Specification -> this G-008 README.yaml -> any one T-YYY README.yaml under
+  this directory must give an implementer the full picture for that tactical branch.
+- Tactical README files under G-008 must repeat the relevant parent context and must
+  not require reading sibling T branches.
+- Maximizing tactical steps means maximizing independent steps inside G-008 only;
+  no T step under G-008 may include implementation work from parser internals, path
+  internals, mutation internals, validation internals, transaction writer internals,
+  or unrelated branches.
