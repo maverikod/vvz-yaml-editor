@@ -117,13 +117,46 @@ error_code_contract:
     alias_policy: No aliases are allowed in T-004; later owners may add alias metadata
       only without removing canonical values.
 required_error_code_groups:
-  yaml_parse:
-  - YAML_PARSE_FAILED
-  path:
+  buffer:
+  - BUFFER_NOT_FOUND
+  - BUFFER_ALREADY_OPEN
+  - BUFFER_HAS_UNSAVED_CHANGES
+  - BUFFER_STALE
+  - BUFFER_INVALID
+  formatter:
+  - FORMATTER_NOT_FOUND
+  - FORMATTER_UNSUPPORTED
+  - FORMATTER_COMMAND_DISCOVERY_FAILED
+  - FORMATTER_COMMAND_SCHEMA_INVALID
+  - FORMATTER_COMMAND_UNSUPPORTED
+  - FORMAT_VALIDATION_FAILED
+  - FORMATTER_SEARCH_UNSUPPORTED
+  foreign_formatter:
+  - FOREIGN_FORMATTER_FAILED
+  - FOREIGN_FORMATTER_TIMEOUT
+  - FOREIGN_FORMATTER_CONTRACT_VIOLATION
+  address_and_yaml_path:
+  - ADDRESS_INVALID
+  - ADDRESS_NOT_FOUND
+  - ADDRESS_NOT_UNIQUE
   - PATH_PARSE_FAILED
   - PATH_NOT_FOUND
   - PATH_NOT_UNIQUE
   - TARGET_TYPE_MISMATCH
+  search:
+  - SEARCH_QUERY_INVALID
+  - SEARCH_NO_MATCH
+  - SEARCH_NOT_UNIQUE
+  - SEARCH_SCOPE_INVALID
+  clipboard:
+  - CLIPBOARD_EMPTY
+  - CLIPBOARD_ITEM_NOT_FOUND
+  - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_FORMAT_MISMATCH
+  - CLIPBOARD_SOURCE_STALE
+  - CLIPBOARD_INVALID_MODE
+  yaml_parse:
+  - YAML_PARSE_FAILED
   validation:
   - VALIDATION_FAILED
   - SCHEMA_VALIDATION_FAILED
@@ -133,6 +166,8 @@ required_error_code_groups:
   persistence:
   - BACKUP_FAILED
   - WRITE_FAILED
+  - SAVE_TARGET_EXISTS
+  - SAVE_TARGET_MISSING
 responsibilities:
 - Define stable error code values referenced by the technical specification.
 - Separate parse, path, validation, render, backup, and write errors.
