@@ -104,11 +104,14 @@ buffer_model:
   - Save and save_as are the only editor operations that write files.
   - Save rejects stale file-backed buffers when disk_hash differs from original_hash.
   - Save aborts when formatter.validate_document returns success=false.
-  - open_as_text=True always uses text formatter regardless of file extension.
+  - open_as_text=True always uses text formatter regardless of file extension or size
+    threshold.
   - Parse exception from structural formatter triggers fallback to text formatter;
     buffer status is set to format_fallback.
   - validate(buffer_id) can be called at any time without changing buffer state or
     writing files.
+  - When formatter=auto and len(raw_content) < small_file_threshold, text formatter
+    is used without attempting structural parse; buffer status is set to small_file.
 buffer_address_contract:
   required_fields:
   - buffer_id
