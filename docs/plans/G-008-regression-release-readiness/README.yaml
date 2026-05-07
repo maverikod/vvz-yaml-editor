@@ -297,10 +297,12 @@ mcp_proxy_adapter_integration:
     import register_ai_editor_commands; hooks.register_custom_commands_hook(register_ai_editor_commands).
     Every command must satisfy the review checklist from docs/metadatastd.md before
     being considered complete.'
-  metadata_standard: 'Every command must follow docs/metadatastd.md. Required: name,
-    version, description, category, author, email, detailed_description, parameters,
-    return_value, usage_examples, error_cases, best_practices. Schema (get_schema)
-    and metadata() are SEPARATE. Do not merge them.'
+  metadata_standard: 'Every command must follow docs/metadatastd.md. Required fields
+    in metadata(): name, version, description, category, author, email, detailed_description,
+    parameters, return_value, usage_examples, error_cases, best_practices. get_schema()
+    and metadata() are SEPARATE — do not merge them. Destructive/write commands must
+    document dry_run, backup, and verify-via-read behavior in both detailed_description
+    and best_practices.'
   no_manual_api: Do NOT write FastAPI routes, OpenAPI YAML, MCP tool definitions,
     or JSON-RPC handlers manually. The adapter reads get_schema() and metadata() and
     generates everything.
