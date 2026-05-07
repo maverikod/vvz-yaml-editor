@@ -63,11 +63,14 @@ source_code_origin:
   - write_side_marker_functions_forbidden: 'append_persisted_node_ids, render_marker_block
       must not be called anywhere in adapted code. These write trailing # cst-node-ids
       blocks to .py files.'
-  - inline_marker_transport_forbidden: set_stable_id, get_stable_id from node_stable_id.py
-      must not be called as part of mutation flow. stable_id survives via previous_metadata_map
-      in _build_tree_index.
+  - inline_marker_in_mutation_only: set_stable_id and get_stable_id from node_stable_id.py
+      are ALLOWED during structural mutation flow (insert/delete/move) as transient
+      in-memory transport ONLY. They must never produce comments in render() output
+      or on disk. strip_inline_node_id_lines_from_source must be called after recovery
+      before final _build_tree_index.
   - read_side_strip_helpers_allowed: strip_persisted_node_ids and strip_inline_node_id_lines_from_source
-      are allowed as defensive read-time cleaners only. They must not write files.
+      are allowed as defensive read-time cleaners and as post-mutation cleanup. They
+      must not write files.
   - in_memory_registry_forbidden: _trees dict, get_tree, remove_tree, start_cst_tree_ttl_cleanup,
       load_file_to_tree belong to the server session layer, not CSTFormatter. CSTFormatter
       is stateless; tree lifetime managed by editor core buffer registry.
