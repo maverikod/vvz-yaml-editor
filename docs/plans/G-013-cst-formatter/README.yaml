@@ -108,23 +108,28 @@ document_model:
       mutation)
   - root_node_id: stable_id of module root
 stable_id_contract:
-  rule: assigned once at first _build_tree_index, never changes across mutations
-  address_for_callers: stable_id (not node_id)
-  resolution: find_by_stable_id(stable_id) -> current node_id -> libcst object
-  persistence: sidecar .cst/<stem>.tree stores full metadata_map with stable_id
-  mutation_transport:
-    before_mutation:
-    - for each node call set_stable_id(node) to embed
-    after_mutation:
-    - call get_stable_id(node) for each node to restore stable_id into metadata_map
-    - remove all
-    - run _build_tree_index with previous_metadata_map for exact_key position transfer
-    - update node_id_aliases
-    invariant: '# @node-id comments exist only between before and after steps, never
-      on disk'
-  supported_nodes_for_inline_id:
-  - FunctionDef
-  - ClassDef
+  address_for_callers: stable_id only. node_id is internal. All public operations
+    — insert, delete, replace, move, get_unit, skeleton, cst_query — accept and return
+    stable_id.
+  no_inline_markers: The @node-id leading_lines comment mechanism (node_stable_id.py
+    set_stable_id/get_stable_id) is NOT used as mutation transport. It is legacy.
+    Do not call set_stable_id or get_stable_id as part of mutation flow.
+  node_stable_id_py_usage: node_stable_id.py is kept only for strip_inline_node_id_lines_from_source
+    — a defensive read-time cleaner for files that may contain legacy @node-id comments.
+    It does NOT write any comments to source.
+  resolution: find_by_stable_id(stable_id) -> TreeNodeMetadata -> node_id -> libcst
+    object
+  rule: stable_id is a field in TreeNodeMetadata. Assigned once at first _build_tree_index
+    (equals node_id on first assignment). Never changes across any number of mutations
+    or tree rebuilds.
+  storage: stable_id is stored in TreeNodeMetadata.stable_id and persisted in sidecar
+    metadata_map.
+  survival_across_mutations: 'After any mutation _build_tree_index is called with
+    previous_metadata_map. For each rebuilt node: stable_id is copied from previous_metadata_map
+    by exact_key (start_line, start_col, end_line, end_col, type) matching. For nodes
+    that moved position, previous_obj_to_id (id(libcst_object) -> node_id) is used
+    as secondary lookup. New nodes get stable_id = node_id (fresh UUID). No inline
+    comment transport.'
 sidecar_contract:
   path_pattern: '{py_dir}/.cst/{py_stem}.tree'
   format: 'CST_TREE_V1 sha256=<hex>
