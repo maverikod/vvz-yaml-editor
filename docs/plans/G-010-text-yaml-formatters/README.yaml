@@ -57,6 +57,7 @@ abstract_formatter_contract:
     validation_result
   - validate_document(document, *, schema=null, options=null) -> validation_result
   - validate(document) -> validation_result compatibility alias for validate_document
+  - list_commands() -> FormatterCommandCatalog
   - normalize_address(address) -> normalized_address
   - copy_fragment(document, source_address) -> fragment
   - cut_fragment(document, source_address) -> document, fragment, changed_addresses
