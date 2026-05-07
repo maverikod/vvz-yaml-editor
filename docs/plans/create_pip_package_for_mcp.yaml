@@ -270,6 +270,11 @@ error_model:
   - CHANGED_PATH_MISMATCH
   - WRITE_FAILED
   - BACKUP_FAILED
+  - CLIPBOARD_ITEM_NOT_FOUND
+  - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_INVALID_MODE
+  - SOURCE_PATH_NOT_FOUND
+  - TARGET_PATH_NOT_FOUND
   response_contract:
     success: boolean
     error_code: optional string
