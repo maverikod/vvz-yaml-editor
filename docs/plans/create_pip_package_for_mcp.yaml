@@ -496,9 +496,15 @@ model_assignment_spec:
   - dry_run mode never changes files.
   - Failed schema or semantic validation leaves files unchanged.
   - plan_task_v1 validation covers all checks listed in docs/tech_spec.md.
-  - Tests cover success, failure, dry-run, dedupe, ambiguous path, and invalid YAML
-    cases.
-  - CLI diagnostics work for load, validate, get, and write-checked flows.
+  - Workflow clipboard state is not written into plan_task_v1 documents.
+  - Clipboard copy validates source file, source path, uniqueness, and payload serializability
+    before storing an item.
+  - Clipboard paste validates target file, target path, clipboard item existence,
+    and paste compatibility before using the checked write pipeline.
+  - Tests cover success, failure, dry-run, dedupe, ambiguous path, invalid YAML, missing
+    clipboard item, and split-step clipboard cases.
+  - CLI diagnostics work for load, validate, get, clipboard-copy, clipboard-paste,
+    and write-checked flows.
   prohibited_actions:
   - Do not edit .venv, venv, site-packages, or dependency internals.
   - Do not implement normal model workflows through yaml_write_lines_unsafe.
