@@ -7,6 +7,7 @@ status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
+- docs/metadatastd.md
 global_intent: 'Own AbstractBuffer and the format-independent editor core: dynamic
   buffer registry, file-backed and unsaved buffers, dirty/revision/hash state, open/new/save/save_as/close/reload
   lifecycle, stale checks, and atomic persistence orchestration. This subsystem must
