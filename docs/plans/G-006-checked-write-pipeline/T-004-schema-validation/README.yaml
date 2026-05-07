@@ -1,0 +1,110 @@
+format: tactical_step_v1
+parent_step_id: G-006
+parent_step_name: validation_rules
+tactical_step_id: T-004
+tactical_step_name: schema_validation
+title: JSON Schema loading and schema validation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+- docs/plans/G-006-checked-write-pipeline/README.yaml
+intent: Own JSON Schema storage, schema lookup, and structural schema validation for
+  already parsed YAML document objects. This tactical step implements validate_schema(document,
+  schema_name) and schema-owned diagnostics without owning plan_task_v1 semantic rules,
+  rendered YAML checks, determinism checks, mutations, writer behavior, CLI, or MCP
+  wrappers.
+self_contained_context:
+  global_goal: G-006 owns validation logic for YAML documents and must return detailed
+    machine-readable validation diagnostics.
+  technical_basis:
+  - plan_task_v1 requires structural schema checks before semantic checks.
+  - commands[].schema.required must reference only existing properties, but semantic
+    interpretation of such rules belongs to the semantic validation step unless encoded
+    directly in JSON Schema.
+  - Schema validation must use ValidationReport diagnostics and G-006 error codes.
+  boundaries:
+  - Do not apply mutations.
+  - Do not parse structural YAML paths.
+  - Do not read arbitrary YAML files from disk.
+  - Do not perform rendered YAML or determinism checks.
+  - Do not perform transaction writes, backups, CLI, or MCP wrappers.
+owned_code_paths:
+- yaml_editor/validation/schema.py
+- yaml_editor/validation/schemas/plan_task_v1.schema.json
+owned_test_paths:
+- tests/validation/test_schema_validation.py
+owned_docs_paths: []
+forbidden_paths:
+- yaml_editor/document_io/
+- yaml_editor/path_language/
+- yaml_editor/reader/
+- yaml_editor/mutations/
+- yaml_editor/transaction_writer/
+- yaml_editor/interfaces/
+- yaml_editor/validation/semantic.py
+- yaml_editor/validation/render_check.py
+- yaml_editor/validation/determinism.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 public result and error envelope concepts
+  - G-002 in-memory YAML document model concepts
+  - G-006/T-002 validation report contract
+  - G-006/T-003 generic YAML document validation
+  may_be_used_by:
+  - G-006 plan_task_v1 semantic validation
+  - G-007 checked write pipeline
+public_contracts_provided:
+- validate_schema(document, schema_name)
+- plan_task_v1 JSON Schema package data
+schema_policy:
+  supported_schema_names:
+  - plan_task_v1
+  schema_storage:
+  - Store schema files under validation-owned package data.
+  - Do not store schemas in writer, interface, or MCP layers.
+  diagnostics:
+  - Return SCHEMA_VALIDATION_FAILED for schema failures.
+  - Report schema path and message in machine-readable diagnostics.
+  - Do not expose raw jsonschema exceptions as the public contract.
+responsibilities:
+- Load schema definitions from validation-owned package data.
+- Validate already parsed YAML-compatible documents against named schemas.
+- Return ValidationReport results for success and failure.
+verification:
+  scope: tactical_completion_gate
+  commands:
+  - python -m pytest tests/validation/test_schema_validation.py
+  expected:
+  - Valid plan_task_v1 structural fixture passes schema validation.
+  - Missing required structural fields fail with SCHEMA_VALIDATION_FAILED.
+  - Unknown schema_name returns a typed validation error.
+  - No semantic, render, mutation, writer, CLI, or MCP behavior is introduced.
+acceptance_criteria:
+- Schema validation is independent from plan_task_v1 semantic validation.
+- Schema files are owned by the validation subsystem.
+- Validation results use the shared ValidationReport contract.
+- This step edits only its owned code, schema, and test paths during implementation.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Work only on yaml_editor/validation/schema.py, yaml_editor/validation/schemas/plan_task_v1.schema.json,
+    and tests/validation/test_schema_validation.py. Implement JSON Schema loading
+    and validate_schema(document, schema_name) using G-006 ValidationReport diagnostics.
+    Do not implement plan_task_v1 semantic checks, rendered YAML checks, determinism
+    checks, mutations, writer behavior, CLI, or MCP wrappers. Do not edit .venv, venv,
+    site-packages, or installed dependencies.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-006/T-004
+  problem: Tactical README did not exist for schema validation.
+  action: Created a self-contained tactical README constrained to G-006 schema validation.
+  status: fixed
