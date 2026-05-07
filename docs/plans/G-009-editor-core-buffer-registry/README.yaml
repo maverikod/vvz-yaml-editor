@@ -174,3 +174,31 @@ observations_template:
   fix: ''
   post_fix_verification: ''
   status: ''
+formatter_fallback_policy:
+  trigger: formatter.parse(raw_content) raises an exception (FORMAT_VALIDATION_FAILED,
+    CST_PARSE_FAILED, YAML_PARSE_FAILED, or any unhandled parse error)
+  open_as_text_option:
+    param: open_as_text=True on buffer.open
+    behavior: bypass formatter auto-detection entirely; always use text formatter
+      regardless of file extension
+    use_cases:
+    - user explicitly wants raw text editing of a structured file
+    - recover from a damaged file that no structural formatter can parse
+    - inspect file content without structural interpretation
+  auto_fallback_on_parse_error:
+    behavior: when formatter.parse raises and open_as_text is False, editor core catches
+      the exception, emits FORMAT_VALIDATION_FAILED diagnostic, and reopens the file
+      using text formatter
+    invariants:
+    - 'fallback is transparent to the caller: buffer_id is returned normally'
+    - buffer status field is set to format_fallback to signal that text formatter
+      was used instead of auto-detected formatter
+    - original formatter name is stored in buffer state for diagnostics
+    - fallback does not occur when open_as_text=True because text formatter was explicitly
+      requested
+  no_fallback_cases:
+  - 'formatter raised on a file that was previously successfully opened with that
+    formatter and is now structurally corrupt: fallback still applies but buffer status
+    is format_fallback_on_corrupt'
+  - 'formatter=explicit (caller named a specific formatter): no fallback; return FORMAT_VALIDATION_FAILED
+    error without opening buffer'
