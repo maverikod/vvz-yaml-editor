@@ -62,7 +62,12 @@ abstract_buffer_contract:
   - Own original_hash, current_hash, dirty, revision, and status.
   - Own stale disk checks before save/save_as.
   - Own backup and atomic write orchestration through persistence helpers.
-  - Delegate parse/render/validate to the buffer formatter.
+  - Own formatter fallback from structural formatter to text formatter on parse failure.
+  - Own open_as_text option that bypasses formatter auto-detection and forces text
+    formatter.
+  - Own pre-save validation by calling formatter.validate_document(document) before
+    render and write.
+  - Delegate parse/render to the buffer formatter.
   - Delegate address interpretation and fragment editing to the buffer formatter.
   - Delegate search/query behavior to AbstractSearch.
 buffer_model:
