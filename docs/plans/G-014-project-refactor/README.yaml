@@ -10,6 +10,7 @@ source_documents:
 - docs/plans/G-007-mcp-cli-contract/README.yaml
 - docs/plans/G-009-editor-core-buffer-registry/README.yaml
 - docs/plans/G-013-cst-formatter/README.yaml
+- docs/metadatastd.md
 global_intent: 'Own project-wide rename refactoring: rename a method, class, or package
   name across all files in project_root, updating all references. Always executed
   through the mcp-proxy-adapter job queue. Always preceded by a git tag + commit (or
