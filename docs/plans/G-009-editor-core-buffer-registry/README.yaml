@@ -216,6 +216,12 @@ acceptance_criteria:
   > structural auto-detect.'
 - ai_editor owns config_section.py, config_generator.py, config_validator.py; does
   NOT own a separate config.json file.
+- open() acquires files.editing_pid lock before parse. BUFFER_LOCKED returned if live
+  process holds lock.
+- close() releases editing_pid in finally block. Guaranteed even on exception.
+- save/save_as verify editing_pid = os.getpid() before write. BUFFER_STALE if mismatch.
+- Stale locks (dead process PID) are cleared atomically and re-acquired. editing_lock_holder_is_alive()
+  used for liveness check (os.kill(pid, 0)).
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement only AbstractBuffer and the format-independent editor core
