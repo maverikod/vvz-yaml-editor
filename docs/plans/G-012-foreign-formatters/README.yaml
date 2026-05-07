@@ -57,6 +57,7 @@ foreign_formatter_contract:
   required_methods:
   - validate_content(raw_content, *, file_path=null, schema=null, options=null)
   - validate_document(document, *, schema=null, options=null)
+  - list_commands() -> FormatterCommandCatalog
   - parse(raw_content)
   - render(document)
   - normalize_address(address)
