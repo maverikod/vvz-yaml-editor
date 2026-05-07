@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-008
 step_name: interfaces_release
 title: Public interfaces, MCP/CLI adapters, regression, and release readiness subsystem
@@ -14,7 +14,7 @@ why_this_block_exists: 'Lower-level interface and release tasks must understand 
   APIs, verify the package through actual commands, and prove MCP usage without duplicating
   core logic.'
 owned_code_paths:
-- yaml_editor/interfaces/
+- ai_editor/interfaces/
 - tests/interfaces/
 - tests/integration/
 owned_docs_paths:
@@ -23,13 +23,13 @@ owned_docs_paths:
 - docs/release_checklist.md
 - docs/regression_observations.md
 forbidden_code_paths:
-- yaml_editor/contracts/
-- yaml_editor/document_io/
-- yaml_editor/path_language/
-- yaml_editor/reader/
-- yaml_editor/mutations/
-- yaml_editor/validation/
-- yaml_editor/transaction_writer/
+- ai_editor/contracts/
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
 - .venv
 - venv
 - site-packages
@@ -41,9 +41,9 @@ allowed_dependencies:
   - G-007-transaction-writer
   may_be_used_by: []
 public_contracts_provided:
-- yaml_editor.interfaces.public_api
-- yaml_editor.interfaces.cli
-- yaml-editor console command
+- ai_editor.interfaces.public_api
+- ai_editor.interfaces.cli
+- ai-editor console command
 - MCP integration examples
 - release checklist
 core_responsibilities:
@@ -73,7 +73,7 @@ public_api_surface:
   - find
   - find_one
   - list_units
-  yaml_compatibility_functions:
+  ai_compatibility_functions:
   - yaml_load
   - yaml_validate
   - yaml_get
@@ -86,7 +86,7 @@ public_api_surface:
   - formatter_commands with foreign OpenAPI schema discovery
   - ForeignFormatter-backed formatter registry entries
 cli_surface:
-  executable: yaml-editor
+  executable: ai-editor
   commands:
   - open
   - new
@@ -113,16 +113,16 @@ mcp_contract_rules:
 quality_gates:
   local_static_checks:
   - python -m ruff check .
-  - python -m mypy yaml_editor
+  - python -m mypy ai_editor
   local_tests:
   - python -m pytest
-  - python -m pytest --cov=yaml_editor
+  - python -m pytest --cov=ai_editor
   packaging_checks:
   - python -m build
   - python -m twine check dist/*
   install_checks:
   - python -m pip install dist/*.whl
-  - python -c "import yaml_editor; print(yaml_editor.__version__)"
+  - python -c "import ai_editor; print(ai_editor.__version__)"
 subsystem_independence_rules:
 - This subsystem must not implement YAML parser internals.
 - This subsystem must not implement path parser internals.
@@ -151,8 +151,8 @@ release_artifacts:
 verification:
   commands:
   - python -m pytest tests/interfaces tests/integration
-  - yaml-editor --help
-  - yaml-editor version
+  - ai-editor --help
+  - ai-editor version
   - python -m build
   - python -m twine check dist/*
   expected:
@@ -191,7 +191,7 @@ tactical_decomposition:
 - tactical_step_id: T-002
   tactical_step_name: cli_adapter
   readme_path: docs/plans/G-008-regression-release-readiness/T-002-cli-adapter/README.yaml
-  purpose: Define yaml-editor CLI adapter behavior as a thin wrapper over public API.
+  purpose: Define ai-editor CLI adapter behavior as a thin wrapper over public API.
 - tactical_step_id: T-003
   tactical_step_name: mcp_integration_docs
   readme_path: docs/plans/G-008-regression-release-readiness/T-003-mcp-integration-docs/README.yaml
@@ -199,7 +199,7 @@ tactical_decomposition:
 - tactical_step_id: T-004
   tactical_step_name: cli_usage_docs
   readme_path: docs/plans/G-008-regression-release-readiness/T-004-cli-usage-docs/README.yaml
-  purpose: Document yaml-editor CLI usage, output, exit codes, and read-back verification.
+  purpose: Document ai-editor CLI usage, output, exit codes, and read-back verification.
 - tactical_step_id: T-005
   tactical_step_name: end_to_end_regression_suite
   readme_path: docs/plans/G-008-regression-release-readiness/T-005-end-to-end-regression-suite/README.yaml
@@ -237,3 +237,32 @@ branch_self_containment_policy:
   no T step under G-008 may include implementation work from parser internals, path
   internals, mutation internals, validation internals, transaction writer internals,
   or unrelated branches.
+ws_job_result_policy:
+  client_library: mcp_proxy_adapter.client.jsonrpc_client.ws_job_status
+  description: Long-running commands (embed, rename, any queued job) use WebSocket
+    for result delivery instead of HTTP polling. The client subscribes to job_id on
+    /ws immediately after enqueue and waits for a terminal event.
+  flow:
+  - call command via HTTP POST -> returns job_id immediately
+  - open WebSocket to /ws (same auth headers and TLS as HTTP transport)
+  - 'send subscribe: {action: subscribe, subscription_type: queue_job, job_id: <job_id>}'
+  - 'wait in receive loop for terminal event: job_completed | job_failed | job_stopped'
+  - extract result from terminal event payload
+  - 'send unsubscribe: {action: unsubscribe, subscription_type: queue_job, job_id:
+    <job_id>}'
+  implementation:
+    one_shot: wait_for_job_via_websocket(transport, job_id, timeout) -> last message
+      dict
+    bidirectional: open_bidirectional_ws_channel(transport) -> BidirectionalWsChannel
+      context manager; use send_json + receive_iter
+  invariants:
+  - WebSocket URL is transport.ws_url (same base as HTTP, /ws path)
+  - Auth headers (X-API-Key, mTLS cert) are the same as HTTP transport
+  - 'Terminal events: job_completed, job_failed, job_stopped'
+  - 'ws_delivery terminal events: delivery_completed, delivery_failed, delivery_cancelled
+    (used for file transfer)'
+  - Polling via queue_get_job_status is the fallback only; WebSocket is the primary
+    result channel
+  source_files:
+  - mcp_proxy_adapter/client/jsonrpc_client/ws_job_status.py
+  - mcp_proxy_adapter/examples/ws_examples/ws_example_runner.py
