@@ -20,8 +20,10 @@ why_this_block_exists: Mutations are formatter-internal. This step's work is abs
   the session layer (G-015) renders the buffer and commits to session git branch buf/<buffer_id>.
   No standalone ai_editor/mutations/ module exists.
 owned_code_paths:
-- ai_editor/mutations/
-- tests/mutations/
+- ai_editor/formatters/yaml/ (YAML mutation code lives here, owned by G-010)
+- ai_editor/formatters/cst/ (CST mutation code lives here, owned by G-013)
+- ai_editor/formatters/text/ (text mutation code lives here, owned by G-010)
+- tests/formatters/ (mutation tests live alongside formatter tests)
 owned_docs_paths:
 - docs/mutation_operations.md
 forbidden_code_paths:
