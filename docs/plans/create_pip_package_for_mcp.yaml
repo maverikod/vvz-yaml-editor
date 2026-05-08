@@ -1066,11 +1066,10 @@ session_model:
     description: Every mutation operation on a buffer is recorded as a git commit
       in a dedicated per-buffer branch. This provides full undo/redo history for the
       lifetime of the buffer.
-    git_repo: 'Always a bare internal git repo under <sessions_dir>/git/. This repo
-      is owned exclusively by ai_editor and has no connection to any project repository.
-      The buffer branch is created there regardless of whether the real file''s project
-      uses git or not. This ensures isolation: the project git history is never touched
-      by editor operations.'
+    git_repo: 'Always a session-local bare git repo at <sessions_base_dir>/<session_key>/git/.
+      Each session has its own isolated git repo. Created on connect, deleted with
+      the session directory on session close. Branch naming: buf/<buffer_id>. No connection
+      to any project git repository.'
     branch_naming: buf/<session_key>/<buffer_id>
     on_open:
     - Initialize bare internal git repo at <sessions_dir>/git/ on first use (git init
