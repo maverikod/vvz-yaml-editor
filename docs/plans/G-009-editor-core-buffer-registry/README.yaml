@@ -313,6 +313,30 @@ config_policy:
           default: text
           description: Formatter to use for files below threshold
           type: string
+      sessions:
+        base_dir:
+          default: .ai_editor_sessions
+          description: Base directory for session directories. Resolved relative to
+            project root if not absolute.
+          type: string
+          note: This config key is read by G-015 session layer. Defined here because
+            G-009 owns config_section.py and the ai_editor config schema.
+    example_config_snippet:
+      ai_editor:
+        formatter:
+          small_file_threshold: 1k
+          small_file_formatter: text
+        sessions:
+          base_dir: .ai_editor_sessions
+    rationale: target deployment has 128GB RAM; RAM is not a constraint. The real
+      constraint is VRAM (GPU memory for language models). Large files sent in full
+      consume excessive tokens in the model context window. The small_file_threshold
+      determines when it is reasonable to use text formatter directly instead of building
+      a structural tree; for small files the full content fits in model context without
+      skeleton or CST overhead. For larger files, the structural formatter and skeleton
+      view reduce VRAM pressure by giving the model only the declarative structure.
+      Default 1k is a conservative lower bound; files under 1k are trivially small
+      for both model context and structural parsing.
   example_config_snippet:
     ai_editor:
       formatter:
