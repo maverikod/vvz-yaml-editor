@@ -34,13 +34,12 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
+  may_be_used_by:
+  - G-009 editor core (calls write_result on save/save_as)
+  - G-015 session layer (calls write_buf after every mutation)
   may_depend_on:
   - G-001-package-contracts-and-distribution
-  - G-002-document-io
-  - G-005-mutation-operations
-  - G-006-validation-rules
-  may_be_used_by:
-  - G-008-interfaces-and-release
+  - gitpython (for project git commit after result write)
 public_contracts_provided:
 - 'write_buf(content, buf_path) — buffer write: atomic, no backup, no read-back'
 - 'write_result(content, real_path) — result write: backup + atomic + read-back +
