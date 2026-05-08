@@ -13,10 +13,12 @@ global_intent: G-005 is ABSORBED into G-010 (AbstractFormatter). Mutations are f
   lives inside the formatter that owns it (ai_editor/formatters/yaml/ for YAML, ai_editor/formatters/cst/
   for CST, ai_editor/formatters/text/ for text). G-010 owns the abstract mutation
   contract on AbstractFormatter.
-why_this_block_exists: 'Lower-level mutation tasks must understand the complete mutation
-  responsibility: apply deterministic structural operations to a YamlDocument through
-  path_language and report exact changes. This must stay separate from validation
-  and transaction writing.'
+why_this_block_exists: Mutations are formatter-internal. This step's work is absorbed
+  into G-010 AbstractFormatter. Each formatter implements its own mutation operations
+  (set, replace_block, append, delete, move) as concrete methods behind the abstract
+  mutation interface defined in AbstractFormatter. After every successful mutation
+  the session layer (G-015) renders the buffer and commits to session git branch buf/<buffer_id>.
+  No standalone ai_editor/mutations/ module exists.
 owned_code_paths:
 - ai_editor/mutations/
 - tests/mutations/
