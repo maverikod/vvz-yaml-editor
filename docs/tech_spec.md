@@ -475,9 +475,9 @@ Strict rules:
 - `ForeignFormatter.write()` uses default `writer.write_result`.
 - `list_commands()` calls external OpenAPI discovery and normalizes to `FormatterCommandCatalog`.
 
+
 Example uses:
 ```
-.py  → ForeignFormatter backed by CST server
 .ts  → ForeignFormatter backed by TypeScript AST server
 .go  → ForeignFormatter backed by language-specific server
 ```
