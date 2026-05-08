@@ -108,7 +108,7 @@ acceptance_criteria:
 - BufferRegistry enforces one buffer_id per (session_key, file_path) pair.
 - BufferState includes buffer_id, session_key, filename, relative_path, formatter,
   modified, readonly, buffer_status fields.
-- BufferStatus enum has exactly: normal, small_file, format_fallback members.
+- 'BufferStatus enum has exactly three members: normal, small_file, format_fallback.'
 - BufferAddress dataclass has buffer_id (str) and address (Any) fields.
 - All symbols importable from ai_editor.editor_core.
 model_assignment_spec:
