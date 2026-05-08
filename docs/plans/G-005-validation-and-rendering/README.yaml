@@ -2,67 +2,59 @@ format: global_package_step_v2
 plan_id: ai_editor_pip_package_for_mcp
 step_id: G-005
 step_name: mutation_operations
-title: In-memory mutation operations subsystem
-status: draft
+title: Mutation operations — ABSORBED into G-010 and G-013
+status: obsolete_absorbed
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
-global_intent: G-005 is ABSORBED into G-010 (AbstractFormatter). Mutations are formatter-internal
-  operations. AbstractFormatter defines abstract mutation methods (set, replace_block,
-  append, delete, move) that each formatter implements. After every successful mutation
-  the session layer (G-015) commits the rendered buffer to the session git branch
-  (buf/<buffer_id>). G-005 has no standalone owned_code_paths — all mutation code
-  lives inside the formatter that owns it (ai_editor/formatters/yaml/ for YAML, ai_editor/formatters/cst/
-  for CST, ai_editor/formatters/text/ for text). G-010 owns the abstract mutation
-  contract on AbstractFormatter.
-why_this_block_exists: Mutations are formatter-internal. This step's work is absorbed
-  into G-010 AbstractFormatter. Each formatter implements its own mutation operations
-  (set, replace_block, append, delete, move) as concrete methods behind the abstract
-  mutation interface defined in AbstractFormatter. After every successful mutation
-  the session layer (G-015) renders the buffer and commits to session git branch buf/<buffer_id>.
-  No standalone ai_editor/mutations/ module exists.
+global_intent: 'G-005 is ABSORBED into G-010 (AbstractFormatter) and G-013 (CSTFormatter).
+  Mutations are formatter-internal operations. AbstractFormatter defines abstract
+  mutation methods (mutate_set, mutate_replace_block, mutate_append, mutate_delete,
+  mutate_move) that each formatter implements. After every successful mutation the
+  session layer (G-015) calls render() and commits the result to the session git branch
+  buf/<buffer_id>. No standalone ai_editor/mutations/ module exists.
+
+  '
+why_this_block_exists: 'This step is kept for historical reference only. Its content
+  is fully absorbed into G-010 (AbstractFormatter abstract mutation contract + YAML/text
+  implementations) and G-013 (CST mutation implementations). Do not implement any
+  code under ai_editor/mutations/. Read G-010 for the abstract mutation interface
+  definition. Read G-013 for CST-specific mutation implementation details.
+
+  '
 owned_code_paths:
-- ai_editor/formatters/yaml/ (YAML mutation code lives here, owned by G-010)
-- ai_editor/formatters/cst/ (CST mutation code lives here, owned by G-013)
-- ai_editor/formatters/text/ (text mutation code lives here, owned by G-010)
-- tests/formatters/ (mutation tests live alongside formatter tests)
-owned_docs_paths:
-- docs/mutation_operations.md
+- ai_editor/formatters/yaml/  (YAML mutation code, owned by G-010)
+- ai_editor/formatters/cst/   (CST mutation code, owned by G-013)
+- ai_editor/formatters/text/  (text mutation code, owned by G-010)
+- tests/formatters/            (mutation tests alongside formatter tests)
 forbidden_code_paths:
+- ai_editor/mutations/
 - ai_editor/contracts/
-- ai_editor/formatters/yaml/document_io/
-- ai_editor/formatters/yaml/compat/
-- ai_editor/validation/
-- ai_editor/transaction_writer/
-- ai_editor/interfaces/
+- ai_editor/editor_core/
 - ai_editor/sessions/
+- ai_editor/interfaces/
 - .venv
 - venv
 - site-packages
 allowed_dependencies:
-  may_be_used_by:
-  - G-010 YAMLFormatter (primary owner of mutation implementations)
-  - G-013 CST formatter (owns CST mutation implementations)
-  - G-015 session layer (triggers mutation via formatter, then commits to session
-    git)
   may_depend_on:
   - G-001-package-contracts-and-distribution
+  may_be_used_by:
+  - G-010 YAMLFormatter (owns YAML and text mutation implementations)
+  - G-013 CSTFormatter (owns CST mutation implementations)
+  - G-015 session layer (triggers mutation via formatter, then commits to session
+    git)
 public_contracts_provided:
 - 'AbstractFormatter abstract mutation methods: mutate_set, mutate_replace_block,
-  mutate_append, mutate_delete, mutate_move (owned by G-010).'
-- YAML formatter concrete mutation implementations (owned by G-010).
-- CST formatter concrete mutation implementations (owned by G-013).
-- Text formatter concrete mutation implementations (owned by G-010).
+  mutate_append, mutate_delete, mutate_move (defined in G-010 ai_editor/formatters/base.py)'
 core_responsibilities:
-- Mutations live inside each formatter. Do not create ai_editor/mutations/.
+- Mutations must live inside the formatter that owns them. Do not create ai_editor/mutations/.
 - Each formatter implements mutate_set, mutate_replace_block, mutate_append, mutate_delete,
   mutate_move.
 - Mutations operate only on the in-memory document — never read or write files.
 - After every successful mutation the session layer (G-015) calls render() and commits
-  to session git.
-- Tactical steps T-001..T-008 under this directory are OBSOLETE — their content is
-  now owned by G-010 and G-013 tactical steps.
+  to session git branch buf/<buffer_id>.
 mutation_operations:
 - op: set
-  purpose: Replace scalar or structured value at a structural path.
+  purpose: Replace scalar or structured value at a structural address.
 - op: replace_block
   purpose: Replace an entire mapping or sequence block.
 - op: append
@@ -70,7 +62,7 @@ mutation_operations:
 - op: delete
   purpose: Delete a mapping key or sequence item.
 - op: move
-  purpose: Move a sequence item to a new index.
+  purpose: Move a sequence item to a new index (YAML and text only; CST uses delete+insert).
 subsystem_independence_rules:
 - Mutations must live inside the formatter that owns them. Do not create a standalone
   mutations module.
@@ -80,13 +72,13 @@ subsystem_independence_rules:
 - Session layer (G-015) is responsible for committing rendered buffer to session git
   after every mutation.
 implementation_outline:
-- Mutations are formatter-internal. Do not create ai_editor/mutations/ or any standalone
-  mutation module.
 - Read G-010 for AbstractFormatter abstract mutation method contracts.
 - Read G-013 for CST-specific mutation implementation details.
 - Mutation tests live under tests/formatters/ alongside the formatter they belong
   to.
+- Do not create ai_editor/mutations/ or any standalone mutation module.
 verification:
+  scope: internal_g010_mutations
   commands:
   - python -m pytest tests/formatters/yaml/ -k mutation
   - python -m pytest tests/formatters/cst/ -k mutation
@@ -96,70 +88,29 @@ verification:
   - YAML formatter mutate_append with dedupe=True is idempotent.
   - YAML formatter mutate_delete removes only the selected key or item.
   - YAML formatter mutate_move changes only sequence ordering.
-  - Failed batch leaves original in-memory document unchanged.
+  - Failed mutation leaves original in-memory document unchanged.
   - After every mutation session layer commits rendered buffer to session git branch.
-  scope: internal_g010_mutations
 acceptance_criteria:
 - No standalone ai_editor/mutations/ module exists.
 - All mutation code lives inside the formatter that owns it (G-010 for YAML/text,
   G-013 for CST).
-- AbstractFormatter abstract mutation methods are defined in G-010.
+- AbstractFormatter abstract mutation methods are defined in G-010 ai_editor/formatters/base.py.
 - After every successful mutation the session layer (G-015) commits rendered buffer
   to session git.
-- Tactical steps T-001..T-008 under this directory are OBSOLETE.
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement mutation operations inside each formatter. AbstractFormatter
     (G-010) defines abstract methods: mutate_set, mutate_replace_block, mutate_append,
     mutate_delete, mutate_move. Each formatter implements these for its document model.
     After every successful mutation the session layer (G-015) calls render() and commits
-    the result to session git branch buf/<buffer_id>. Do not create ai_editor/mutations/
-    as a standalone module. Mutation tests live under tests/formatters/.'
+    the result to session git branch buf/<buffer_id>. Do NOT create ai_editor/mutations/
+    as a standalone module. Mutation tests live under tests/formatters/. Read G-010
+    for abstract contract. Read G-013 for CST details.
+
+    '
 observations_template:
 - command: ''
   expected: ''
   actual: ''
   error: ''
   status: ''
-tactical_decomposition:
-- tactical_step_id: T-001
-  tactical_step_name: mutations_package_boundary
-  readme_path: docs/plans/G-005-validation-and-rendering/T-001-mutations-package-boundary/README.yaml
-  purpose: Define the mutations package boundary and public surface.
-- tactical_step_id: T-002
-  tactical_step_name: mutation_contract_models
-  readme_path: docs/plans/G-005-validation-and-rendering/T-002-mutation-contract-models/README.yaml
-  purpose: Define mutation operation, result, diagnostics, and changed-path contracts.
-- tactical_step_id: T-003
-  tactical_step_name: set_and_replace_block_operations
-  readme_path: docs/plans/G-005-validation-and-rendering/T-003-set-and-replace-block-operations/README.yaml
-  purpose: Own set and replace_block replacement-style in-memory mutation behavior.
-- tactical_step_id: T-004
-  tactical_step_name: append_operation
-  readme_path: docs/plans/G-005-validation-and-rendering/T-004-append-operation/README.yaml
-  purpose: Own append and dedupe sequence mutation behavior.
-- tactical_step_id: T-005
-  tactical_step_name: delete_operation
-  readme_path: docs/plans/G-005-validation-and-rendering/T-005-delete-operation/README.yaml
-  purpose: Own mapping-key and sequence-item delete behavior.
-- tactical_step_id: T-006
-  tactical_step_name: move_operation
-  readme_path: docs/plans/G-005-validation-and-rendering/T-006-move-operation/README.yaml
-  purpose: Own sequence item move/reordering behavior.
-- tactical_step_id: T-007
-  tactical_step_name: dispatch_batch_rollback
-  readme_path: docs/plans/G-005-validation-and-rendering/T-007-dispatch-batch-rollback/README.yaml
-  purpose: Own operation dispatch, batch rollback, and changed path aggregation.
-- tactical_step_id: T-008
-  tactical_step_name: mutation_docs_and_integration_verification
-  readme_path: docs/plans/G-005-validation-and-rendering/T-008-mutation-docs-and-integration-verification/README.yaml
-  purpose: Own mutation documentation and integration verification planning without
-    production edits.
-branch_self_containment_policy:
-- Technical Specification -> this G-005 README.yaml -> any one T-YYY README.yaml under
-  this directory must give an implementer the full picture for that tactical branch.
-- Tactical README files under G-005 must repeat the relevant parent context and must
-  not require reading sibling T branches.
-- Maximizing tactical steps means maximizing independent steps inside G-005 only;
-  no T step under G-005 may include work from validation, transaction writer, interfaces,
-  CLI, MCP, reader, document_io, or path_language branches.
