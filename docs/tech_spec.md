@@ -1003,10 +1003,213 @@ REDO_AT_END
 HISTORY_UNAVAILABLE
 GIT_COMMIT_FAILED
 
-# Rename (G-007)
-RENAME_TARGET_NOT_FOUND
-RENAME_INVALID_IDENTIFIER
-RENAME_GIT_CHECKPOINT_FAILED
-RENAME_ROLLBACK_FAILED
 GIT_NOT_AVAILABLE
 ```
+
+---
+
+## G-010 — mcp_proxy_adapter integration
+
+Owns: `ai_editor/hooks_register.py`, `ai_editor/main.py`, `ai_editor/config/`,
+`scripts/aiedmgr`, `config.json` (runtime, not committed).
+
+### Principle: the adapter generates the API
+
+`mcp_proxy_adapter` automatically generates JSON-RPC, OpenAPI, and MCP tool surface
+from `get_schema()` and `metadata()` of each registered command.
+**ai_editor never implements HTTP routes, API handlers, or JSON-RPC manually.**
+The adapter owns the entire external interface.
+
+### Command structure (per metadatastd.md)
+
+Every command is three files:
+```
+ai_editor/commands/<cmd>_command.py   — Command subclass
+ai_editor/commands/<cmd>_schema.py    — get_schema() → JSON Schema (machine-readable)
+ai_editor/commands/<cmd>_metadata.py  — metadata() → dict (AI/docs-readable)
+```
+
+Command class shape:
+```python
+class BufOpenCommand(Command):  # Command from mcp_proxy_adapter.commands.base
+    name = "buf_open"
+    version = "1.0.0"
+    descr = "Open a file buffer"
+    category = "editor"
+    author = "Vasiliy Zdanovskiy"
+    email = "vasilyvz@gmail.com"
+
+    @classmethod
+    def get_schema(cls) -> dict:
+        return get_buf_open_schema()  # from <cmd>_schema.py
+
+    def validate_params(self, params):
+        params = super().validate_params(params)  # super() FIRST
+        # then semantic validation
+        return params
+
+    async def execute(self, ...) -> dict:
+        ...
+
+    @classmethod
+    def metadata(cls) -> dict:
+        return get_buf_open_metadata(cls)  # from <cmd>_metadata.py
+```
+
+Rules:
+- `get_schema()` and `metadata()` are SEPARATE layers. Never mix them.
+- Destructive commands must include `dry_run` parameter.
+- `validate_params()` always calls `super()` first.
+- Required `metadata()` fields: name, version, description, category, author, email,
+  detailed_description, parameters, return_value, usage_examples, error_cases, best_practices.
+
+### Command registration (hooks)
+
+```python
+# ai_editor/hooks_register.py
+from mcp_proxy_adapter.commands.hooks import register_custom_commands_hook
+
+def _register(registry):
+    from ai_editor.commands.buf_open_command import BufOpenCommand
+    from ai_editor.commands.buf_close_command import BufCloseCommand
+    from ai_editor.commands.buf_save_command import BufSaveCommand
+    # ... all commands
+    registry.register(BufOpenCommand, "custom")
+    registry.register(BufCloseCommand, "custom")
+    registry.register(BufSaveCommand, "custom")
+
+register_custom_commands_hook(_register)
+
+def register_ai_editor_commands(registry):
+    _register(registry)
+```
+
+For commands that use the job queue (`use_queue=True`), also register with:
+```python
+from mcp_proxy_adapter.commands.hooks import register_auto_import_module
+register_auto_import_module("ai_editor.commands.some_queue_command")
+```
+
+### Config
+
+Config is JSON only. `ai_editor` does NOT write its own `config.json`.
+It uses a dedicated section inside the adapter's `config.json`:
+
+```json
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "protocol": "https"
+  },
+  "registration": {
+    "enabled": true,
+    "auto_on_startup": true,
+    "auto_on_shutdown": true,
+    "server_id": "ai-editor",
+    "server_name": "AI Editor",
+    "register_url": "https://mcp-proxy.techsup.od.ua:3004/register",
+    "unregister_url": "https://mcp-proxy.techsup.od.ua:3004/unregister",
+    "heartbeat_interval": 30,
+    "instance_uuid": "<uuid4>"
+  },
+  "ai_editor": {
+    "formatter": {
+      "small_file_threshold": "1k",
+      "small_file_formatter": "text"
+    },
+    "sessions": {
+      "base_dir": ".ai_editor_sessions"
+    }
+  }
+}
+```
+
+The `registration` section enables automatic registration on the proxy at startup.
+The adapter reads config via `SimpleConfig(config_path).load()` — **ai_editor does not implement its own config reader**.
+
+### Config components owned by ai_editor
+
+**Reader** — not implemented. Uses `SimpleConfig.load()` from the adapter directly.
+
+**`AiEditorConfig`** (`ai_editor/config/config_section.py`)
+— dataclass for the `ai_editor` section. Provides `from_dict()` and `from_config_json()` class methods.
+
+**`AiEditorConfigValidator`** (`ai_editor/config/config_validator.py`)
+— inherits `BaseValidator` from adapter.
+— validates the `ai_editor` section (threshold syntax, allowed formatter names, etc.).
+— called inside the adapter's own config validation pipeline.
+
+**`AiEditorConfigGenerator`** (`ai_editor/config/config_generator.py`)
+— inherits `SimpleConfigGenerator` from adapter.
+— adds generation of the `ai_editor` section.
+— calls the adapter's generator internally, then extends the output.
+
+### Startup sequence (main.py)
+
+```python
+# ai_editor/main.py
+from mcp_proxy_adapter.api.app import create_app
+from mcp_proxy_adapter.core.server_adapter import UnifiedServerRunner
+from mcp_proxy_adapter.core.config.simple_config import SimpleConfig
+
+# 1. Load config via adapter reader
+model = SimpleConfig(config_path).load()
+
+# 2. Validate ai_editor section
+from ai_editor.config.config_validator import AiEditorConfigValidator
+errors = AiEditorConfigValidator().validate(model.raw)
+# abort if errors
+
+# 3. Load ai_editor config section
+from ai_editor.config.config_section import AiEditorConfig
+ai_cfg = AiEditorConfig.from_config_json(config_path)
+
+# 4. Create ASGI app
+app = create_app(app_config=model.raw, config_path=config_path)
+
+# 5. Register commands
+from ai_editor.hooks_register import register_ai_editor_commands
+from mcp_proxy_adapter.commands.hooks import register_custom_commands_hook
+register_custom_commands_hook(register_ai_editor_commands)
+
+# 6. Run with hypercorn via UnifiedServerRunner
+runner = UnifiedServerRunner()  # default engine: hypercorn
+runner.run_server(app, server_config)
+```
+
+### Proxy auto-registration
+
+Registration is controlled by the `registration` section in `config.json`.
+When `registration.auto_on_startup = true`:
+- At startup the adapter calls `RegistrationManager.register_with_proxy()` automatically.
+- Heartbeat is started at `registration.heartbeat_interval` seconds.
+- On shutdown (`auto_on_shutdown = true`) the server unregisters from the proxy.
+- `instance_uuid` (UUID4) uniquely identifies this server instance on the proxy.
+- Retry logic: up to 5 attempts with exponential backoff before giving up.
+- If proxy is unreachable — server still starts; API is available without proxy.
+
+The embedding-service (running as `embedding-service` on the proxy) demonstrates
+the working pattern with `auto_on_startup: true`, `auto_on_shutdown: true`,
+and `instance_uuid` set in `config.json`.
+
+### Service manager (aiedmgr)
+
+Owns: `scripts/aiedmgr`.
+
+Installed as a console script in the virtualenv:
+```
+aiedmgr start    — start ai_editor server in background, write PID file
+aiedmgr stop     — stop by PID, wait for clean shutdown
+aiedmgr status   — show running/stopped state, PID, port
+aiedmgr restart  — stop + start
+```
+
+Requirements:
+- Runs inside the project `.venv` (script uses the venv Python).
+- PID file location configurable, default: `<project_root>/ai_editor.pid`.
+- Log file: `logs/ai_editor.log`.
+- Reads `config.json` path from `--config` argument or env `AI_EDITOR_CONFIG`.
+- On `start`: validates config before launching (calls `AiEditorConfigValidator`).
+- On `stop`: sends SIGTERM, waits for graceful shutdown (timeout 30s), then SIGKILL.
+- `status` checks PID liveness via `os.kill(pid, 0)`.
