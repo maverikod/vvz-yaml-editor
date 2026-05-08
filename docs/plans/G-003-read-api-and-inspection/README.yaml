@@ -50,6 +50,8 @@ core_responsibilities:
 - Resolve paths against YamlDocument instances from document_io.
 - Return typed errors for malformed, missing, ambiguous, and type-incompatible paths.
 - Produce canonical normalized paths for changed_paths and diagnostics.
+- Reject empty paths for replace operations unless the specific operation contract
+  explicitly allows full-document replacement (per ТЗ yaml_path_requirements/parser_rules).
 supported_path_syntax:
 - top_level_key
 - dotted.path.to.key
