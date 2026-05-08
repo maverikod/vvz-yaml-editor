@@ -210,6 +210,11 @@ required_error_code_groups:
   - HISTORY_UNAVAILABLE
   - GIT_COMMIT_FAILED
   - GIT_NOT_AVAILABLE
+  rename:
+  - RENAME_TARGET_NOT_FOUND
+  - RENAME_INVALID_IDENTIFIER
+  - RENAME_GIT_CHECKPOINT_FAILED
+  - RENAME_ROLLBACK_FAILED
 responsibilities:
 - Define stable error code values referenced by the technical specification.
 - Separate parse, path, validation, render, backup, and write errors.
