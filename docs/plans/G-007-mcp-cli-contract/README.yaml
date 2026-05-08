@@ -163,10 +163,10 @@ branch_self_containment_policy:
   validation internals, interfaces, CLI, MCP wrappers, or unrelated branches.
 persistence_safety_policy:
   detection: Not applicable. transaction_writer never checks for project git.
-  editor_git_note: Editor-internal git (sessions_dir/git/) is owned by G-015, not
-    by transaction_writer. transaction_writer is called by G-015 session layer as
-    part of save/save_as, after the mutation has already been committed to the buffer
-    branch.
+  editor_git_note: Editor-internal git (<session_dir>/git/) is owned by G-015, not
+    by writer.py. writer.py is called by G-009 or G-015 after the mutation has already
+    been committed to the session git branch. writer.py handles only physical file
+    write + project git commit.
   git_available:
     before_write: Create file backup only. No git commit on project repo.
     on_failure: Restore from backup.
