@@ -197,9 +197,9 @@ git_policy:
     invariant: writer.py handles the physical write path only. It never calls git
       on the project repo directly. Project git commit is done AFTER the write succeeds,
       as a separate best-effort step.
-  summary: Two separate git contexts exist. Editor git (G-015) tracks every mutation
-    for undo/redo. Project git is never touched by the editor — only the real file
-    bytes are written on save.
+  summary: Two separate git contexts. Editor git (<session_dir>/git/, owned by G-015)
+    tracks every mutation for undo/redo. Project git is touched by write_result (via
+    gitpython) after every successful result write — one commit per file, best-effort.
 write_paths:
   buffer_write:
     caller: Session layer (G-015) after every mutation.
