@@ -23,6 +23,20 @@ owned_code_paths:
 owned_docs_paths:
 - docs/cst_formatter.md
 source_code_origin:
+  adaptation_policy: 'Every file from take list must be adapted, not copied verbatim.
+    Direct copy without changes is forbidden. Each tactical step under G-013 owns
+    the detailed change list for its assigned files: what to remove, what to rename,
+    what to rewrite, what to keep as-is. The global step (this file) defines only
+    the boundaries: what files are taken, what files are excluded, and what patterns
+    are forbidden in adapted code.'
+  do_not_take:
+  - code_analysis/core/cst_tree/node_id_markers.py
+  - code_analysis/commands/
+  - code_analysis/core/database/
+  - code_analysis/core/database_client/
+  - code_analysis/core/database_driver_pkg/
+  - code_analysis/core/file_handlers/
+  - code_analysis/cli/
   path: cst-code/
   policy: adapt-not-rewrite
   take:
@@ -51,41 +65,6 @@ source_code_origin:
   - code_analysis/core/cst_module/utils.py
   - code_analysis/core/mutable_cst/
   - code_analysis/cst_query/
-  do_not_take:
-  - code_analysis/core/cst_tree/node_id_markers.py
-  - code_analysis/commands/
-  - code_analysis/core/database/
-  - code_analysis/core/database_client/
-  - code_analysis/core/database_driver_pkg/
-  - code_analysis/core/file_handlers/
-  - code_analysis/cli/
-  forbidden_patterns:
-    file_reading_forbidden_in_formatter: 'CSTFormatter.parse receives raw_content:
-      str from editor core. Editor core owns disk I/O.'
-    in_memory_registry_forbidden: _trees dict, get_tree, remove_tree, start_cst_tree_ttl_cleanup,
-      load_file_to_tree belong to the server session layer, not CSTFormatter.
-    inline_comment_scope: set_stable_id and get_stable_id are ALLOWED only within
-      the INSERT/DELETE/MOVE mutation step as a transient in-memory transport. They
-      must not be called outside mutation context. The @node-id comment must never
-      reach render() output or disk. strip_inline_node_id_lines_from_source must be
-      called after get_stable_id recovery, before _build_tree_index.
-    read_side_strip_helpers_allowed: strip_persisted_node_ids and strip_inline_node_id_lines_from_source
-      are allowed as defensive read-time cleaners at parse, and as post-mutation cleanup.
-      They must not write files.
-    sidecar_write_forbidden_in_parse: write_sidecar_atomic must not be called from
-      CSTFormatter.parse. Sidecar is written only from save orchestration.
-    stable_id_single_assignment: stable_id is assigned exactly once per node. The
-      inline comment mechanism (set_stable_id/get_stable_id) transports the already-assigned
-      stable_id through a mutation — it does not reassign it. The value written into
-      the comment and recovered from it must be the same UUID4 that was originally
-      assigned.
-    trailing_marker_block_forbidden: 'The trailing # cst-node-ids: begin...end block
-      (node_id_markers.py: append_persisted_node_ids, render_marker_block) is the
-      OLD persistence mechanism. FORBIDDEN in adapted code. The new mechanism is the
-      sidecar file (.cst/<stem>.tree). Do not bring trailing marker blocks into the
-      project.'
-    write_side_marker_functions_forbidden: append_persisted_node_ids, render_marker_block
-      must not be called anywhere in adapted code.
 forbidden_code_paths:
 - ai_editor/editor_core/
 - ai_editor/search/
