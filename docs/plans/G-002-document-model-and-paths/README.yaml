@@ -77,14 +77,14 @@ implementation_notes:
 - Implement T-006 before T-003 when coding manually so ParseDiagnostic types exist
   before loader wiring, even though tactical ids are numeric.
 verification:
-  scope: global_g002_integration_only
   commands:
-  - python -m pytest tests/document_io
+  - python -m pytest tests/formatters/yaml/document_io/
   expected:
   - Valid YAML fixtures parse successfully.
   - Invalid YAML returns YAML_PARSE_FAILED diagnostics.
   - Summary contains expected top-level keys and command names.
   - Rendering reparses into an equivalent basic structure.
+  scope: internal_g010_submodule
 acceptance_criteria:
 - All YAML parser configuration is centralized in document_io.
 - Other subsystems can consume YamlDocument without owning parser details.
