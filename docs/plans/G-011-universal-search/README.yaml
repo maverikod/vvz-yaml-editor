@@ -46,10 +46,10 @@ public_contracts_provided:
 - search error model
 abstract_search_contract:
   methods:
-  - find(buffer_id, query, scope=null) -> matches
-  - find_one(buffer_id, query, scope=null) -> match | error
-  - list_units(buffer_id, scope=null) -> units
-  - select(buffer_id, query, policy) -> address | addresses | error
+  - find(session_key, buffer_id, query, scope=null) -> matches
+  - find_one(session_key, buffer_id, query, scope=null) -> match | error
+  - list_units(session_key, buffer_id, scope=null) -> units
+  - select(session_key, buffer_id, query, policy) -> address | addresses | error
   responsibilities:
   - Resolve buffer state through public buffer access only.
   - Ask formatter.iter_units(document, scope) for candidate units.
