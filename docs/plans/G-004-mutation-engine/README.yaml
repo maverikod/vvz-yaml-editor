@@ -1,0 +1,98 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-004
+step_name: reader_queries
+title: Read/query subsystem and model-friendly inspection API
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+global_intent: YAML compatibility wrappers internal to G-008/G-010. yaml_load, yaml_get,
+  yaml_get_command, yaml_get_verification are thin compatibility functions implemented
+  in ai_editor/formatters/yaml/compat/ using AbstractSearch (G-011) and YAMLFormatter
+  (G-010). Not a public subsystem — these are legacy-name wrappers over the generic
+  open/find/find_one/list_units API.
+why_this_block_exists: 'Lower-level read tasks must understand the entire read/query
+  job: provide precise, minimal, JSON-serializable YAML fragments to MCP callers.
+  The block must not be mixed with path grammar, mutation logic, validation internals,
+  or write transactions.'
+owned_code_paths:
+- ai_editor/reader/
+- tests/reader/
+owned_docs_paths:
+- docs/reader_api.md
+forbidden_code_paths:
+- ai_editor/contracts/
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  - G-002-document-io
+  - G-003-path-language
+  may_be_used_by:
+  - G-008-interfaces-and-release
+public_contracts_provided:
+- yaml_load(file_path)
+- yaml_get(file_path, path)
+- yaml_get_command(file_path, command_name)
+- yaml_get_verification(file_path)
+- ReadQueryResult
+core_responsibilities:
+- Load YAML documents through document_io.
+- Resolve requested subtrees through path_language.
+- Return exact structural fragments, not line ranges.
+- Provide command-specific helpers that are thin read-only wrappers.
+- Produce JSON-serializable responses for MCP callers.
+public_read_operations:
+- name: yaml_load
+  responsibility: Return document summary and diagnostics.
+- name: yaml_get
+  responsibility: Return exact subtree by structural path.
+- name: yaml_get_command
+  responsibility: Return one command object selected by command_name.
+- name: yaml_get_verification
+  responsibility: Return the verification list from a plan task.
+subsystem_independence_rules:
+- This subsystem must not parse path strings itself; it must call path_language.
+- This subsystem must not configure ruamel.yaml; it must call document_io.
+- This subsystem must not apply mutations.
+- This subsystem must not run schema/semantic validation except through future validation
+  public contracts.
+- This subsystem must not write files, create backups, or implement CLI/MCP wrappers.
+implementation_outline:
+- Implement read service functions in ai_editor/reader/.
+- Convert document fragments into JSON-compatible values.
+- Preserve typed errors from document_io and path_language in read responses.
+- Add tests for successful reads, missing paths, ambiguous paths, and serialization.
+verification:
+  commands:
+  - python -m pytest tests/reader
+  expected:
+  - yaml_load returns summary for valid fixtures.
+  - yaml_get returns only the selected subtree.
+  - yaml_get_command returns exactly one command object.
+  - Missing command returns a typed not-found result.
+  - All responses are json.dumps compatible.
+acceptance_criteria:
+- Read/query layer is fully independent from mutation and writer code.
+- All structural selection delegates to path_language.
+- All YAML loading delegates to document_io.
+- Lower-level read tasks can understand their goal from this README alone.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only read/query APIs and model-friendly inspection helpers.
+    Do not edit path_language, document_io, mutations, validation, transaction_writer,
+    or interfaces. If a needed behavior belongs to another subsystem, request or depend
+    on its public contract.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
