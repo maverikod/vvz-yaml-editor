@@ -337,11 +337,6 @@ config_policy:
       view reduce VRAM pressure by giving the model only the declarative structure.
       Default 1k is a conservative lower bound; files under 1k are trivially small
       for both model context and structural parsing.
-  example_config_snippet:
-    ai_editor:
-      formatter:
-        small_file_threshold: 1k
-        small_file_formatter: text
   rationale: target deployment has 128GB RAM; RAM is not a constraint. The real constraint
     is VRAM (GPU memory for language models). Large files sent in full consume excessive
     tokens in the model context window. The small_file_threshold determines when it
