@@ -1,0 +1,138 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-009
+parent_step_name: editor_core_buffer_registry
+step_id: G-009/T-006
+step_name: write_all_and_buffer_state
+title: write_all command, get_state, and get_formatter
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-009-editor-core-buffer-registry/README.yaml
+parent_global_context: 'G-009 owns the format-independent editor core. T-006 owns
+  write_all(session_key, force=False) -> WriteAllResult and the get_state / get_formatter
+  accessors. These are read/batch operations; they do not introduce new lifecycle
+  or mutation logic.
+
+  '
+intent: 'Implement write_all(session_key, force=False) -> WriteAllResult that iterates
+  all open buffers in the session and calls save_pipeline.save for each eligible buffer.
+  Implement get_state(session_key, buffer_id) -> BufferState and get_formatter(session_key,
+  buffer_id) -> AbstractFormatter as simple registry lookups. These complete the AbstractBuffer
+  contract and allow G-015 and G-008 to query and batch-write buffers.
+
+  '
+why_this_step_exists: 'write_all is independently testable without touching open/close,
+  save/validate, or copy/cut/paste. get_state and get_formatter are pure read accessors.
+  Grouping them here completes the AbstractBuffer contract coverage within G-009 without
+  mixing concerns from other T steps.
+
+  '
+owned_code_paths:
+- ai_editor/editor_core/write_all.py
+- tests/editor_core/test_write_all.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/buffer.py
+- ai_editor/editor_core/save_pipeline.py
+- ai_editor/editor_core/copy_cut_paste.py
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-009/T-002 BufferRegistry and BufferState
+  - G-009/T-003 ConcreteBuffer fields (modified, readonly, file_path)
+  - G-009/T-004 save_pipeline.save (called per eligible buffer)
+  - G-001 contracts (WriteAllResult)
+  provides_to:
+  - G-015 session layer (calls write_all and get_state and get_formatter)
+  - G-008 public interfaces (exposes write_all result to caller)
+public_contracts_provided:
+- 'write_all(session_key, force=False) -> WriteAllResult: for each buffer in session
+  where readonly=False: if force=False skip buffers where modified=False; call formatter.validate_document;
+  if fails add to failed_buffers and skip write; call save_pipeline.save; if fails
+  add to failed_buffers; on success add to written_buffers. New unsaved buffers (file_path=None)
+  silently added to skipped_buffers. WriteAllResult fields: success (True only if
+  all eligible succeeded), written_buffers, failed_buffers (list of dicts with buffer_id,
+  error_code, message), skipped_buffers.
+
+  '
+- 'get_state(session_key, buffer_id) -> BufferState: reads buffer fields from registry
+  and returns BufferState dataclass. No side effects.
+
+  '
+- 'get_formatter(session_key, buffer_id) -> AbstractFormatter: returns the active
+  formatter instance for the buffer. No side effects.
+
+  '
+implementation_notes: 'write_all success=True only if every eligible buffer (non-readonly,
+  non-unsaved, modified=True when force=False) was written without error. Partial
+  write is valid; session remains open on partial failure. get_state and get_formatter
+  are pure lookup functions; they must not modify any state. All three functions receive
+  buffers via BufferRegistry.list_for_session.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/editor_core/test_write_all.py -v
+  expected:
+  - write_all with force=False writes only modified non-readonly buffers.
+  - write_all with force=True writes all non-readonly buffers.
+  - write_all with validation failure records buffer in failed_buffers; others continue.
+  - New unsaved buffers (file_path=None) appear in skipped_buffers.
+  - write_all success=False when any eligible buffer fails.
+  - write_all success=True when all eligible buffers succeed.
+  - get_state returns BufferState with correct fields for known buffer.
+  - get_formatter returns AbstractFormatter instance for known buffer.
+  - get_state with unknown buffer_id returns BUFFER_NOT_FOUND.
+acceptance_criteria:
+- write_all iterates only buffers belonging to the given session_key.
+- force=False skips unmodified buffers (they appear in skipped_buffers).
+- failed_buffers contains buffer_id, error_code, and message per failed buffer.
+- Session remains open after partial write failure.
+- get_state and get_formatter are pure read operations with no side effects.
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement write_all, get_state, get_formatter
+  owned_paths:
+  - ai_editor/editor_core/write_all.py
+  - tests/editor_core/test_write_all.py
+  forbidden_paths:
+  - ai_editor/editor_core/buffer.py
+  - ai_editor/editor_core/save_pipeline.py
+  - ai_editor/editor_core/copy_cut_paste.py
+  - ai_editor/formatters/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement write_all.py with write_all(session_key, force, registry,
+    save_fn) iterating BufferRegistry.list_for_session and calling save_fn per eligible
+    buffer. Implement get_state(buffer: ConcreteBuffer) -> BufferState and get_formatter(buffer)
+    -> AbstractFormatter as pure lookups. WriteAllResult fields: success, written_buffers,
+    failed_buffers, skipped_buffers. Tests in tests/editor_core/test_write_all.py.
+    Do not implement open/close, save logic, copy/cut/paste, formatter internals,
+    or session directory management.
+
+    '
+  non_goals:
+  - open and close and reload (T-003)
+  - save and validate implementation (T-004)
+  - copy and cut and paste (T-005)
+  - AbstractFormatter implementation
+  - Session directory management
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
