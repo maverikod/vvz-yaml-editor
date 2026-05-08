@@ -25,10 +25,9 @@ owned_docs_paths:
 source_code_origin:
   adaptation_policy: 'Every file from take list must be adapted, not copied verbatim.
     Direct copy without changes is forbidden. Each tactical step under G-013 owns
-    the detailed change list for its assigned files: what to remove, what to rename,
-    what to rewrite, what to keep as-is. The global step (this file) defines only
-    the boundaries: what files are taken, what files are excluded, and what patterns
-    are forbidden in adapted code.'
+    the detailed change list for its assigned files. The global step defines boundaries:
+    what files are taken, what is excluded, and what must never appear in adapted
+    code.'
   do_not_take:
   - code_analysis/core/cst_tree/node_id_markers.py
   - code_analysis/commands/
@@ -37,6 +36,42 @@ source_code_origin:
   - code_analysis/core/database_driver_pkg/
   - code_analysis/core/file_handlers/
   - code_analysis/cli/
+  never_transfer:
+    database_and_io:
+    - Any import of code_analysis.core.database or database_client or database_driver_pkg.
+    - Any SQLAlchemy model, session, query, or ORM call.
+    - Any asyncpg or psycopg call.
+    - 'Any file open/read/write call inside formatter code. CSTFormatter receives
+      raw_content: str from editor core. Editor core owns all disk I/O.'
+    - Any HTTP, WebSocket, or RPC call inside formatter code.
+    node_id_markers:
+    - 'append_persisted_node_ids() — writes trailing # cst-node-ids: begin...end block
+      into .py source. FORBIDDEN.'
+    - render_marker_block() — generates trailing marker block text. FORBIDDEN.
+    - 'Any trailing # cst-node-ids: begin...end block in rendered output. FORBIDDEN.'
+    - node_id_markers.py must not be imported anywhere in adapted code.
+    registry_and_ttl:
+    - _trees dict — in-memory tree registry. Belongs to server session layer, not
+      formatter.
+    - get_tree() — retrieve tree from registry.
+    - remove_tree() — delete tree from registry.
+    - start_cst_tree_ttl_cleanup() — background TTL thread.
+    - 'load_file_to_tree() — reads file from disk and registers tree. Both halves
+      are forbidden: disk read belongs to editor core, registry belongs to session
+      layer.'
+    - Any threading.Thread or asyncio background task inside formatter code.
+    server_layer_concepts:
+    - Job queue calls or job_id returns inside formatter code.
+    - MCP command registration inside formatter code.
+    - WebSocket subscription or delivery inside formatter code.
+    - Any reference to mcp_proxy_adapter inside formatter code.
+    - Any reference to code_analysis server config or settings inside formatter code.
+    set_and_get_stable_id_in_mutations:
+    - set_stable_id() called during mutation flow. FORBIDDEN. The inline @node-id
+      comment transport mechanism is superseded by previous_metadata_map + previous_obj_to_id.
+    - get_stable_id() called during mutation flow. FORBIDDEN for the same reason.
+    - node_stable_id.py may only be used for strip_inline_node_id_lines_from_source()
+      at parse time as a defensive legacy cleaner.
   path: cst-code/
   policy: adapt-not-rewrite
   take:
