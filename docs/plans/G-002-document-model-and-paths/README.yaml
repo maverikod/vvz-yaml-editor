@@ -1,0 +1,108 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-002
+step_name: document_io
+title: YAML document IO and in-memory document representation
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+global_intent: G-010-yaml-formatter internal module. Owned by G-010. Provides ruamel.yaml
+  round-trip parser configuration, YamlDocument wrapper, DocumentSummary, ParseDiagnostic,
+  deterministic renderer. Used internally by YAMLFormatter — not a public subsystem.
+  Implementer reads G-010 for context.
+why_this_block_exists: Lower-level tasks need a stable document abstraction before
+  path parsing, reading, mutation, validation, and writing can be detailed. This block
+  defines only document IO mechanics and document metadata, so other subsystems do
+  not duplicate YAML parser setup or formatting preservation logic.
+owned_code_paths:
+- ai_editor/document_io/
+- tests/document_io/
+owned_docs_paths:
+- docs/document_io.md
+forbidden_code_paths:
+- ai_editor/contracts/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001-package-contracts-and-distribution
+  may_be_used_by:
+  - G-003-path-language
+  - G-004-reader
+  - G-005-mutations
+  - G-006-validation
+  - G-007-transaction-writer
+  - G-008-interfaces-and-release
+public_contracts_provided:
+- YamlDocument
+- DocumentSummary
+- ParseDiagnostic
+- load_yaml_document(file_path)
+- parse_yaml_text(text)
+- render_yaml_document(document)
+- summarize_yaml_document(document)
+core_responsibilities:
+- Configure ruamel.yaml for round-trip parsing.
+- Preserve mapping order, comments, quotes, and block style where feasible.
+- Produce a YamlDocument object consumed by other subsystems.
+- Produce compact document summaries: format, node_id, commands, top_level_keys, valid_yaml.
+- Render documents deterministically enough for validation and writer subsystems to
+  check.
+subsystem_independence_rules:
+- This subsystem must not parse structural path strings.
+- This subsystem must not apply mutations.
+- This subsystem must not validate plan_task_v1 semantics.
+- This subsystem must not write files atomically or create backups.
+- Other subsystems must use document_io APIs instead of configuring ruamel.yaml themselves.
+tactical_scope_rule:
+- Tactical README.yaml files under this global step are T-001 through T-007 in numeric
+  order by tactical_step_id.
+- Each tactical step edits only its owned_code_paths, owned_test_paths, and owned_docs_paths.
+- YamlDocument is introduced in T-002; DocumentSummary and summarize_yaml_document
+  in T-005; ParseDiagnostic in T-006; load and parse entry points in T-003; rendering
+  in T-004; cross-module integration coverage in T-007.
+- T-007 is tests-only; it must not take ownership of production modules owned by T-001
+  through T-006.
+implementation_outline:
+- Create document_io package with loader, renderer, and summary modules.
+- Define document representation wrappers without exposing mutable global state.
+- Implement parse diagnostics for invalid YAML.
+- Implement summary extraction without importing reader or path_language modules.
+implementation_notes:
+- Public contract names in this README are subsystem-level; tactical steps own the
+  concrete modules listed in their README.yaml files.
+- Implement T-006 before T-003 when coding manually so ParseDiagnostic types exist
+  before loader wiring, even though tactical ids are numeric.
+verification:
+  scope: global_g002_integration_only
+  commands:
+  - python -m pytest tests/document_io
+  expected:
+  - Valid YAML fixtures parse successfully.
+  - Invalid YAML returns YAML_PARSE_FAILED diagnostics.
+  - Summary contains expected top-level keys and command names.
+  - Rendering reparses into an equivalent basic structure.
+acceptance_criteria:
+- All YAML parser configuration is centralized in document_io.
+- Other subsystems can consume YamlDocument without owning parser details.
+- No path, mutation, validation, or writer behavior is implemented here.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only YAML document IO and in-memory document representation.
+    Do not edit path_language, reader, mutations, validation, transaction_writer,
+    or interfaces. The lower-level tasks under this global block should fully understand
+    that their job is parser/rendering infrastructure only.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  status: ''
