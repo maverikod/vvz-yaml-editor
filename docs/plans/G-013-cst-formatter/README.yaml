@@ -67,11 +67,17 @@ source_code_origin:
     - Any reference to mcp_proxy_adapter inside formatter code.
     - Any reference to code_analysis server config or settings inside formatter code.
     set_and_get_stable_id_in_mutations:
-    - set_stable_id() called during mutation flow. FORBIDDEN. The inline @node-id
-      comment transport mechanism is superseded by previous_metadata_map + previous_obj_to_id.
-    - get_stable_id() called during mutation flow. FORBIDDEN for the same reason.
-    - node_stable_id.py may only be used for strip_inline_node_id_lines_from_source()
-      at parse time as a defensive legacy cleaner.
+    - set_stable_id() and get_stable_id() as disk persistence mechanism (writing @node-id
+      comments to .py files). FORBIDDEN.
+    - node_id_markers.py (append_persisted_node_ids, render_marker_block). FORBIDDEN
+      — writes markers to disk.
+    - set_stable_id() and get_stable_id() ARE ALLOWED as transient in-memory transport
+      for FunctionDef/ClassDef during INSERT/DELETE/MOVE mutations ONLY. After get_stable_id()
+      recovery strip_inline_node_id_lines_from_source() must be called before _build_tree_index.
+      Result must never reach render() output or disk.
+    - 'node_stable_id.py is allowed for: (1) strip_inline_node_id_lines_from_source()
+      at parse time (defensive cleaner); (2) set_stable_id/get_stable_id in INSERT/DELETE/MOVE
+      mutation flow as transient in-memory transport.'
   path: cst-code/
   policy: adapt-not-rewrite
   take:
