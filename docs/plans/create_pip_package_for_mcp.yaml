@@ -145,54 +145,93 @@ module_architecture:
       formatter, CST formatter, and real fixtures.
 public_api:
   core_commands:
-  - name: open
-    layer: buffer
-    purpose: Open a file-backed buffer or return the existing buffer_id when the file
-      is already open.
+  - name: connect
+    layer: session
+    purpose: Create a new session and return session_key and empty session_descriptor.
     request:
-      file_path: string
-      formatter: auto|text|ai|foreign formatter name
+      idle_timeout_seconds: integer (default 3600)
     response_fields:
     - success
-    - buffer_id
-    - file_path
-    - formatter
-    - dirty
-    - revision
+    - session_key
+    - session_descriptor
+    - diagnostics
+  - name: reconnect
+    layer: session
+    purpose: Reconnect to an existing session and restore open buffer list.
+    request:
+      session_key: UUID4 string
+    response_fields:
+    - success
+    - session_key
+    - session_descriptor
+    - diagnostics
+  - name: disconnect
+    layer: session
+    purpose: Close or idle a session. Blocked by modified buffers unless close_unsaved=True.
+    request:
+      session_key: UUID4 string
+      force: boolean (default False)
+      close_unsaved: boolean (default False)
+    response_fields:
+    - success
+    - session_key
+    - closed
+    - unsaved_buffer_ids
+    - diagnostics
+  - name: session_status
+    layer: session
+    purpose: Return current session state and list of open buffer descriptors.
+    request:
+      session_key: UUID4 string
+    response_fields:
+    - success
+    - session_key
+    - open_buffers
+    - diagnostics
+  - name: open
+    layer: buffer
+    purpose: Open a file-backed buffer within a session. Returns existing buffer_id
+      if file already open.
+    request:
+      session_key: UUID4 string
+      file_path: string
+      formatter: auto|text|yaml|cst|foreign
+      readonly: boolean (default False)
+    response_fields:
+    - success
+    - buffer_descriptor
     - diagnostics
   - name: new
     layer: buffer
-    purpose: Create a new unsaved buffer with an explicit formatter.
+    purpose: Create a new unsaved buffer within a session.
     request:
-      formatter: text|ai|foreign formatter name
+      session_key: UUID4 string
+      formatter: text|yaml|cst|foreign
       display_name: optional string
     response_fields:
     - success
-    - buffer_id
-    - formatter
-    - dirty
-    - revision
+    - buffer_descriptor
     - diagnostics
   - name: save
     layer: buffer
-    purpose: Validate, render, stale-check, back up, and atomically write a file-backed
-      buffer.
+    purpose: Validate, render, stale-check, back up, and atomically write a buffer
+      to its real file.
     request:
-      buffer_id: string
+      session_key: UUID4 string
+      buffer_id: UUID4 string
     response_fields:
     - success
     - buffer_id
     - file_path
     - old_hash
     - new_hash
-    - dirty
     - diagnostics
   - name: save_as
     layer: buffer
-    purpose: Validate, render, and atomically write a buffer to a target file_path,
-      then bind the buffer to that file.
+    purpose: Write buffer to a target file path and bind the buffer to that file.
     request:
-      buffer_id: string
+      session_key: UUID4 string
+      buffer_id: UUID4 string
       file_path: string
       overwrite: boolean
     response_fields:
@@ -201,31 +240,50 @@ public_api:
     - file_path
     - old_hash
     - new_hash
-    - dirty
     - diagnostics
   - name: close
     layer: buffer
-    purpose: Close a buffer using an explicit unsaved-changes policy.
+    purpose: Close a buffer within a session. Real file unchanged if not saved.
     request:
-      buffer_id: string
-      save: boolean
-      policy: discard|save|error_if_dirty
+      session_key: UUID4 string
+      buffer_id: UUID4 string
     response_fields:
     - success
     - buffer_id
     - closed
     - diagnostics
+  - name: undo
+    layer: buffer
+    purpose: Undo the last N mutations on a buffer via editor-internal git.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      steps: integer (default 1)
+    response_fields:
+    - success
+    - buffer_id
+    - modified
+    - diagnostics
+  - name: redo
+    layer: buffer
+    purpose: Redo N mutations if no new mutation occurred since last undo.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      steps: integer (default 1)
+    response_fields:
+    - success
+    - buffer_id
+    - modified
+    - diagnostics
   - name: validate_file
     layer: file_validation
-    purpose: Validate a file by file_path or an in-memory buffer by buffer_id for
-      active formatter errors without editing or writing. Formatter is selected by
-      explicit formatter or by file extension when formatter=auto.
+    purpose: Validate a file by path or buffer by buffer_id without writing.
     request:
+      session_key: optional UUID4 string
       file_path: optional string
-      buffer_id: optional string
-      formatter: auto|text|ai|foreign formatter name
-      schema: optional string
-      options: optional object
+      buffer_id: optional UUID4 string
+      formatter: auto|text|yaml|cst|foreign
     response_fields:
     - success
     - formatter
@@ -237,80 +295,66 @@ public_api:
     - diagnostics
   - name: formatter_commands
     layer: formatter_discovery
-    purpose: Return standard and formatter-specific command metadata plus OpenAPI-compatible
-      schemas for a formatter selected by explicit name, buffer_id, or file_path extension.
+    purpose: Return standard and formatter-specific command catalog.
     request:
+      session_key: optional UUID4 string
       formatter: optional formatter name
-      buffer_id: optional string
+      buffer_id: optional UUID4 string
       file_path: optional string
-      include_openapi: boolean
     response_fields:
     - success
     - formatter
-    - formatter_version
     - standard_commands
     - specific_commands
-    - openapi_schemas
     - diagnostics
   - name: copy
     layer: edit
-    purpose: Copy a formatter-defined fragment from a source BufferAddress into the
-      format-aware clipboard.
+    purpose: Copy a fragment from a buffer address into the session clipboard.
     request:
-      source:
-        buffer_id: string
-        address: formatter-specific value
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      address: formatter-specific value
       clipboard_item_id: optional string
     response_fields:
     - success
     - clipboard_item_id
-    - source_buffer_id
     - source_formatter
-    - source_address
-    - payload_kind
     - diagnostics
   - name: cut
     layer: edit
-    purpose: Cut a formatter-defined fragment from a source BufferAddress into the
-      format-aware clipboard and mark the source buffer dirty.
+    purpose: Cut a fragment from a buffer address into the session clipboard. Marks
+      buffer modified.
     request:
-      source:
-        buffer_id: string
-        address: formatter-specific value
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      address: formatter-specific value
       clipboard_item_id: optional string
     response_fields:
     - success
     - clipboard_item_id
-    - source_buffer_id
     - source_formatter
-    - source_address
-    - changed_addresses
-    - dirty
+    - modified
     - diagnostics
   - name: paste
     layer: edit
-    purpose: Paste a clipboard fragment into a target BufferAddress using formatter-defined
-      paste semantics and mark the target buffer dirty.
+    purpose: Paste a clipboard fragment into a buffer address. Marks buffer modified.
     request:
-      target:
-        buffer_id: string
-        address: formatter-specific value
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      address: formatter-specific value
       mode: formatter-specific string
       clipboard_item_id: optional string
     response_fields:
     - success
-    - target_buffer_id
     - target_formatter
-    - target_address
-    - changed_addresses
-    - dirty
+    - modified
     - diagnostics
   - name: find
     layer: search
-    purpose: Find formatter units in a buffer using AbstractSearch over formatter-provided
-      units.
+    purpose: Find all matching formatter units in a buffer.
     request:
-      buffer_id: string
+      session_key: UUID4 string
+      buffer_id: UUID4 string
       query: formatter/search query object
       scope: optional formatter-specific scope
     response_fields:
@@ -319,9 +363,10 @@ public_api:
     - diagnostics
   - name: find_one
     layer: search
-    purpose: Return exactly one matching formatter unit or a typed search error.
+    purpose: Return exactly one matching unit or a typed search error.
     request:
-      buffer_id: string
+      session_key: UUID4 string
+      buffer_id: UUID4 string
       query: formatter/search query object
       scope: optional formatter-specific scope
     response_fields:
@@ -331,9 +376,10 @@ public_api:
     - diagnostics
   - name: list_units
     layer: search
-    purpose: List formatter-provided units for a buffer and optional scope.
+    purpose: List formatter units in a buffer.
     request:
-      buffer_id: string
+      session_key: UUID4 string
+      buffer_id: UUID4 string
       scope: optional formatter-specific scope
     response_fields:
     - success
@@ -341,10 +387,10 @@ public_api:
     - diagnostics
   - name: validate
     layer: formatter
-    purpose: Run formatter validation for an already opened buffer without writing
-      it. This validates the in-memory document and is distinct from validate_file(file_path).
+    purpose: Validate in-memory buffer document without writing.
     request:
-      buffer_id: string
+      session_key: UUID4 string
+      buffer_id: UUID4 string
       schema: optional string
     response_fields:
     - success
