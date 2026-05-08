@@ -238,21 +238,22 @@ model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement only project-wide rename refactoring under ai_editor/project_refactor/
     and tests/project_refactor/. rename() must always enqueue a job in mcp-proxy-adapter
-    queue and return job_id immediately without blocking. Before any file is modified:
-    if git is available create tag pre-rename/<job_uuid> and a checkpoint commit;
-    if git is not available create file backups per G-007 backup policy. On any failure
-    after checkpoint automatically rollback via git checkout <tag> or backup restore;
-    set rollback_performed=true in result. Reference search: for each file in project_root
-    check sidecar validity by source_sha256; if valid load from sidecar; if stale
-    re-parse via CSTFormatter and rebuild sidecar; if parse error skip and record
-    in skipped_files. Use CST structural node matching not text search. dry_run=True
-    discovers references and builds preview RenameJobResult without writing files,
-    creating git tags, or creating backups. Command class RenameCommand must follow
-    docs/metadatastd.md: separate rename_command.py, rename_schema.py, rename_metadata.py;
-    registered via ai_editor/hooks_register.py with reg.register(RenameCommand, ''custom'').
-    Do not implement editor core, formatter internals, search layer, document_io,
-    path_language, validation, transaction_writer, interfaces, CLI, MCP wrappers,
-    .venv, venv, or site-packages.'
+    queue and return job_id immediately without blocking. Works directly through CSTFormatter
+    — no session layer involved. Before any file is modified: if project git is available
+    create tag pre-rename/<job_uuid> and a checkpoint commit in the PROJECT git repo;
+    if project git is not available create file backups using ai_editor/writer.py
+    backup mechanism. On any failure after checkpoint automatically rollback via git
+    checkout <tag> or backup restore; set rollback_performed=true in result. Reference
+    search: for each file in project_root check sidecar validity by source_sha256;
+    if valid load from sidecar; if stale re-parse via CSTFormatter and rebuild sidecar;
+    if parse error skip and record in skipped_files. Use CST structural node matching
+    not text search. dry_run=True discovers references and builds preview RenameJobResult
+    without writing files, creating git tags, or creating backups. Command class RenameCommand
+    must follow docs/metadatastd.md: separate rename_command.py, rename_schema.py,
+    rename_metadata.py; registered via ai_editor/hooks_register.py with reg.register(RenameCommand,
+    ''custom''). Do not use editor sessions, session git, or session layer. Do not
+    implement editor core, formatter internals, search layer, validation, interfaces,
+    CLI, MCP wrappers, .venv, venv, or site-packages.'
 observations_template:
 - command: ''
   expected: ''
