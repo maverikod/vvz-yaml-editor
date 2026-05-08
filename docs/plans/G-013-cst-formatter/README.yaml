@@ -286,16 +286,17 @@ save_orchestration:
       Contains current in-session tree state.
 mutation_operations:
   inline_comment_transport:
-    invariant: THIS MECHANISM IS NOT USED IN THE ADAPTED CSTFORMATTER. Inline @node-id
-      comment transport (set_stable_id/get_stable_id) is SUPERSEDED by previous_metadata_map
-      + previous_obj_to_id. The section 'stable_id_in_node_data_during_mutation' below
-      describes this legacy mechanism for historical reference ONLY — it documents
-      what was removed and why. Do NOT implement it. The acceptance_criteria explicitly
-      forbid set_stable_id and get_stable_id in mutation flow.
-    legacy_note: cst-code tree_builder.py used @node-id leading_lines comments in
-      FunctionDef/ClassDef as a mutation transport. This is superseded by previous_metadata_map
-      + previous_obj_to_id approach.
-    status: REMOVED
+    invariant: The DISK PERSISTENCE variant of this mechanism is REMOVED. node_id_markers.py
+      (append_persisted_node_ids, render_marker_block) wrote @node-id markers to .py
+      files on disk — this is FORBIDDEN. The TRANSIENT IN-MEMORY variant (set_stable_id/get_stable_id
+      on FunctionDef/ClassDef during INSERT/DELETE/MOVE) is ACTIVE and documented
+      in stable_id_in_node_data_during_mutation. The inline_comment_transport section
+      describes only the disk-persistence aspect which was removed.
+    legacy_note: cst-code tree_builder.py used @node-id leading_lines comments as
+      both in-memory transport AND disk persistence. The disk persistence half is
+      removed. The in-memory transport half is retained for INSERT/DELETE/MOVE on
+      FunctionDef/ClassDef.
+    status: disk_persistence_REMOVED, in_memory_transport_ACTIVE
   libcst_constraints_requiring_workarounds:
     Match_node_rejection: Match node body is not directly insertable. Require MatchCase
       as parent_stable_id; reject Match with clear error.
