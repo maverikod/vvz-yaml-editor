@@ -1256,8 +1256,8 @@ session_model:
       - Release all write locks held by the session (UPDATE files SET editing_pid=NULL,
         session_key=NULL WHERE session_key=<session_key>).
       - 'Delete the entire session directory atomically: rename <session_key>/ to
-        <session_key>.closing, then rmtree. Removes all .buf files, session.ses, git/,
-        clipboard.json.'
+        <session_key>.closing, then rmtree. Removes all .buf files, ses_settings.json,
+        git/, clipboard.json.'
       trigger: Session close (explicit disconnect with force=true, idle_timeout expiry,
         or server-side forced close).
   new_error_codes:
