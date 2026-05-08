@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-005
 step_name: mutation_operations
 title: In-memory mutation operations subsystem
@@ -14,18 +14,18 @@ why_this_block_exists: 'Lower-level mutation tasks must understand the complete 
   path_language and report exact changes. This must stay separate from validation
   and transaction writing.'
 owned_code_paths:
-- yaml_editor/mutations/
+- ai_editor/mutations/
 - tests/mutations/
 owned_docs_paths:
 - docs/mutation_operations.md
 forbidden_code_paths:
-- yaml_editor/contracts/
-- yaml_editor/document_io/
-- yaml_editor/path_language/
-- yaml_editor/reader/
-- yaml_editor/validation/
-- yaml_editor/transaction_writer/
-- yaml_editor/interfaces/
+- ai_editor/contracts/
+- ai_editor/formatters/yaml/document_io/
+- ai_editor/formatters/yaml/compat/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- ai_editor/sessions/
 - .venv
 - venv
 - site-packages
