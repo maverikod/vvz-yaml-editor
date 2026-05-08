@@ -170,10 +170,10 @@ regression_requirements:
 - verify save result via separate find_one or open+find_one on fresh session.
 - write_all(session_key, force=False) writes only modified buffers; returns written_buffers,
   failed_buffers, skipped_buffers.
-- write_all with validation failure records buffer in failed_buffers and skips write;
-  other buffers continue.
 - write_all(session_key, force=True) writes all non-readonly buffers regardless of
   modified flag.
+- write_all with validation failure records buffer in failed_buffers and skips write;
+  other buffers continue.
 - open same file in two sessions with readwrite returns BUFFER_LOCKED on second.
 - open with formatter=text on .yaml file forces text formatter regardless of extension.
 - undo(session_key, buffer_id) restores buffer to previous state; modified reflects
