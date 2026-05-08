@@ -58,11 +58,18 @@ error_code_contract:
     - values that require importing editor core, formatter, search, clipboard, writer,
       CLI, MCP wrapper, or foreign formatter implementation modules
   required_error_codes:
+  - SESSION_NOT_FOUND
+  - SESSION_EXPIRED
+  - SESSION_LOCK_CONFLICT
+  - SESSION_HAS_UNSAVED_BUFFERS
+  - SESSION_READONLY
   - BUFFER_NOT_FOUND
   - BUFFER_ALREADY_OPEN
   - BUFFER_HAS_UNSAVED_CHANGES
   - BUFFER_STALE
   - BUFFER_INVALID
+  - BUFFER_LOCKED
+  - BUFFER_READONLY
   - FORMATTER_NOT_FOUND
   - FORMATTER_UNSUPPORTED
   - FORMATTER_COMMAND_DISCOVERY_FAILED
@@ -104,6 +111,15 @@ error_code_contract:
   - CST_NODE_NOT_FOUND
   - CST_MUTATION_FAILED
   - CST_SIDECAR_INVALID
+  - UNDO_AT_BEGINNING
+  - REDO_AT_END
+  - HISTORY_UNAVAILABLE
+  - GIT_COMMIT_FAILED
+  - GIT_NOT_AVAILABLE
+  - RENAME_TARGET_NOT_FOUND
+  - RENAME_INVALID_IDENTIFIER
+  - RENAME_GIT_CHECKPOINT_FAILED
+  - RENAME_ROLLBACK_FAILED
   invariants:
   - Every public error code value is a JSON-safe string.
   - Error code values are unique.
