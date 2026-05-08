@@ -409,13 +409,13 @@ model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement the session layer under ai_editor/sessions/ and tests/sessions/.
     The session is the top-level stateful context. Own the session directory lifecycle,
-    ses_settings.json, .buf file writes via G-007 write_buf, editor-internal bare
-    git repo via gitpython, write-lock enforcement in files table using editing_pid
+    ses_settings.json, .buf file writes via ai_editor/writer.py write_buf, editor-internal
+    bare git repo via gitpython, write-lock enforcement in files table using editing_pid
     and session_key columns, session-scoped clipboard, and startup_sweep. Delegate
     buffer parse/render/validate to G-009 AbstractBuffer and G-010 formatters. Delegate
-    .buf atomic write to G-007 write_buf. Delegate real file write to G-007 write_result.
-    Do not implement formatter internals, path parsing, search, public CLI, MCP wrappers,
-    .venv, venv, or site-packages.
+    .buf atomic write to ai_editor/writer.py write_buf. Delegate real file write to
+    ai_editor/writer.py write_result. Do not implement formatter internals, path parsing,
+    search, public CLI, MCP wrappers, .venv, venv, or site-packages.
 
     '
 observations_template:
