@@ -75,13 +75,14 @@ implementation_outline:
 - Add tests under tests/formatters/yaml/compat/.
 verification:
   commands:
-  - python -m pytest tests/reader
+  - python -m pytest tests/formatters/yaml/compat/
   expected:
   - yaml_load returns summary for valid fixtures.
   - yaml_get returns only the selected subtree.
   - yaml_get_command returns exactly one command object.
   - Missing command returns a typed not-found result.
   - All responses are json.dumps compatible.
+  scope: internal_g010_compat
 acceptance_criteria:
 - Read/query layer is fully independent from mutation and writer code.
 - All structural selection delegates to path_language.
