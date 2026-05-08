@@ -67,11 +67,11 @@ safety_rules:
 - Atomic replace failure must return success=false.
 - success=true is allowed only after all requested stages complete.
 subsystem_independence_rules:
-- This subsystem must not implement YAML parser configuration; use document_io.
-- This subsystem must not implement mutation internals; use mutations.
-- This subsystem must not implement schema or semantic validation internals; use validation.
-- This subsystem must not implement CLI or MCP wrappers; interfaces layer owns those.
-- This subsystem may orchestrate other subsystems only through public contracts.
+- writer.py must not implement formatter internals (parsing, mutation, validation).
+- writer.py must not implement CLI or MCP wrappers.
+- writer.py must not own session logic or buffer registry.
+- Caller (G-009 or G-015) calls formatter.validate_document and formatter.render before
+  invoking writer.py.
 implementation_outline:
 - Create transaction_writer package with request, backup, hashing, atomic_write, and
   orchestration modules.
