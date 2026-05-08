@@ -31,8 +31,11 @@ owned_docs_paths:
 - docs/project_refactor.md
 forbidden_code_paths:
 - ai_editor/editor_core/
+- ai_editor/formatters/
 - ai_editor/search/
 - ai_editor/sessions/
+- ai_editor/validation/
+- ai_editor/writer.py
 - ai_editor/interfaces/
 - .venv
 - venv
