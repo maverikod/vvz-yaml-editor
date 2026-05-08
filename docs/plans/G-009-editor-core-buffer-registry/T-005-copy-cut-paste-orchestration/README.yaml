@@ -104,8 +104,8 @@ acceptance_criteria:
 - Clipboard compatibility check is enforced before formatter call.
 - Address value is passed through opaquely to formatter; never inspected by editor
   core.
-- ClipboardItem fields: source_buffer_id, source_formatter, source_address, source_revision,
-    payload_kind, payload.
+- 'ClipboardItem fields: source_buffer_id, source_formatter, source_address, source_revision,
+  payload_kind, payload.'
 model_assignment_spec:
   performer: coding_agent
   title: Implement copy, cut, paste orchestration and ClipboardItem
