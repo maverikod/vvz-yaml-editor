@@ -79,11 +79,12 @@ subsystem_independence_rules:
 - This subsystem must not expose CLI or MCP commands.
 - Transaction writer must call this subsystem instead of reimplementing mutations.
 implementation_outline:
-- Define mutation operation DTOs or typed dict contracts inside mutations package.
-- Implement single-operation mutation functions.
-- Implement batch application with rollback on failure.
-- Implement dedupe semantics for append.
-- Add tests for exact changed paths and no side effects outside selected nodes.
+- Mutations are formatter-internal. Do not create ai_editor/mutations/ or any standalone
+  mutation module.
+- Read G-010 for AbstractFormatter abstract mutation method contracts.
+- Read G-013 for CST-specific mutation implementation details.
+- Mutation tests live under tests/formatters/ alongside the formatter they belong
+  to.
 verification:
   commands:
   - python -m pytest tests/formatters/yaml/ -k mutation
