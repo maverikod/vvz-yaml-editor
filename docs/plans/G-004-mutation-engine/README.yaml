@@ -85,10 +85,11 @@ verification:
   - All responses are json.dumps compatible.
   scope: internal_g010_compat
 acceptance_criteria:
-- Read/query layer is fully independent from mutation and writer code.
-- All structural selection delegates to path_language.
-- All YAML loading delegates to document_io.
-- Lower-level read tasks can understand their goal from this README alone.
+- Compat wrappers delegate entirely to G-010 YAMLFormatter and G-011 AbstractSearch.
+- Compat wrappers do not call document_io or path_language directly.
+- All responses are json.dumps compatible.
+- Implementer can understand the compat goal from this README alone without reading
+  G-010 or G-011 internals.
 model_assignment_spec:
   performer: coding_agent
   instruction: Implement yaml_load, yaml_get, yaml_get_command, yaml_get_verification
