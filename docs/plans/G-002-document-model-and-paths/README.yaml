@@ -32,15 +32,10 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
+  may_be_used_by:
+  - G-010 YAMLFormatter (owns this module)
   may_depend_on:
   - G-001-package-contracts-and-distribution
-  may_be_used_by:
-  - G-003-path-language
-  - G-004-reader
-  - G-005-mutations
-  - G-006-validation
-  - G-007-transaction-writer
-  - G-008-interfaces-and-release
 public_contracts_provided:
 - YamlDocument
 - DocumentSummary
