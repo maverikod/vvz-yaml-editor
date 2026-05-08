@@ -1006,14 +1006,13 @@ session_model:
     - A session with no open buffers is still a valid session until explicitly closed
       or timed out.
   session_file:
-    path_pattern: <sessions_dir>/<session_key>.ses
+    path_pattern: <sessions_base_dir>/<session_key>/session.ses
     format: 'JSON: {session_key, created_at, last_active_at, idle_timeout_seconds,
       buffer_ids: [...]}'
-    purpose: Persistent session record. Survives server restart. Allows session recovery
-      on reconnect.
-    not_indexed: The .ses file is never submitted to the code analysis indexer. Its
-      name is UUID4 only with no project path component.
-    sessions_dir: 'Configured via ai_editor section in config.json: sessions.dir.
+    purpose: Persistent session record. Survives server restart. Loaded on reconnect
+      to restore buffer list.
+    not_indexed: true
+    sessions_base_dir: 'Configured via ai_editor section in config.json: sessions.base_dir.
       Default: <project_root>/.ai_editor_sessions/'
   buffer_descriptor:
     description: Returned to the client on connect, reconnect, and after every open/new/close
