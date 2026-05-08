@@ -181,6 +181,15 @@ verification:
   - YAML formatter preserves formatting where ruamel.yaml supports it.
   - Clipboard compatibility rejects text -> yaml by default.
   - Clipboard compatibility allows yaml -> text only as explicit rendered text.
+  - Text formatter mutate_set, mutate_append, mutate_delete modify array-of-lines
+    document.
+  - YAML formatter mutate_set, mutate_replace_block, mutate_append, mutate_delete,
+    mutate_move modify YAML tree.
+  - Formatter write(content, path) delegates to ai_editor/writer.py by default.
+  - validate_content returns YAML_PARSE_FAILED for invalid YAML; text formatter always
+    returns success=True.
+  - validate_document called by editor core before save; returns ValidationResult
+    without writing files.
 acceptance_criteria:
 - AbstractFormatter does not open, save, or close files.
 - Text and YAML formatters implement the same formatter contract.
