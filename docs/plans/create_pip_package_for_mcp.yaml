@@ -902,27 +902,34 @@ regression_commands:
   - python -m build
   - python -m twine check dist/*
   mcp_level:
-  - Import ai_editor.api in the target MCP server.
-  - Register wrapper commands for open, new, save, save_as, close, copy, cut, paste,
-    find, find_one, list_units, and validate.
-  - Open a real YAML plan fixture with formatter=ai and verify buffer_id, formatter,
-    dirty=false, and revision.
-  - Open a real text fixture with formatter=text and verify buffer_id, formatter,
-    dirty=false, and revision.
-  - Execute find_one against the YAML buffer and verify it returns a formatter-provided
-    address.
-  - Execute copy with source BufferAddress from the YAML buffer and verify clipboard
-    item records source_formatter=ai and source_address.
-  - Execute paste into a YAML target BufferAddress and verify target buffer becomes
-    dirty without writing the file.
-  - Execute save on the dirty YAML buffer and verify the result through a separate
-    open/find_one or formatter read-back flow.
-  - Execute copy from YAML and paste to text only with explicit rendered-text mode;
-    verify incompatible paste returns CLIPBOARD_FORMAT_MISMATCH.
-  - Execute find_one with no match and multiple matches; verify SEARCH_NO_MATCH and
-    SEARCH_NOT_UNIQUE.
-  - Execute legacy yaml_get/yaml_write_checked compatibility wrappers only as wrappers
-    over open/search/formatter/save, not as independent architecture.
+  - connect() -> session_key. Verify empty buffer list returned.
+  - open(session_key, file_path, formatter=yaml) -> buffer_descriptor. Verify readonly=False,
+    modified=False.
+  - find_one(session_key, buffer_id, query) -> match with formatter-provided address.
+  - copy(session_key, buffer_id, address) -> clipboard_item_id. Verify source_formatter=yaml.
+  - paste(session_key, target_buffer_id, target_address, clipboard_item_id) -> buffer
+    modified=True without writing real file.
+  - save(session_key, buffer_id) -> old_hash, new_hash. Verify one project git commit
+    created.
+  - Verify save result via separate open+find_one on fresh session.
+  - write_all(session_key, force=False) -> written_buffers, failed_buffers, skipped_buffers.
+    Verify only modified buffers written.
+  - write_all with validation error in one buffer -> that buffer in failed_buffers,
+    others in written_buffers.
+  - undo(session_key, buffer_id, steps=1) -> buffer restored to previous state.
+  - undo at first commit -> UNDO_AT_BEGINNING.
+  - New mutation after undo -> redo stack reset; redo returns REDO_AT_END.
+  - connect(auto_write=True) -> open file -> mutate -> verify real file written without
+    explicit save.
+  - connect(readonly=True) -> open file -> mutate -> BUFFER_READONLY.
+  - disconnect(close_unsaved=False) with modified buffer -> SESSION_HAS_UNSAVED_BUFFERS.
+  - disconnect(close_unsaved=True) -> session closed despite modified buffers.
+  - reconnect(session_key) -> session_descriptor with all buffer_descriptors restored.
+  - yaml_get compatibility wrapper -> same result as open+find_one on fresh session.
+  - yaml_write_checked compatibility wrapper -> same result as open+mutate+save.
+  - copy from yaml buffer, paste to text buffer without explicit rendered-text mode
+    -> CLIPBOARD_FORMAT_MISMATCH.
+  - open same file in two sessions readwrite -> BUFFER_LOCKED on second open.
 observations_template:
 - command: ''
   expected: ''
