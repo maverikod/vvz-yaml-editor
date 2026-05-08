@@ -673,55 +673,63 @@ implementation_steps:
   - find_one returns SEARCH_NO_MATCH for zero matches.
   - find_one returns SEARCH_NOT_UNIQUE for multiple matches.
   - Search does not parse YAML paths or text line ranges directly.
-- id: step_09
-  title: Implement session layer
-  actions:
+- actions:
   - Implement connect(idle_timeout_seconds) -> {session_key, session_descriptor}.
-  - Implement reconnect(session_key) -> {session_key, session_descriptor} restoring
-    open buffer list.
-  - Implement disconnect(session_key) marking session as closed after idle_timeout.
+  - Implement reconnect(session_key) -> {session_key, session_descriptor}.
+  - 'Implement disconnect(session_key, force=True, close_unsaved=False): if close_unsaved=False
+    and any buffer has modified=True — abort, return SESSION_HAS_UNSAVED_BUFFERS with
+    list of modified buffer_ids.'
   - 'Implement session_status(session_key) -> {session_key, open_buffers: [buffer_descriptor]}.'
-  - Implement .ses file management under sessions_dir for persistence across restarts.
-  - 'Implement .buf file management: write after every mutation, load on reconnect.'
+  - Create session directory <sessions_base_dir>/<session_key>/ on connect. Delete
+    atomically on session close (rename to <session_key>.closing then rmtree).
+  - Implement session.ses JSON file in session directory for persistence across restarts.
+  - 'Implement <buffer_id>.buf files in session directory: write after every mutation,
+    load on reconnect. Named after bare filename (e.g. README.buf). Collision resolved
+    by <hash8>_<filename>.buf.'
   - 'Implement write-lock enforcement: same file may not be open readwrite in two
     sessions simultaneously. files table gains session_key column.'
-  - Implement editor-internal bare git repo at sessions_dir/git/ via gitpython.
-  - 'On buffer open: create branch buf/<session_key>/<buffer_id> with initial commit
-    ''open: <path> [may be modified]''.'
-  - 'On mutation: render buffer and commit to buffer branch. Commit message: ''<operation>:
-    <params>''.'
-  - 'Implement undo(session_key, buffer_id, steps=1): checkout HEAD~steps, reload
-    buffer from that commit, update .buf file. Returns UNDO_AT_BEGINNING if at first
-    commit.'
-  - 'Implement redo(session_key, buffer_id, steps=1): only valid if no new mutation
-    after last undo. Returns REDO_AT_END if at latest commit. Redo stack resets on
-    any new mutation.'
-  - 'On buffer close: delete branch buf/<session_key>/<buffer_id>, delete .buf file,
-    release lock.'
-  - 'On session close: delete all session branches, run git gc --prune=now, delete
-    all .buf files, delete .ses file, release all locks.'
-  - 'Implement startup sweep: on server start delete orphaned branches from sessions
-    with no valid .ses file.'
-  - 'Implement session-scoped clipboard: copy/paste allowed between buffers within
-    the same session; cross-session access rejected.'
+  - Initialise bare git repo at <session_dir>/git/ via gitpython on connect.
+  - 'On buffer open: create branch buf/<buffer_id> in <session_dir>/git/ with initial
+    commit ''open: <path> [may be modified]''.'
+  - 'On mutation: render buffer, commit to buf/<buffer_id> branch. Commit message:
+    ''<operation>: <params>''. Write .buf file.'
+  - 'Implement undo(session_key, buffer_id, steps=1): checkout HEAD~steps on buf/<buffer_id>,
+    reload buffer, update .buf file. Returns UNDO_AT_BEGINNING if at first commit.'
+  - 'Implement redo(session_key, buffer_id, steps=1): move HEAD forward. Returns REDO_AT_END
+    if at latest. Redo stack resets on any new mutation.'
+  - 'On buffer close: delete branch buf/<buffer_id>, delete .buf file, release lock.'
+  - 'On session close: release all locks, rename session dir to <session_key>.closing,
+    rmtree.'
+  - 'Implement startup sweep: on server start scan sessions_base_dir, release locks
+    and delete directories of expired/missing sessions.'
+  - 'Implement session-scoped clipboard: copy/paste between buffers within the same
+    session; cross-session access rejected.'
+  - idle_timeout expiry always behaves as close_unsaved=True.
   deliverables:
   - ai_editor/sessions/
   - tests/sessions/
   - docs/sessions.md
+  id: step_09
+  title: Implement session layer
   verification:
+  - connect creates session directory with session.ses and git/ repo.
   - connect returns session_key and empty buffer list.
-  - reconnect restores buffer_descriptor list without re-opening files.
-  - disconnect leaves session alive for idle_timeout then cleans up.
-  - open in two sessions for the same file in readwrite returns BUFFER_LOCKED on second.
-  - Same file opened twice in same session returns same buffer_id.
-  - Mutation creates git commit on buffer branch.
-  - undo returns buffer to previous commit state.
+  - reconnect restores buffer_descriptor list from session.ses and .buf files without
+    re-opening real files.
+  - disconnect with close_unsaved=False and modified buffer returns SESSION_HAS_UNSAVED_BUFFERS.
+  - disconnect with close_unsaved=True closes despite modified buffers.
+  - open in two sessions for same file readwrite returns BUFFER_LOCKED on second.
+  - Same file opened twice in same session returns existing buffer_id.
+  - Mutation commits to buf/<buffer_id> branch in session git and updates .buf file.
+  - undo restores buffer to previous commit, updates .buf file.
   - undo at first commit returns UNDO_AT_BEGINNING.
   - New mutation after undo resets redo stack.
   - redo after new mutation returns REDO_AT_END.
   - Buffer close deletes branch and .buf file.
-  - Session close deletes all branches and runs git gc.
-  - Clipboard paste from buffer in session A into buffer in session B is rejected.
+  - Session close deletes entire session directory atomically.
+  - Startup sweep clears expired session directories and releases stale locks.
+  - Clipboard paste from session A into session B is rejected.
+  - idle_timeout expiry closes session as close_unsaved=True.
 - id: step_10
   title: Implement format-aware clipboard
   actions:
