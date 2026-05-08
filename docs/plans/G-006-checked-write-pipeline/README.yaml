@@ -1,5 +1,5 @@
 format: global_package_step_v2
-plan_id: yaml_editor_pip_package_for_mcp
+plan_id: ai_editor_pip_package_for_mcp
 step_id: G-006
 step_name: validation_rules
 title: Validation, schema, semantic rules, and render checks subsystem
@@ -13,18 +13,18 @@ why_this_block_exists: 'Lower-level validation tasks must be able to understand 
   rendered-YAML checks, deterministic rendering checks, and diagnostics. This logic
   must not be duplicated inside the writer, reader, CLI, or MCP wrappers.'
 owned_code_paths:
-- yaml_editor/validation/
+- ai_editor/validation/
 - tests/validation/
 owned_docs_paths:
 - docs/validation_rules.md
 forbidden_code_paths:
-- yaml_editor/contracts/
-- yaml_editor/document_io/
-- yaml_editor/path_language/
-- yaml_editor/reader/
-- yaml_editor/mutations/
-- yaml_editor/transaction_writer/
-- yaml_editor/interfaces/
+- ai_editor/contracts/
+- ai_editor/formatters/yaml/document_io/
+- ai_editor/formatters/yaml/compat/
+- ai_editor/mutations/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- ai_editor/sessions/
 - .venv
 - venv
 - site-packages
@@ -117,7 +117,7 @@ tactical_decomposition:
   purpose: Define ValidationReport, issue, diagnostics, and G-006 error-code contracts.
 - tactical_step_id: T-003
   tactical_step_name: yaml_document_structure_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-003-yaml-document-structure-validation/README.yaml
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-003-ai-document-structure-validation/README.yaml
   purpose: Own validation of already parsed YAML-compatible in-memory document structures.
 - tactical_step_id: T-004
   tactical_step_name: schema_validation
@@ -129,7 +129,7 @@ tactical_decomposition:
   purpose: Own plan_task_v1 semantic validation rules.
 - tactical_step_id: T-006
   tactical_step_name: rendered_yaml_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-006-rendered-yaml-validation/README.yaml
+  readme_path: docs/plans/G-006-checked-write-pipeline/T-006-rendered-ai-validation/README.yaml
   purpose: Own rendered YAML parse and structural equivalence validation.
 - tactical_step_id: T-007
   tactical_step_name: render_determinism_validation
