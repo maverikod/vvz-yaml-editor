@@ -554,8 +554,11 @@ acceptance_criteria:
   on FunctionDef/ClassDef) + previous_metadata_map + previous_obj_to_id. For REPLACE/REPLACE_DOCSTRING:
   previous_metadata_map exact_key only. Inline comments are transient in-memory only
   — never written to disk.'
-- node_stable_id.py is used ONLY for strip_inline_node_id_lines_from_source at parse
-  time (defensive cleaner for legacy files).
+- 'node_stable_id.py is used in two contexts: (1) at parse time: strip_inline_node_id_lines_from_source()
+  as defensive cleaner for legacy files; (2) in INSERT/DELETE/MOVE mutation flow:
+  set_stable_id/get_stable_id as transient in-memory transport for FunctionDef/ClassDef
+  nodes only. After get_stable_id recovery, strip_inline_node_id_lines_from_source()
+  is called to clean module.code before _build_tree_index.'
 - 'Sidecar has two checksums: source_sha256 and tree_sha256. Both validated on load.'
 - 'If either checksum fails or sidecar is missing: tree built from scratch via _build_tree_index,
   all stable_ids are new UUID4.'
