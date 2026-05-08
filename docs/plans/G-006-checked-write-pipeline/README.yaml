@@ -11,10 +11,11 @@ global_intent: G-006 is ABSORBED into G-010 (AbstractFormatter). Validation is f
   formatter validation. No standalone ai_editor/validation/ module exists — all validation
   code lives inside the formatter that owns it (ai_editor/formatters/yaml/, ai_editor/formatters/cst/,
   ai_editor/formatters/text/). G-010 owns the abstract validation contract on AbstractFormatter.
-why_this_block_exists: 'Lower-level validation tasks must be able to understand the
-  complete validation problem from this global step: syntax, schema, semantic checks,
-  rendered-YAML checks, deterministic rendering checks, and diagnostics. This logic
-  must not be duplicated inside the writer, reader, CLI, or MCP wrappers.'
+why_this_block_exists: Validation is formatter-internal. This step's work is absorbed
+  into G-010 AbstractFormatter. validate_content and validate_document are abstract
+  methods on AbstractFormatter implemented by each formatter. plan_task_v1 semantic
+  rules are owned by the YAML formatter. No standalone ai_editor/validation/ module
+  exists.
 owned_code_paths:
 - ai_editor/validation/
 - tests/validation/
