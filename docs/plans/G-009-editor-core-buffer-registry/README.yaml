@@ -133,34 +133,23 @@ verification:
   commands:
   - python -m pytest tests/editor_core
   expected:
-  - Opening the same file twice returns the same buffer_id.
-  - New unsaved buffers are dirty and have no file_path until save_as.
-  - Copy does not mark buffers dirty.
-  - Cut and paste mark the correct buffers dirty.
-  - Save/save_as call formatter.validate_document before render and abort on failure.
+  - open(session_key, file_path) acquires editing_pid + session_key lock in files
+    table.
+  - Opening the same file in two sessions readwrite returns BUFFER_LOCKED on second.
+  - open with readonly=True sets buffer.readonly=True; mutations return BUFFER_READONLY.
+  - New unsaved buffers are modified=False and have relative_path=null until save_as.
+  - Copy does not mark buffers modified.
+  - Cut and paste mark the correct buffers modified.
+  - save/save_as call formatter.validate_document before render and abort on failure.
   - Stale file-backed buffers are rejected before disk write.
   - Editor core never parses YAML addresses or text line ranges directly.
-  - open_as_text=True opens file with text formatter regardless of extension or size;
-    no threshold check.
-  - Parse exception from structural formatter causes fallback to text formatter; buffer
-    status is format_fallback.
-  - File smaller than small_file_threshold uses text formatter without structural
-    parse; buffer status is small_file.
-  - validate(buffer_id) returns ValidationResult without writing file or changing
-    dirty state.
-  - Save aborts when validate returns success=false.
+  - validate(session_key, buffer_id) returns ValidationResult without writing file
+    or changing modified.
   - Config loaded from mcp_proxy_adapter config.json ai_editor section; missing section
     or key uses defaults.
-  - 0 value for threshold disables size-based fallback; structural formatter always
-    attempted.
-  - 'open() checks files.editing_pid: if live process holds lock -> return BUFFER_LOCKED
-    error, no buffer created.'
-  - 'open() acquires lock atomically: UPDATE files SET editing_pid = os.getpid() WHERE
-    (editing_pid IS NULL OR editing_pid = <dead_pid>). 0 affected rows -> BUFFER_LOCKED.'
-  - 'close() releases lock: UPDATE files SET editing_pid = NULL WHERE editing_pid
-    = os.getpid(). Called in finally block.'
-  - save/save_as verify lock still held (editing_pid = os.getpid()) before writing.
-    Mismatch -> BUFFER_STALE.
+  - close() releases editing_pid and session_key lock in finally block.
+  - write_all(session_key, force=False) writes only modified non-readonly buffers.
+  - write_all returns written_buffers, failed_buffers, skipped_buffers.
 acceptance_criteria:
 - AbstractBuffer owns file/buffer lifecycle and does not implement formatter semantics.
 - Editor core has no YAML-specific path, text range, or search query logic.
