@@ -40,10 +40,9 @@ public_contracts_provided:
 - YamlDocument
 - DocumentSummary
 - ParseDiagnostic
-- load_yaml_document(file_path)
-- parse_yaml_text(text)
-- render_yaml_document(document)
-- summarize_yaml_document(document)
+- parse_yaml_text(text) -> YamlDocument
+- render_yaml_document(document) -> str
+- summarize_yaml_document(document) -> DocumentSummary
 core_responsibilities:
 - Configure ruamel.yaml for round-trip parsing.
 - Preserve mapping order, comments, quotes, and block style where feasible.
