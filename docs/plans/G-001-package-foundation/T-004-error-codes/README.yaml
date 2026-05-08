@@ -204,6 +204,12 @@ required_error_code_groups:
   - SESSION_LOCK_CONFLICT
   - SESSION_HAS_UNSAVED_BUFFERS
   - SESSION_READONLY
+  undo_redo_git:
+  - UNDO_AT_BEGINNING
+  - REDO_AT_END
+  - HISTORY_UNAVAILABLE
+  - GIT_COMMIT_FAILED
+  - GIT_NOT_AVAILABLE
 responsibilities:
 - Define stable error code values referenced by the technical specification.
 - Separate parse, path, validation, render, backup, and write errors.
