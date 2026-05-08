@@ -706,7 +706,7 @@ implementation_steps:
   - 'Implement session_status(session_key) -> {session_key, open_buffers: [buffer_descriptor]}.'
   - Create session directory <sessions_base_dir>/<session_key>/ on connect. Delete
     atomically on session close (rename to <session_key>.closing then rmtree).
-  - Implement session.ses JSON file in session directory for persistence across restarts.
+  - Implement ses_settings.json in session directory for persistence across restarts.
   - 'Implement <buffer_id>.buf files in session directory: write after every mutation,
     load on reconnect. Named after bare filename (e.g. README.buf). Collision resolved
     by <hash8>_<filename>.buf.'
