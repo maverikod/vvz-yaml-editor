@@ -130,8 +130,9 @@ module_architecture:
     purpose: High-level model-facing API for session lifecycle, buffer lifecycle,
       validate_file, copy/cut/paste, search, validation, and YAML compatibility wrappers.
   - path: ai_editor/models.py
-    purpose: 'Typed request and response dataclasses: BufferAddress, BufferDescriptor,
-      SessionDescriptor, ValidationResult, OperationResult, clipboard and search contracts.'
+    purpose: JSON Schema for plan_task_v1 validation. Used by YAML formatter validate_content
+      and validate_document for plan_task_v1 semantic validation. Owned by G-010 (YAML
+      formatter). Packaged inside the wheel as package data.
   - path: ai_editor/clipboard.py
     purpose: Session-scoped format-aware clipboard. Copy/paste between buffers within
       the same session only.
