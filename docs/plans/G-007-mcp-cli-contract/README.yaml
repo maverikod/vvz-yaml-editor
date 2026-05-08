@@ -59,13 +59,14 @@ write_pipeline:
 - 'write_buf: atomic write, no backup, no read-back.'
 - 'write_result: backup_before_write -> atomic_write -> read_back_verify -> project_git_commit.'
 safety_rules:
-- dry_run=true must never write, backup, or change file bytes.
-- Mutation failure must prevent write.
-- Validation failure must prevent write.
-- Render failure must prevent write.
-- Backup failure must prevent write.
-- Atomic replace failure must return success=false.
-- success=true is allowed only after all requested stages complete.
+- 'write_buf: atomic write only. No backup, no read-back. If write fails the in-memory
+  buffer remains valid.'
+- 'write_result: backup before write. If backup fails: abort. If write fails: restore
+  from backup. If read-back fails: log but do not rollback (bytes are on disk).'
+- 'Project git commit after write_result: best-effort. If fails: attach GIT_COMMIT_FAILED
+  diagnostic, write is still success=true.'
+- success=true is allowed only after atomic write completes and read-back confirms
+  bytes.
 subsystem_independence_rules:
 - writer.py must not implement formatter internals (parsing, mutation, validation).
 - writer.py must not implement CLI or MCP wrappers.
