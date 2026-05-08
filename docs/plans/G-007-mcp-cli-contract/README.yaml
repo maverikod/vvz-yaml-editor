@@ -56,18 +56,8 @@ core_responsibilities:
 - Return old_hash, new_hash, backup_record on result write.
 - Return GIT_COMMIT_FAILED diagnostic if project git commit fails; write still succeeds.
 write_pipeline:
-- read_file_bytes
-- compute_old_hash
-- load_document_with_document_io
-- apply_operations_with_mutations
-- validate_changed_paths_against_expected_operations
-- validate_document_with_validation
-- render_with_document_io
-- validate_rendered_output_with_validation
-- create_backup_if_not_dry_run
-- atomic_replace_if_not_dry_run
-- reread_and_compute_new_hash
-- return_checked_write_result
+- 'write_buf: atomic write, no backup, no read-back.'
+- 'write_result: backup_before_write -> atomic_write -> read_back_verify -> project_git_commit.'
 safety_rules:
 - dry_run=true must never write, backup, or change file bytes.
 - Mutation failure must prevent write.
