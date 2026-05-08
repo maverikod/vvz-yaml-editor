@@ -15,8 +15,8 @@ why_this_block_exists: 'Lower-level read tasks must understand the entire read/q
   The block must not be mixed with path grammar, mutation logic, validation internals,
   or write transactions.'
 owned_code_paths:
-- ai_editor/reader/
-- tests/reader/
+- ai_editor/formatters/yaml/compat/
+- tests/formatters/yaml/compat/
 owned_docs_paths:
 - docs/reader_api.md
 forbidden_code_paths:
