@@ -43,11 +43,19 @@ allowed_dependencies:
   - G-010 formatter backends public contracts
   - mcp_proxy_adapter SimpleConfig/SimpleConfigModel/BaseValidator for config integration
 public_contracts_provided:
-- AbstractBuffer
-- editor buffer registry
-- file-backed and unsaved buffer lifecycle
-- checked save/save_as orchestration
-- format-independent copy/cut/paste orchestration over BufferAddress
+- AbstractBuffer — class with methods listed in /abstract_buffer_contract/methods.
+  Owns file-backed and unsaved buffer lifecycle. Does not know YAML paths or text
+  line ranges.
+- BufferRegistry — maps (session_key, file_path) -> buffer_id. Enforces one open buffer
+  per file per session.
+- 'BufferState — the result of get_state(): filename, relative_path, formatter, modified,
+  readonly, buffer_status (normal | small_file | format_fallback).'
+- 'BufferAddress — dataclass: buffer_id (str), address (Any). address is opaque to
+  editor core; interpreted only by the formatter.'
+- Checked save/save_as orchestration — validate -> render -> stale-check -> write_result
+  via writer.py.
+- Format-independent copy/cut/paste orchestration over BufferAddress — delegates fragment
+  operations to formatter.
 abstract_buffer_contract:
   methods:
   - open(session_key, file_path, formatter=auto, open_as_text=False, readonly=False)
