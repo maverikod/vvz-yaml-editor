@@ -49,7 +49,7 @@ allowed_dependencies:
   - G-010/T-002 FormatterRegistry (to register itself)
   - G-001 contracts (ValidationResult, ADDRESS_INVALID, ADDRESS_NOT_FOUND)
   provides_to:
-  - G-010/T-007 (integration verification)
+  - G-010/T-004 (YAML formatter integration verification)
   - G-009 editor core (formatter fallback)
   - G-015 session layer (render after mutation)
 public_contracts_provided:
