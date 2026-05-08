@@ -29,6 +29,7 @@ owned_docs_paths:
 forbidden_code_paths:
 - ai_editor/formatters/
 - ai_editor/search/
+- ai_editor/sessions/
 - ai_editor/path_language/
 - ai_editor/mutations/
 - ai_editor/validation/
