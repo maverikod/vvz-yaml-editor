@@ -121,7 +121,7 @@ allowed_dependencies:
   may_be_used_by:
   - G-009 editor core and buffer registry (opens .py via CSTFormatter)
   - G-011 universal search layer (iter_units via CSTFormatter)
-  - G-008 public interfaces (validate_file for .py)
+  - ai_editor/file_validation.py (validate_file for .py)
   - G-015 session layer (calls render() and write_sidecar after mutation)
   - G-014 project refactor (reference search via CSTFormatter directly, no session)
   may_depend_on:
