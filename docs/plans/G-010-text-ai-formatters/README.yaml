@@ -33,15 +33,16 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
-  may_depend_on:
-  - G-002 YAML document model and deterministic renderer concepts
-  - G-003 YAML path language concepts
-  - G-006 validation contracts
   may_be_used_by:
   - G-009 editor core and buffer registry
   - G-011 universal search layer
   - G-008 public interfaces and CLI adapter
-  - G-013 cst formatter (depends on AbstractFormatter contract defined here)
+  - G-013 CST formatter (depends on AbstractFormatter contract)
+  - G-015 session layer (calls render() after mutation for git commit and .buf write)
+  may_depend_on:
+  - G-002 YAML document model concepts (internal to this step)
+  - G-003 YAML path language concepts (internal to this step)
+  - G-001 package contracts
 public_contracts_provided:
 - AbstractFormatter
 - text formatter backend
