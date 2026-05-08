@@ -575,7 +575,10 @@ acceptance_criteria:
 - 'list_units() returns flat list: stable_id, type, kind, name, qualname, start_line,
   end_line. No bodies.'
 - cst_query results in declarative format. Full body via get_unit(stable_id).
-- CSTFormatter has no global state. Tree lifetime managed by editor core.
+- append_persisted_node_ids and render_marker_block (from node_id_markers.py) are
+  FORBIDDEN — they write markers to disk. set_stable_id and get_stable_id are ALLOWED
+  ONLY as in-memory mutation transport for FunctionDef/ClassDef during INSERT/DELETE/MOVE
+  — result must never reach render() output or disk.
 - append_persisted_node_ids, render_marker_block, set_stable_id (in mutation), get_stable_id
   (in mutation) absent from adapted code.
 - All five mutation operations work with stable_id. SimpleStatementSuite auto-expanded.
