@@ -417,6 +417,10 @@ validation_requirements:
   - status must be one of draft, ready_for_review, ready_for_implementation, blocked.
 error_model:
   typed_errors:
+  - SESSION_NOT_FOUND
+  - SESSION_EXPIRED
+  - SESSION_LOCK_CONFLICT
+  - SESSION_HAS_UNSAVED_BUFFERS
   - BUFFER_NOT_FOUND
   - BUFFER_ALREADY_OPEN
   - BUFFER_HAS_UNSAVED_CHANGES
@@ -457,9 +461,6 @@ error_model:
   - BACKUP_FAILED
   - SAVE_TARGET_EXISTS
   - SAVE_TARGET_MISSING
-  - SESSION_NOT_FOUND
-  - SESSION_EXPIRED
-  - SESSION_LOCK_CONFLICT
   - UNDO_AT_BEGINNING
   - REDO_AT_END
   - HISTORY_UNAVAILABLE
