@@ -100,10 +100,13 @@ verification:
   - After every mutation session layer commits rendered buffer to session git branch.
   scope: internal_g010_mutations
 acceptance_criteria:
-- Mutation code is independent from reader, validation, writer, and interfaces.
-- Every operation reports exact changed_paths.
-- Invalid target types return typed errors.
-- Lower-level mutation tasks can be decomposed without touching other subsystems.
+- No standalone ai_editor/mutations/ module exists.
+- All mutation code lives inside the formatter that owns it (G-010 for YAML/text,
+  G-013 for CST).
+- AbstractFormatter abstract mutation methods are defined in G-010.
+- After every successful mutation the session layer (G-015) commits rendered buffer
+  to session git.
+- Tactical steps T-001..T-008 under this directory are OBSOLETE.
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement mutation operations inside each formatter. AbstractFormatter
