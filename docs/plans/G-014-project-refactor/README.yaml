@@ -122,7 +122,8 @@ safety_checkpoint_policy:
   git_not_available:
     before_rename:
     - create file backup for every file that will be modified
-    - backup policy same as G-007 transaction_writer backup stage
+    - 'backup policy: same as ai_editor/writer.py backup mechanism (copy to .bak before
+      write)'
     after_success:
     - backups retained until explicitly cleared
     on_any_failure:
