@@ -82,10 +82,9 @@ module_architecture:
     purpose: Text formatter backend. Represents documents as arrays of lines and owns
       text address, text unit, text validation, and text copy/cut/paste semantics.
   - path: ai_editor/formatters/yaml/
-    purpose: YAML formatter backend. Represents documents as YAML trees (ruamel.yaml) and owns YAML
-      address, YAML unit, structural path, format validation, render validation, and
-      YAML copy/cut/paste semantics.
-      YAML copy/cut/paste semantics.
+    purpose: YAML formatter backend. Represents documents as YAML trees (ruamel.yaml)
+      and owns YAML address, YAML unit, structural path, format validation, render
+      validation, and YAML copy/cut/paste semantics. YAML copy/cut/paste semantics.
   - path: ai_editor/formatters/foreign.py
     purpose: ForeignFormatter implementation of AbstractFormatter that delegates complex
       formatter operations to external OpenAPI/MCP-proxy-adapter backed servers while
@@ -134,8 +133,7 @@ module_architecture:
       target is ai_editor.interfaces.cli:main.
   - path: tests/
     purpose: Unit and integration tests over buffer lifecycle, format validation,
-      foreign formatter contract, search, text formatter, AI formatter, and real
-      fixtures.
+      foreign formatter contract, search, text formatter, AI formatter, and real fixtures.
 public_api:
   core_commands:
   - name: open
@@ -693,8 +691,8 @@ implementation_steps:
   verification:
   - python -m build succeeds.
   - twine check dist/* succeeds.
-  - python -c "import ai_editor; print(ai_editor.__version__)" succeeds after
-    wheel install.
+  - python -c "import ai_editor; print(ai_editor.__version__)" succeeds after wheel
+    install.
 model_assignment_spec:
   title: Implement editor-core package with buffer, formatter, and search abstractions
     from docs/tech_spec.md
@@ -896,3 +894,149 @@ workflow_clipboard:
   - CLIPBOARD_INVALID_MODE
   - ADDRESS_INVALID
   - ADDRESS_NOT_FOUND
+session_model:
+  overview: The editor operates in sessions. A session is a named unit of work with
+    its own set of open buffers, temporary storage, and operation history. Sessions
+    are created on connect and destroyed on disconnect or explicit close. Multiple
+    sessions may run concurrently; the same file may not be open for writing in two
+    sessions simultaneously.
+  session_lifecycle:
+    connect: 'Client connects and receives a session_key (UUID4). Along with it the
+      client receives session_descriptor: the list of buffer_descriptors for all buffers
+      already open in that session (empty on first connect).'
+    reconnect: Client provides session_key on reconnect and receives the current session_descriptor
+      without re-opening files.
+    disconnect: Session remains alive for a configurable idle_timeout after disconnect.
+      All open buffers retain their state. On explicit close or timeout expiry all
+      buf files are removed, git buffer branches are deleted, and write locks are
+      released.
+    invariants:
+    - session_key is UUID4, assigned once, never reused.
+    - Each session has exactly one .ses file on disk.
+    - A session with no open buffers is still a valid session until explicitly closed
+      or timed out.
+  session_file:
+    path_pattern: <sessions_dir>/<session_key>.ses
+    format: 'JSON: {session_key, created_at, last_active_at, idle_timeout_seconds,
+      buffer_ids: [...]}'
+    purpose: Persistent session record. Survives server restart. Allows session recovery
+      on reconnect.
+    not_indexed: The .ses file is never submitted to the code analysis indexer. Its
+      name is UUID4 only with no project path component.
+    sessions_dir: 'Configured via ai_editor section in config.json: sessions.dir.
+      Default: <project_root>/.ai_editor_sessions/'
+  buffer_descriptor:
+    description: Returned to the client on connect, reconnect, and after every open/new/close
+      operation.
+    fields:
+      buffer_id: UUID4 string. Stable for the lifetime of the buffer within the session.
+      session_key: UUID4 of the owning session.
+      real_file_path: Absolute path of the real file on disk. Null for new unsaved
+        buffers.
+      formatter: Name of the active formatter (text, yaml, cst, foreign, ...).
+      open_mode: readonly | readwrite
+      modified: Boolean. True if any mutation operation has been applied to the buffer
+        since open or last save.
+      buf_file_path: Path to the temporary buffer file on disk (see buffer_file).
+  buffer_file:
+    path_pattern: <sessions_dir>/<session_key>_<buffer_id>.buf
+    purpose: Temporary on-disk copy of the buffer content. Written after every mutation
+      operation so buffer state survives server restart. Loaded on session recovery.
+    not_indexed: The .buf file is never submitted to the code analysis indexer.
+    write_policy: Every mutation to the buffer (any operation that sets modified=true)
+      triggers an immediate write of the current rendered content to the .buf file.
+    cleanup: Deleted when the buffer is closed (with or without save) or when the
+      session expires.
+  write_lock_policy:
+    rule: The same real file may not be open for writing (open_mode=readwrite) in
+      two different sessions simultaneously.
+    enforcement: 'Checked at open() time using files.editing_pid extended with session_key:
+      if a live session already holds a readwrite lock on the file -> return BUFFER_LOCKED
+      with holder session_key.'
+    readonly_allowed: Any number of sessions may open the same file in readonly mode
+      simultaneously.
+    own_session: A session may not open the same file twice. Second open() of the
+      same real_file_path within the same session returns the existing buffer_id.
+    lock_columns: files table gains session_key VARCHAR NULL column alongside editing_pid.
+      Both must match on release.
+  operation_protocol:
+    description: All operations after connect are identified by session_key + buffer_id.
+      The file_path is never used as an operation target after open.
+    request_shape:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      operation: string (open | new | save | save_as | close | validate | find | find_one
+        | list_units | copy | cut | paste | undo | redo | ...)
+      params: operation-specific dict
+    invariants:
+    - All mutations are applied to the in-memory buffer and the .buf file only.
+    - The real file on disk is written only by the save and save_as operations.
+    - close without save discards the .buf file and releases the write lock. The real
+      file is unchanged.
+    - readonly buffers reject all mutation operations with BUFFER_READONLY error.
+  operation_history:
+    description: Every mutation operation on a buffer is recorded as a git commit
+      in a dedicated per-buffer branch. This provides full undo/redo history for the
+      lifetime of the buffer.
+    git_repo: '[TBD: branch is created in the git repository of the real file''s project
+      if git is available there; otherwise a bare internal git repo under sessions_dir
+      is used as fallback.]'
+    branch_naming: buf/<session_key>/<buffer_id>
+    on_open:
+    - 'If the real file is under a git repo: create branch buf/<session_key>/<buffer_id>
+      from HEAD of that repo.'
+    - 'If no git repo is found: create a bare internal git repo under <sessions_dir>/git/
+      and init the branch there with the file content as the first commit.'
+    on_mutation: 'After every successful mutation operation: render buffer to string
+      and commit to the buffer branch. Commit message: ''<operation_name>: <brief
+      params summary>''. This is the source of truth for undo/redo.'
+    on_save: save/save_as writes the real file from the current buffer content. Does
+      NOT merge or touch the main git branch of the project.
+    on_close:
+    - Delete branch buf/<session_key>/<buffer_id> from the git repo (local branch
+      only, never pushed).
+    - Delete the .buf file.
+    - Release write lock.
+    undo:
+      operation: undo(session_key, buffer_id, steps=1)
+      behavior: git checkout to (HEAD~steps) on the buffer branch; reload buffer content
+        from that commit; update .buf file; modified flag stays true unless HEAD~steps
+        equals the original open commit.
+      limit: Cannot undo past the first commit (the open snapshot). Returns UNDO_AT_BEGINNING
+        if already at first commit.
+    redo:
+      operation: redo(session_key, buffer_id, steps=1)
+      behavior: git checkout to the next commit(s) forward on the buffer branch (requires
+        tracking the redo stack as reflog or detached HEAD forward traversal). Returns
+        REDO_AT_END if already at latest commit.
+    invariants:
+    - Git commits on the buffer branch never touch the working tree of the project.
+    - Buffer branch is always local. Never pushed to any remote.
+    - Undo/redo only move HEAD on the buffer branch. They do not affect the real file
+      until save is called.
+    - If git operations fail (disk full, corrupted repo) the operation proceeds without
+      history; a HISTORY_UNAVAILABLE diagnostic is attached to the response.
+  new_error_codes:
+  - BUFFER_READONLY
+  - SESSION_NOT_FOUND
+  - SESSION_EXPIRED
+  - UNDO_AT_BEGINNING
+  - REDO_AT_END
+  - HISTORY_UNAVAILABLE
+  - SESSION_LOCK_CONFLICT
+  new_public_api_additions:
+    session_commands:
+    - connect(idle_timeout_seconds=3600) -> {session_key, session_descriptor}
+    - reconnect(session_key) -> {session_key, session_descriptor}
+    - disconnect(session_key)
+    - 'session_status(session_key) -> {session_key, open_buffers: [buffer_descriptor],
+      ...}'
+    buffer_commands_extended:
+    - open(session_key, file_path, formatter=auto, open_mode=readwrite) -> buffer_descriptor
+    - new(session_key, formatter, display_name) -> buffer_descriptor
+    - close(session_key, buffer_id, save=false)
+    - undo(session_key, buffer_id, steps=1)
+    - redo(session_key, buffer_id, steps=1)
+    all_existing_commands_extended: All existing buffer commands (save, save_as, validate,
+      find, find_one, list_units, copy, cut, paste, ...) gain session_key as a required
+      parameter alongside buffer_id.
