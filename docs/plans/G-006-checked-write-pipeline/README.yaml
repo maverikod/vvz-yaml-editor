@@ -102,10 +102,13 @@ acceptance_criteria:
   tasks.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only validation, schema, semantic, and render-check logic.
-    Do not edit document_io, path_language, mutations, transaction_writer, reader,
-    or interfaces. If validation needs rendered YAML, use document_io public rendering
-    contracts.
+  instruction: 'Implement validation inside each formatter. AbstractFormatter (G-010)
+    defines abstract methods: validate_content(raw_content) -> ValidationResult and
+    validate_document(document) -> ValidationResult. Each formatter implements these.
+    YAML formatter owns plan_task_v1 semantic rules, schema validation, and render
+    determinism check. CST formatter owns Python compile() validation. Text formatter
+    always returns success=true. Do not create ai_editor/validation/ as a standalone
+    module. Validation tests live under tests/formatters/.'
 observations_template:
 - command: ''
   expected: ''
