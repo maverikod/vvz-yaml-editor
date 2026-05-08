@@ -60,12 +60,12 @@ public_read_operations:
 - name: yaml_get_verification
   responsibility: Return the verification list from a plan task.
 subsystem_independence_rules:
-- This subsystem must not parse path strings itself; it must call path_language.
-- This subsystem must not configure ruamel.yaml; it must call document_io.
+- This subsystem must not parse path strings or configure ruamel.yaml directly — delegate
+  to G-010 YAMLFormatter.
+- This subsystem must not create ai_editor/reader/.
 - This subsystem must not apply mutations.
-- This subsystem must not run schema/semantic validation except through future validation
-  public contracts.
 - This subsystem must not write files, create backups, or implement CLI/MCP wrappers.
+- All YAML loading and path resolution must go through G-010/G-011 public contracts.
 implementation_outline:
 - Implement thin compat wrappers in ai_editor/formatters/yaml/compat/.
 - Delegate yaml_load/yaml_get/yaml_get_command/yaml_get_verification entirely to G-010
