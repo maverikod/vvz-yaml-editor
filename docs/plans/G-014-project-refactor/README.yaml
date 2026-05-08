@@ -41,7 +41,7 @@ forbidden_code_paths:
 - site-packages
 allowed_dependencies:
   may_be_used_by:
-  - G-008 public interfaces and CLI adapter
+  - ai_editor/api.py and ai_editor/interfaces/cli.py public API and CLI
   - external MCP wrappers via mcp-proxy-adapter job queue only
   may_depend_on:
   - G-001 contracts (ResultEnvelope, ErrorCode, Diagnostic)
