@@ -79,12 +79,13 @@ error_codes_owned:
 - SEMANTIC_VALIDATION_FAILED
 - RENDER_NOT_DETERMINISTIC
 subsystem_independence_rules:
-- This subsystem must not parse structural YAML paths.
-- This subsystem must not apply mutations.
-- This subsystem must not perform file backups or atomic writes.
-- This subsystem must not implement CLI or MCP wrappers.
-- Transaction writer and interfaces must call validation public contracts instead
-  of duplicating validation rules.
+- Validation must live inside the formatter that owns it. Do not create a standalone
+  validation module.
+- Formatters must not parse structural YAML paths in validation methods.
+- Formatters must not apply mutations inside validation methods.
+- Formatters must not perform file backups or atomic writes.
+- Formatters must not implement CLI or MCP wrappers.
+- Editor core (G-009) calls formatter.validate_document before every save/save_as.
 implementation_outline:
 - Validation is formatter-internal. Do not create ai_editor/validation/ or any standalone
   validation module.
