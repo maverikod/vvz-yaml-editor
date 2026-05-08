@@ -1129,30 +1129,25 @@ session_model:
         real file to disk — this is a normal file write, not a git operation performed
         by the editor.
     on_session_close:
-      trigger: Session close (explicit disconnect, idle_timeout expiry, or server-side
-        forced close).
-      steps:
-      - 'For each buffer_id in the session: delete branch buf/<session_key>/<buffer_id>
-        from the internal git repo (git branch -D). The entire mutation history of
-        that buffer is permanently discarded.'
-      - Delete the .buf file for each buffer.
-      - Release all write locks held by the session (UPDATE files SET editing_pid
-        = NULL, session_key = NULL WHERE session_key = <session_key>).
-      - Delete the .ses file.
-      - 'After all branches of the session are deleted: run git gc --prune=now in
-        the internal repo to reclaim disk space from orphaned objects.'
       invariants:
-      - No branch, commit, or object belonging to a closed session is retained in
-        the internal git repo.
-      - git gc is run per session close, not on a schedule, to keep the internal repo
-        lean.
-      - If a branch deletion or gc fails (e.g. disk error), the failure is logged
-        and the session is still marked closed. Stale branches are cleaned up on next
-        server start via a startup sweep.
-      startup_sweep: 'On server start: scan all branches in the internal git repo
-        matching buf/*/*. For each, check if the corresponding .ses file exists and
-        is not expired. If not -> delete the branch immediately. This recovers from
-        crashes or hard kills that bypassed normal close.'
+      - No session directory, branch, commit, or object belonging to a closed session
+        is retained.
+      - 'Session directory deletion is atomic: rename to <session_key>.closing before
+        rmtree.'
+      - If deletion fails (disk error), failure is logged. Stale directories cleaned
+        on next startup sweep.
+      startup_sweep: 'On server start: scan sessions_base_dir for session directories.
+        For each: read session.ses, check if session is expired or file is missing/corrupt.
+        If so — release all write locks for that session_key in files table, then
+        delete the session directory. Recovers from crashes and hard kills.'
+      steps:
+      - Release all write locks held by the session (UPDATE files SET editing_pid=NULL,
+        session_key=NULL WHERE session_key=<session_key>).
+      - 'Delete the entire session directory atomically: rename <session_key>/ to
+        <session_key>.closing, then rmtree. Removes all .buf files, session.ses, git/,
+        clipboard.json.'
+      trigger: Session close (explicit disconnect with force=true, idle_timeout expiry,
+        or server-side forced close).
   new_error_codes:
   - BUFFER_READONLY
   - SESSION_NOT_FOUND
