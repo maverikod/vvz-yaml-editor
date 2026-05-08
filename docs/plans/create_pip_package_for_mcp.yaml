@@ -81,8 +81,9 @@ module_architecture:
   - path: ai_editor/editor_core/
     purpose: 'AbstractBuffer and buffer registry: file-backed/unsaved buffers, buffer
       fields (filename, relative_path, formatter, modified, readonly), open/save/save_as/close/reload
-      lifecycle, stale checks, and atomic persistence orchestration. Does not know
-      session keys, .ses/.buf files, or git. Does not know formatter internals.'
+      lifecycle, stale checks, and atomic persistence orchestration. Accepts session_key
+      as a required parameter but does not own ses_settings.json, .buf files, or session
+      git. Does not know formatter internals.'
   - path: ai_editor/sessions/
     purpose: 'Session layer (G-015): connect/reconnect/disconnect, session_key lifecycle,
       per-session directory (<sessions_base_dir>/<session_key>/), ses_settings.json
