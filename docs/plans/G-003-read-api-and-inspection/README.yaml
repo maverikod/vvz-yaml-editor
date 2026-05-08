@@ -36,14 +36,22 @@ allowed_dependencies:
   - G-001-package-contracts-and-distribution
   - G-002 document_io (at ai_editor/formatters/yaml/document_io/)
 public_contracts_provided:
-- YamlPath
-- PathToken
-- ResolvedNode
-- PathDiagnostic
-- parse_yaml_path(path_text)
-- normalize_yaml_path(path)
-- resolve_yaml_path(document, path)
-- resolve_parent_for_mutation(document, path)
+- YamlPath — dataclass holding a list of PathToken.
+- 'PathToken — union: MappingKey(key: str) | ListIndex(index: int) | ListFilter(key:
+  str, value: str).'
+- 'ResolvedNode — dataclass: node (ruamel.yaml object), normalized_path (str), parent
+  (ruamel.yaml object | None), parent_key (str | int | None).'
+- 'PathDiagnostic — dataclass: error_code (str, one of PATH_PARSE_FAILED / PATH_NOT_FOUND
+  / PATH_NOT_UNIQUE / TARGET_TYPE_MISMATCH), message (str), path_text (str).'
+- 'parse_yaml_path(path_text: str) -> YamlPath — tokenizes the path string. Raises
+  PathDiagnostic(PATH_PARSE_FAILED) on malformed input. Rejects empty string.'
+- 'normalize_yaml_path(path: YamlPath) -> str — renders the canonical string form
+  of a path.'
+- 'resolve_yaml_path(document: YamlDocument, path: YamlPath) -> ResolvedNode — traverses
+  the document tree. Raises PathDiagnostic(PATH_NOT_FOUND) if absent, PathDiagnostic(PATH_NOT_UNIQUE)
+  if filter matches multiple nodes.'
+- 'resolve_parent_for_mutation(document: YamlDocument, path: YamlPath) -> ResolvedNode
+  — resolves to the parent node and the final key/index, for use by mutation operations.'
 core_responsibilities:
 - Define path grammar for mapping keys, list indexes, and list filters.
 - Parse path strings into typed path tokens.
