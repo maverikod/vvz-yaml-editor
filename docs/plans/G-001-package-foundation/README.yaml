@@ -40,16 +40,18 @@ allowed_dependencies:
   may_be_used_by:
   - G-002 document_io
   - G-003 path_language
-  - G-004 reader_queries
+  - G-004 reader_queries (compat)
   - G-005 mutation_operations
   - G-006 validation_rules
   - G-007 transaction_writer
   - G-008 interfaces_release
   - G-009 editor_core_buffer_registry
-  - G-010 text_ai_formatters
+  - G-010 text_yaml_formatters
   - G-011 universal_search
   - G-012 foreign_formatters
   - G-013 cst_formatter
+  - G-014 project_refactor
+  - G-015 session_layer
 public_contracts_provided:
 - ResultEnvelope
 - ErrorCode (includes all session, buffer, formatter, search, clipboard, validation,
