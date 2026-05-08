@@ -48,7 +48,7 @@ allowed_dependencies:
   - G-010 AbstractFormatter (render after mutation for git commit)
   - gitpython (editor-internal bare git repo)
   may_be_used_by:
-  - G-008 public interfaces and CLI adapter
+  - ai_editor/api.py and ai_editor/interfaces/cli.py public API and CLI
 public_contracts_provided:
 - connect(idle_timeout_seconds, auto_write, readonly) -> SessionDescriptor
 - reconnect(session_key) -> SessionDescriptor
