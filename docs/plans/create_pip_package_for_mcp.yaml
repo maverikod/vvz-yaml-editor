@@ -1010,9 +1010,10 @@ coverage_gap_closures:
     write-lock enforcement across sessions, and session-scoped clipboard. G-009 owns
     AbstractBuffer lifecycle; G-015 aggregates and manages buffers through sessions.'
 - gap: git_in_editor_for_history
-  resolution: G-015 owns the editor-internal bare git repo (sessions_dir/git/). This
-    repo is separate from any project git. Project git is only touched by the save/save_as
-    operation writing the real file. gitpython is the chosen library for reliability
+  resolution: G-015 owns the editor-internal bare git repo (<session_dir>/git/). Each
+    session has its own isolated git repo. This repo is separate from any project
+    git. Project git is only touched by the save/save_as operation writing the real
+    file (write_result in writer.py). gitpython is the chosen library for reliability
     and API safety. It is a required runtime dependency of ai_editor.
 workflow_clipboard:
   purpose: Format-aware runtime clipboard for editor copy/cut/paste operations between
