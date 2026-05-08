@@ -104,12 +104,12 @@ verification:
   commands:
   - python -m pytest tests/search
   expected:
-  - Search lists text units through text formatter iter_units.
-  - Search lists YAML units through AI formatter iter_units.
+  - find(session_key, buffer_id, query) lists text units through text formatter iter_units.
+  - find(session_key, buffer_id, query) lists YAML units through YAML formatter iter_units.
   - find returns all matches for a valid query.
   - find_one returns SEARCH_NO_MATCH for zero matches.
   - find_one returns SEARCH_NOT_UNIQUE for multiple matches.
-  - Search returns formatter-provided addresses.
+  - Search returns formatter-provided addresses suitable for copy/cut/paste.
   - Search uses formatter.compare_units for ranking, dedupe, or equality checks.
 acceptance_criteria:
 - AbstractSearch has no file open/save/close responsibility.
