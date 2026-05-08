@@ -32,12 +32,13 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
-  may_depend_on:
-  - G-009 editor core buffer state access contracts
-  - G-010 formatter unit, match, and compare contracts
   may_be_used_by:
   - G-008 public interfaces and CLI adapter
-  - external MCP wrappers
+  - G-004 YAML compat wrappers (yaml_get_command, yaml_get_verification)
+  may_depend_on:
+  - G-009 AbstractBuffer public contracts (resolves buffer via session_key + buffer_id)
+  - G-010 formatter unit, match, and compare contracts
+  - G-015 session layer (session_key required for all search operations)
 public_contracts_provided:
 - AbstractSearch
 - formatter-unit search API
