@@ -45,10 +45,11 @@ public_contracts_provided:
 core_responsibilities:
 - Configure ruamel.yaml for round-trip parsing.
 - Preserve mapping order, comments, quotes, and block style where feasible.
-- Produce a YamlDocument object consumed by other subsystems.
-- Produce compact document summaries: format, node_id, commands, top_level_keys, valid_yaml.
-- Render documents deterministically enough for validation and writer subsystems to
-  check.
+- Produce a YamlDocument object consumed by YAMLFormatter internals.
+- 'Produce compact document summaries: format, node_id, commands, top_level_keys,
+  valid_yaml.'
+- Render documents deterministically enough for YAMLFormatter validate_document to
+  verify.
 subsystem_independence_rules:
 - This subsystem must not parse structural path strings.
 - This subsystem must not apply mutations.
