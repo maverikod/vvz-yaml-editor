@@ -772,21 +772,33 @@ This is identical to standard git branch behavior.
 
 ### Clipboard
 
-Clipboard is session-scoped. Lives in `<session_dir>/clipboard.json`.
+Clipboard is a separate object, session-scoped. Stored in `<session_dir>/clipboard.json`.
 
-Clipboard item:
+Clipboard item attributes:
 ```
-item_id, source_buffer_id, source_formatter, source_address,
-source_revision, payload_kind, payload
-```
-
-Every `copy` or `cut` writes `clipboard.json` and creates a git commit:
-```
-git commit: "clipboard: copy <address>"
+formatter   name of the formatter that produced the payload
+body        serialized string representation of the copied/cut fragment
 ```
 
-Cross-session paste is rejected with `SESSION_LOCK_CONFLICT`.
-Clipboard is deleted when session directory is deleted.
+**copy / cut:**
+- The selected fragment is serialized to a string by the source formatter.
+- The result is written to `clipboard.json` as `{formatter, body}`.
+- Every `copy` or `cut` produces a commit in session git:
+  ```
+  git commit: "clipboard: copy <address>"
+  git commit: "clipboard: cut <address>"
+  ```
+- Because every clipboard state is a session git commit, any previous clipboard
+  content can be recovered from session git history for the lifetime of the session.
+
+**paste:**
+- Content is read from `clipboard.json`.
+- If `clipboard.formatter` ≠ formatter of the target buffer → operation is rejected
+  with `CLIPBOARD_FORMAT_MISMATCH`. No partial paste occurs.
+- If formatters match → `body` is deserialized and inserted at the target address.
+
+Clipboard is deleted when the session directory is deleted (session close).
+Cross-session paste is not supported.
 
 ### write_all
 
