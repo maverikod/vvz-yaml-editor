@@ -551,12 +551,14 @@ acceptance_criteria:
 - CSTFormatter implements AbstractFormatter contract in full.
 - document model is CSTTree; public address is stable_id; node_id is internal only.
 - stable_id is assigned EXACTLY ONCE per node at first _build_tree_index. Value =
-  UUID4. Never reassigned, never changed, never re-embedded in source.
+  UUID4. Never reassigned, never changed, never written into .py source as a persisted
+  artifact.
 - stable_id is stored in TreeNodeMetadata.stable_id and persisted in sidecar metadata_map.
 - 'stable_id survives INSERT/DELETE/MOVE via inline comment transport (set_stable_id/get_stable_id
-  on FunctionDef/ClassDef) + previous_metadata_map + previous_obj_to_id. For REPLACE/REPLACE_DOCSTRING:
-  previous_metadata_map exact_key only. Inline comments are transient in-memory only
-  — never written to disk.'
+  on FunctionDef/ClassDef as transient in-memory mechanism) combined with previous_metadata_map
+  + previous_obj_to_id. For REPLACE/REPLACE_DOCSTRING: previous_metadata_map exact_key
+  only. Inline comments are TRANSIENT IN-MEMORY ONLY — stripped before _build_tree_index,
+  never written to disk, never visible in render() output.'
 - 'node_stable_id.py is used in two contexts: (1) at parse time: strip_inline_node_id_lines_from_source()
   as defensive cleaner for legacy files; (2) in INSERT/DELETE/MOVE mutation flow:
   set_stable_id/get_stable_id as transient in-memory transport for FunctionDef/ClassDef
@@ -579,13 +581,10 @@ acceptance_criteria:
   end_line. No bodies.'
 - cst_query results in declarative format. Full body via get_unit(stable_id).
 - append_persisted_node_ids and render_marker_block (from node_id_markers.py) are
-  FORBIDDEN — they write markers to disk. set_stable_id and get_stable_id are ALLOWED
-  ONLY as in-memory mutation transport for FunctionDef/ClassDef during INSERT/DELETE/MOVE
-  — result must never reach render() output or disk. All five mutation operations
-  work with stable_id. SimpleStatementSuite auto-expanded. Match rejected with clear
-  error.
-- append_persisted_node_ids, render_marker_block, set_stable_id (in mutation), get_stable_id
-  (in mutation) absent from adapted code.
+  FORBIDDEN — they write markers to disk as a persistence mechanism. set_stable_id
+  and get_stable_id are ALLOWED ONLY as transient in-memory mutation transport for
+  FunctionDef/ClassDef during INSERT/DELETE/MOVE — result must never reach render()
+  output or disk.
 - All five mutation operations work with stable_id. SimpleStatementSuite auto-expanded.
   Match rejected with clear error.
 model_assignment_spec:
