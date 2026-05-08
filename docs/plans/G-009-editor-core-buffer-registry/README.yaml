@@ -75,8 +75,6 @@ abstract_buffer_contract:
   - 'Own file edit lock: on open acquire editing_pid + session_key in files table;
     on close release both. Return BUFFER_LOCKED if another live process/session holds
     the lock.'
-  - 'Own file edit lock: on open acquire editing_pid + session_key in files table;
-    on close release it.'
   - Delegate parse/render to the buffer formatter.
   - Delegate address interpretation and fragment editing to the buffer formatter.
   - Delegate search/query behavior to AbstractSearch.
