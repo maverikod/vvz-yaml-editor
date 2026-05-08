@@ -45,9 +45,9 @@ allowed_dependencies:
   - G-013 CST formatter (depends on AbstractFormatter contract)
   - G-015 session layer (calls render() after mutation for git commit and .buf write)
   may_depend_on:
-  - G-002 YAML document model concepts (internal to this step)
-  - G-003 YAML path language concepts (internal to this step)
   - G-001 package contracts
+  - YAML document IO and path language are implemented internally within this step
+    under ai_editor/formatters/yaml/
 public_contracts_provided:
 - AbstractFormatter
 - text formatter backend
