@@ -1121,3 +1121,16 @@ session_model:
     all_existing_commands_extended: All existing buffer commands (save, save_as, validate,
       find, find_one, list_units, copy, cut, paste, ...) gain session_key as a required
       parameter alongside buffer_id.
+  clipboard_policy:
+    cross_session: Cross-session clipboard operations are rejected with SESSION_LOCK_CONFLICT.
+      A clipboard item created in session A cannot be pasted into a buffer in session
+      B.
+    purpose: Session-scoped format-aware clipboard for copy/cut/paste between buffers
+      within the same session. Clipboard state is workflow state and must not be stored
+      inside edited documents.
+    scope: Session-scoped. Each session has its own clipboard. Copy/paste is allowed
+      between any buffers within the same session. Cross-session clipboard access
+      is not permitted.
+    storage: Clipboard items are stored in memory during the session. Optionally persisted
+      to sessions_dir/<session_key>.clipboard for recovery on reconnect.
+    cleanup: All clipboard items are discarded when the session is closed.
