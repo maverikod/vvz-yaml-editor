@@ -198,6 +198,12 @@ required_error_code_groups:
   - CST_NODE_NOT_FOUND
   - CST_MUTATION_FAILED
   - CST_SIDECAR_INVALID
+  session:
+  - SESSION_NOT_FOUND
+  - SESSION_EXPIRED
+  - SESSION_LOCK_CONFLICT
+  - SESSION_HAS_UNSAVED_BUFFERS
+  - SESSION_READONLY
 responsibilities:
 - Define stable error code values referenced by the technical specification.
 - Separate parse, path, validation, render, backup, and write errors.
