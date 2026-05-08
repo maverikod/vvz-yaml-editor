@@ -76,53 +76,18 @@ abstract_buffer_contract:
   - Delegate address interpretation and fragment editing to the buffer formatter.
   - Delegate search/query behavior to AbstractSearch.
 buffer_model:
-  file_backed_buffer:
-    required_fields:
-    - buffer_id
-    - file_path
-    - formatter
-    - document
-    - original_hash
-    - current_hash
-    - dirty
-    - revision
-    - status
-  unsaved_buffer:
-    required_fields:
-    - buffer_id
-    - file_path: null
-    - display_name
-    - formatter
-    - document
-    - original_hash: null
-    - current_hash
-    - dirty: true
-    - revision
-    - status
-  invariants:
-  - One file_path must not have two open buffers.
-  - Reopening an already open file returns the existing buffer_id.
-  - Formatter is stored on the buffer and determines address semantics.
-  - Copy does not change any buffer.
-  - Cut changes the source buffer and sets dirty=true.
-  - Paste changes the target buffer and sets dirty=true.
-  - Save and save_as are the only editor operations that write files.
-  - Save rejects stale file-backed buffers when disk_hash differs from original_hash.
-  - Save aborts when formatter.validate_document returns success=false.
-  - open_as_text=True always uses text formatter regardless of file extension or size
-    threshold.
-  - Parse exception from structural formatter triggers fallback to text formatter;
-    buffer status is set to format_fallback.
-  - validate(buffer_id) can be called at any time without changing buffer state or
-    writing files.
-  - When formatter=auto and len(raw_content) < small_file_threshold, text formatter
-    is used without attempting structural parse; buffer status is set to small_file.
-  - open() acquires editing_pid lock in files table before parse. If another live
-    process holds editing_pid -> return BUFFER_LOCKED, do not open buffer.
-  - close() releases editing_pid lock (SET editing_pid = NULL WHERE editing_pid =
-    os.getpid()) in finally block. Guaranteed even on error.
-  - save/save_as verify editing_pid = os.getpid() before writing. If not -> return
-    BUFFER_STALE.
+  buffer_fields:
+    filename: Bare file name without path (e.g. README.yaml). Set at open time, never
+      changes.
+    formatter: Formatter name assigned at open time. Never changes.
+    modified: Boolean. True if any mutation applied since open or last save. Always
+      False when readonly=True.
+    readonly: 'Boolean. Set at open time, never changes. If True: mutations rejected,
+      .buf not written, no write-lock, modified always False.'
+    relative_path: Path relative to project root. Null for new unsaved buffers. Set
+      at open time, never changes.
+  note: AbstractBuffer does not know session_key, .ses/.buf files, or git. Those belong
+    to G-015.
 buffer_address_contract:
   required_fields:
   - buffer_id
