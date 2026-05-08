@@ -257,14 +257,24 @@ observations_template:
   root_cause: ''
   status: ''
 quality_loop_observations:
-  action: added SESSION_NOT_FOUND/EXPIRED/LOCK_CONFLICT/HAS_UNSAVED_BUFFERS/READONLY,
+- action: added error_code_contract representation_policy, required values, and invariants
+  iteration: 1
+  point: G-001/T-004
+  problem: ErrorCode representation was under-specified as constants or enum-like
+    values without exact value rules
+  status: fixed
+- action: replaced it with explicit coverage of every typed error listed in docs/tech_spec.md
+  iteration: 1
+  point: G-001/T-004
+  problem: acceptance criterion used ambiguous wording about the technical-spec minimum
+    interface
+  status: fixed
+- action: added SESSION_NOT_FOUND/EXPIRED/LOCK_CONFLICT/HAS_UNSAVED_BUFFERS/READONLY,
     BUFFER_LOCKED/READONLY, UNDO_AT_BEGINNING/REDO_AT_END/HISTORY_UNAVAILABLE/GIT_COMMIT_FAILED/GIT_NOT_AVAILABLE,
-    RENAME_TARGET_NOT_FOUND/RENAME_INVALID_IDENTIFIER/RENAME_GIT_CHECKPOINT_FAILED/RENAME_ROLLBACK_FAILED
-    to required_error_codes; added session, undo_redo_git, rename groups to required_error_code_groups;
+    RENAME_* to required_error_codes; added session, undo_redo_git, rename groups;
     expanded buffer group
   iteration: 2
   point: G-001/T-004
-  problem: required_error_codes and required_error_code_groups missing session layer
-    (G-015), buffer readonly/locked, undo/redo/git history (G-015), and rename (G-014)
-    codes from error_model.typed_errors
+  problem: required_error_codes and required_error_code_groups missing session (G-015),
+    BUFFER_LOCKED/READONLY, undo/redo/git, and rename (G-014) codes from error_model.typed_errors
   status: fixed
