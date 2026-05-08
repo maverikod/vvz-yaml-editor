@@ -349,8 +349,13 @@ file_edit_lock_policy:
   code_reference: 'Adapt from code_analysis/core/database/file_edit_lock.py: try_acquire_file_edit_lock,
     release_file_edit_lock, editing_lock_holder_is_alive. Logic is already implemented
     and tested in the server codebase.'
-  db_column: files.editing_pid INTEGER NULL. Stores OS PID of the process that has
-    the file open for editing. NULL means unlocked.
+  db_column: files table has editing_pid INTEGER NULL and session_key VARCHAR NULL
+    columns. Both set atomically on open, both released on close. Lock acquired via
+    UPDATE files SET editing_pid = os.getpid(), session_key = <session_key> WHERE
+    path = ? AND (editing_pid IS NULL OR editing_pid = <dead_pid>). 0 rows affected
+    -> BUFFER_LOCKED. Released via UPDATE files SET editing_pid = NULL, session_key
+    = NULL WHERE editing_pid = os.getpid() AND session_key = <session_key> in finally
+    block.
   error_code: 'BUFFER_LOCKED (add to ErrorCode in G-001 T-004 if not already present).
     Message: ''File is locked by process {pid}. Another editor has this file open.'''
   purpose: Prevent concurrent writes to the same file by different editor processes.
