@@ -90,7 +90,12 @@ verification:
   - python -m pytest tests/formatters/foreign
   expected:
   - ForeignFormatter implements the same AbstractFormatter contract as local formatters.
-  - validate_content delegates to the external formatter and maps successful results.
+  - ForeignFormatter validate_content delegates to the external formatter and maps
+    successful results.
+  - ForeignFormatter validate_document delegates to the external formatter.
+  - ForeignFormatter mutate_set, mutate_append, mutate_delete etc. delegate to external
+    formatter commands.
+  - ForeignFormatter write(content, path) uses default ai_editor/writer.py implementation.
   - Nested success=false is returned as local success=false.
   - Missing nested result.success returns FOREIGN_FORMATTER_CONTRACT_VIOLATION.
   - Timeout returns FOREIGN_FORMATTER_TIMEOUT.
