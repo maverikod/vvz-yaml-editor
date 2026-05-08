@@ -24,8 +24,9 @@ owned_docs_paths:
 - docs/search.md
 forbidden_code_paths:
 - ai_editor/editor_core/
-- ai_editor/formatters/text/
-- ai_editor/formatters/yaml/
+- ai_editor/formatters/yaml/document_io/
+- ai_editor/formatters/yaml/compat/
+- ai_editor/sessions/
 - ai_editor/interfaces/
 - .venv
 - venv
