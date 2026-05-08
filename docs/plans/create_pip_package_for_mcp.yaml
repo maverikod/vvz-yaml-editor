@@ -1070,7 +1070,7 @@ session_model:
       Each session has its own isolated git repo. Created on connect, deleted with
       the session directory on session close. Branch naming: buf/<buffer_id>. No connection
       to any project git repository.'
-    branch_naming: buf/<session_key>/<buffer_id>
+    branch_naming: buf/<buffer_id>
     on_open:
     - Initialize bare internal git repo at <sessions_dir>/git/ on first use (git init
       --bare). This repo is shared across all sessions and buffers.
