@@ -612,12 +612,19 @@ cst_list_units()        — flat list: stable_id, type, kind, name, qualname, st
 Compiles `tree.module.code` via Python `compile()` built-in.
 Returns syntax diagnostics. Does not write files.
 
+
 ---
+
+## G-008 — Session layer
+
+Owns: `ai_editor/sessions/`, `tests/sessions/`.
+
+### Session: general principles
 
 A session is a directory on disk. It exists as long as its directory exists.
 There is no TTL and no auto-deletion. If the `session_id` is known, the session is accessible.
 
-The session directory is the editor’s working space:
+The session directory is the editor's working space:
 
 ```
 <sessions_base_dir>/<session_id>/
