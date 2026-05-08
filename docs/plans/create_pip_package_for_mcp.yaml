@@ -1043,9 +1043,13 @@ session_model:
         if already at first commit.
     redo:
       operation: redo(session_key, buffer_id, steps=1)
-      behavior: git checkout to the next commit(s) forward on the buffer branch (requires
-        tracking the redo stack as reflog or detached HEAD forward traversal). Returns
-        REDO_AT_END if already at latest commit.
+      behavior: Move HEAD forward by steps commits on the buffer branch. Only valid
+        if no new mutation has occurred since the last undo. Returns REDO_AT_END if
+        already at the latest commit.
+      redo_stack_policy: Redo stack is derived from the git reflog position on the
+        buffer branch. Any new mutation after an undo creates a new commit on the
+        branch, permanently discarding the redo future (exactly like standard git).
+        The redo stack resets on every new mutation.
     invariants:
     - Git commits on the buffer branch never touch the working tree of the project.
     - Buffer branch is always local. Never pushed to any remote.
