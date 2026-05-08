@@ -58,14 +58,9 @@ subsystem_independence_rules:
 - This subsystem must not write files atomically or create backups.
 - Other subsystems must use document_io APIs instead of configuring ruamel.yaml themselves.
 tactical_scope_rule:
-- Tactical README.yaml files under this global step are T-001 through T-007 in numeric
-  order by tactical_step_id.
-- Each tactical step edits only its owned_code_paths, owned_test_paths, and owned_docs_paths.
-- YamlDocument is introduced in T-002; DocumentSummary and summarize_yaml_document
-  in T-005; ParseDiagnostic in T-006; load and parse entry points in T-003; rendering
-  in T-004; cross-module integration coverage in T-007.
-- T-007 is tests-only; it must not take ownership of production modules owned by T-001
-  through T-006.
+- Tactical steps T-001..T-007 are internal to G-010 and live under docs/plans/G-010-text-ai-formatters/.
+- Each tactical step edits only ai_editor/formatters/yaml/document_io/ and tests/formatters/yaml/document_io/.
+- Do not create standalone tests/document_io/ — all tests live under tests/formatters/yaml/.
 implementation_outline:
 - Create document_io package with loader, renderer, and summary modules.
 - Define document representation wrappers without exposing mutable global state.
