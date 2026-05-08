@@ -1054,30 +1054,44 @@ session_model:
     sessions may run concurrently; the same file may not be open for writing in two
     sessions simultaneously.
   session_lifecycle:
-    connect: Client calls connect(idle_timeout_seconds=3600). Server creates session
-      directory <sessions_base_dir>/<session_key>/, writes session.ses, initialises
-      bare git repo at <session_dir>/git/. Returns session_key and empty session_descriptor.
+    attributes:
+      auto_write: 'Boolean. Default False. Set at connect, never changes. If True:
+        after every successful mutation the session layer immediately writes the rendered
+        buffer to the real file (result write path: backup + atomic write + read-back).
+        New unsaved buffers (real_file_path=null) are silently skipped.'
+      created_at: ISO-8601 datetime with seconds precision. Set at connect. Never
+        changes.
+      last_active_at: ISO-8601 datetime with seconds precision. Updated on every operation.
+      readonly: 'Boolean. Default False. Set at connect, never changes. If True: all
+        buffers opened or already open in this session have readonly=True forced unconditionally.
+        Mutation operations rejected with BUFFER_READONLY. close_unsaved check is
+        skipped on disconnect (no modified buffers possible).'
+    connect: Client calls connect(idle_timeout_seconds=3600, auto_write=False, readonly=False).
+      Server creates session directory <sessions_base_dir>/<session_key>/, writes
+      ses_settings.json, initialises bare git repo at <session_dir>/git/. Returns
+      session_key and empty session_descriptor.
     disconnect: Session directory and all contents remain on disk for idle_timeout
       seconds. State fully preserved.
     invariants:
     - session_key is UUID4, assigned once, never reused.
     - Session directory exists iff session is active or within idle_timeout.
     - A session with no open buffers is valid until explicitly closed or timed out.
-    reconnect: Client provides session_key. Server locates <sessions_base_dir>/<session_key>/,
-      reads session.ses, restores buffer list from .buf files. Returns session_descriptor.
-      Git repo already intact.
+    - auto_write and readonly are set at connect and never change for the lifetime
+      of the session.
+    - 'If readonly=True: close_unsaved check is always skipped.'
+    reconnect: Client calls reconnect(session_key). Server reads ses_settings.json,
+      restores all session attributes (auto_write, readonly) and buffer list. Returns
+      session_descriptor.
     session_close: All buffers closed, write locks released, session directory deleted
-      atomically (rename to <session_key>.closing then rmtree). Includes git/, all
-      .buf files, session.ses.
+      atomically (rename to <session_key>.closing then rmtree).
     explicit_close:
-      close_unsaved_false: Default and safe path. Before closing, check every open
-        buffer for modified=True. If any modified buffer exists — abort, return SESSION_HAS_UNSAVED_BUFFERS
-        with list of modified buffer_ids. Session and all buffers remain intact.
+      close_unsaved_false: 'Default and safe path. If session.readonly=False: check
+        every open buffer for modified=True. If any modified buffer exists — abort,
+        return SESSION_HAS_UNSAVED_BUFFERS. If session.readonly=True: skip check (no
+        modified buffers possible).'
       close_unsaved_true: Force-close regardless of modified flags. All unsaved buffer
-        changes permanently discarded. Real files unchanged. Must be passed explicitly
-        — never the default.
-      idle_timeout_expiry: Always behaves as close_unsaved=True. Session expired —
-        all unsaved changes lost. The only implicit close_unsaved=True.
+        changes permanently discarded. Real files unchanged. Must be passed explicitly.
+      idle_timeout_expiry: Always behaves as close_unsaved=True.
       param: disconnect(session_key, force=True, close_unsaved=False)
   session_file:
     path_pattern: <sessions_base_dir>/<session_key>/session.ses
