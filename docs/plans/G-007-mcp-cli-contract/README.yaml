@@ -158,21 +158,22 @@ branch_self_containment_policy:
   no T step under G-007 may include work from parser internals, mutation internals,
   validation internals, interfaces, CLI, MCP wrappers, or unrelated branches.
 persistence_safety_policy:
-  detection: check git rev-parse --is-inside-work-tree in file directory at write
-    time
+  detection: Not applicable. transaction_writer never checks for project git.
+  editor_git_note: Editor-internal git (sessions_dir/git/) is owned by G-015, not
+    by transaction_writer. transaction_writer is called by G-015 session layer as
+    part of save/save_as, after the mutation has already been committed to the buffer
+    branch.
   git_available:
-    before_write: create git commit with pre-write snapshot; tag optional per caller
-      policy
-    on_failure: git state is not rolled back by transaction_writer; caller (e.g. G-014)
-      owns rollback via git checkout
-    rationale: git is the canonical versioning mechanism; backups are a fallback only
+    before_write: Create file backup only. No git commit on project repo.
+    on_failure: Restore from backup.
+    rationale: Project git is not the editor's responsibility. Backup is always the
+      safety mechanism for save/save_as.
   git_not_available:
-    before_write: create file backup per existing backup_stage policy
-    on_failure: restore from backup
-    rationale: backup is the fallback when git is not available
-  invariant: Exactly one safety mechanism is active per write. Transaction writer
-    never runs a real write without either a git snapshot or a file backup preceding
-    it.
+    before_write: Create file backup.
+    on_failure: Restore from backup.
+    rationale: Same behavior regardless of project git presence.
+  invariant: transaction_writer always uses file backup as safety before write. Never
+    touches project git. Editor git is G-015's responsibility.
 git_policy:
   editor_git:
     applies_to: Every buffer mutation (any operation that changes buffer content).
