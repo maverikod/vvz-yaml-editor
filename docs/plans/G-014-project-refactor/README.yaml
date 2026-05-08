@@ -13,9 +13,12 @@ source_documents:
 - docs/metadatastd.md
 global_intent: 'Own project-wide rename refactoring: rename a method, class, or package
   name across all files in project_root, updating all references. Always executed
-  through the mcp-proxy-adapter job queue. Always preceded by a git tag + commit (or
-  file backups when git is unavailable). Any failure triggers automatic full rollback
-  via git checkout or backup restore before returning an error.'
+  through the mcp-proxy-adapter job queue as an async job. Always preceded by a git
+  tag + commit in the project git repo (or file backups when git is unavailable).
+  Any failure triggers automatic full rollback. Rename works directly through CSTFormatter
+  without a session — it reads files, applies CST mutations in memory, writes files
+  via formatter.write(), and creates ONE multi-file git commit for all changed files.
+  No session layer is involved.'
 why_this_block_exists: Rename is a multi-file, long-running, dangerous operation that
   cannot safely run inline. It requires a safety checkpoint before execution, cross-file
   reference discovery, atomic commit of results, and guaranteed rollback on any failure.
