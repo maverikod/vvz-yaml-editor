@@ -1200,7 +1200,7 @@ session_model:
     on_close:
     - Release all write locks held by the session in files table.
     - 'Delete the entire session directory atomically: rename to <session_key>.closing,
-      then rmtree. This removes all .buf files, session.ses, git/, and clipboard.json
+      then rmtree. This removes all .buf files, ses_settings.json, git/, and clipboard.json
       in one operation.'
     undo:
       operation: undo(session_key, buffer_id, steps=1)
