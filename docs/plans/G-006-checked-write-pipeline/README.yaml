@@ -107,11 +107,12 @@ verification:
   - Validation never writes files or modifies buffer state.
   scope: internal_g010_g013_validation
 acceptance_criteria:
-- Validation subsystem owns all schema and semantic rules.
-- Writer can use validation as a gate without containing validation logic.
-- Interfaces can expose validation without duplicating implementation.
-- Lower-level validation tasks can be decomposed independently from writer and mutation
-  tasks.
+- No standalone ai_editor/validation/ module exists.
+- All validation code lives inside the formatter that owns it (G-010 for YAML/text,
+  G-013 for CST).
+- AbstractFormatter abstract validation methods are defined in G-010.
+- Editor core (G-009) calls formatter.validate_document as first stage of save/save_as.
+- Tactical steps T-001..T-009 under this directory are OBSOLETE.
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement validation inside each formatter. AbstractFormatter (G-010)
