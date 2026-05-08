@@ -81,7 +81,14 @@ module_architecture:
   - path: ai_editor/editor_core/
     purpose: 'AbstractBuffer and buffer registry: file-backed/unsaved buffers, dirty
       state, revision/hash state, open/save/save_as/close/reload lifecycle, stale
-      checks, and atomic persistence orchestration.'
+      checks, and atomic persistence orchestration. Does not know session keys, .ses/.buf
+      files, or git history.'
+  - path: ai_editor/sessions/
+    purpose: 'Session layer: owns connect/reconnect/disconnect, session_key lifecycle,
+      .ses and .buf file management, write-lock enforcement across sessions, per-buffer
+      git branch management in the editor-internal bare git repo, undo/redo via git
+      commits, and session-scoped clipboard. Aggregates and manages AbstractBuffer
+      instances. Owned by G-015.'
   - path: ai_editor/formatters/base.py
     purpose: 'AbstractFormatter contract: parse, render, validate_content, validate_document,
       validate, normalize_address, copy_fragment, cut_fragment, paste_fragment, get_unit,
@@ -95,7 +102,10 @@ module_architecture:
   - path: ai_editor/formatters/yaml/
     purpose: YAML formatter backend. Represents documents as YAML trees (ruamel.yaml)
       and owns YAML address, YAML unit, structural path, format validation, render
-      validation, and YAML copy/cut/paste semantics. YAML copy/cut/paste semantics.
+      validation, and YAML copy/cut/paste semantics.
+  - path: ai_editor/formatters/cst/
+    purpose: CST formatter backend (LibCST). Represents Python files as CST trees
+      with stable_id per node. Owned by G-013.
   - path: ai_editor/formatters/foreign.py
     purpose: ForeignFormatter implementation of AbstractFormatter that delegates complex
       formatter operations to external OpenAPI/MCP-proxy-adapter backed servers while
@@ -107,33 +117,20 @@ module_architecture:
   - path: ai_editor/search/
     purpose: 'AbstractSearch and universal search engine over formatter units: find,
       find_one, list_units, select, match_unit, and formatter-driven compare_units.'
+  - path: ai_editor/config/
+    purpose: AiEditorConfig, AiEditorConfigGenerator, AiEditorConfigValidator. Reads
+      ai_editor section from mcp_proxy_adapter config.json via SimpleConfig. Owned
+      by G-009.
   - path: ai_editor/api.py
-    purpose: High-level model-facing API for buffer lifecycle, validate_file, copy/cut/paste,
-      search, validation, and YAML compatibility wrappers intended for MCP command
-      handlers and project managers.
+    purpose: High-level model-facing API for session lifecycle, buffer lifecycle,
+      validate_file, copy/cut/paste, search, validation, and YAML compatibility wrappers
+      intended for MCP command handlers and project managers.
   - path: ai_editor/models.py
-    purpose: Typed request and response dataclasses or pydantic-free DTOs, including
-      BufferAddress, validation, buffer, formatter, foreign formatter, search, clipboard,
-      and compatibility request/response contracts.
-  - path: ai_editor/path_parser.py
-    purpose: YAML structural address parser for keys, indexes, and list filters such
-      as commands[name=buf_diff], owned by the AI formatter path layer.
-  - path: ai_editor/loader.py
-    purpose: YAML raw-content parse, tree summary, and parse diagnostics, used by
-      the AI formatter backend rather than by buffer lifecycle.
-  - path: ai_editor/operations.py
-    purpose: 'YAML in-memory formatter operations: set, replace_block, append, delete,
-      move, and paste modes.'
+    purpose: 'Typed request and response dataclasses: BufferAddress, BufferDescriptor,
+      SessionDescriptor, ValidationResult, OperationResult, clipboard and search contracts.'
   - path: ai_editor/clipboard.py
-    purpose: Format-aware clipboard payloads for editor copy/cut/paste operations,
-      including source_formatter, source_address, source_revision, payload_kind, and
-      payload.
-  - path: ai_editor/validator.py
-    purpose: YAML syntax validation, rendered YAML validation, schema validation,
-      and semantic validation, used by the AI formatter backend.
-  - path: ai_editor/renderer.py
-    purpose: Deterministic ruamel.yaml rendering with formatting preservation, used
-      by the AI formatter backend.
+    purpose: Session-scoped format-aware clipboard. Copy/paste allowed between buffers
+      within the same session only. Cleared on session close.
   - path: ai_editor/writer.py
     purpose: 'Checked persistence helper used by AbstractBuffer save/save_as: backups,
       hashes, atomic write, and read-back diagnostics.'
@@ -143,8 +140,9 @@ module_architecture:
     purpose: Small CLI wrapper for manual testing and MCP diagnostics; console script
       target is ai_editor.interfaces.cli:main.
   - path: tests/
-    purpose: Unit and integration tests over buffer lifecycle, format validation,
-      foreign formatter contract, search, text formatter, AI formatter, and real fixtures.
+    purpose: Unit and integration tests over session lifecycle, buffer lifecycle,
+      format validation, foreign formatter contract, search, text formatter, YAML
+      formatter, CST formatter, and real fixtures.
 public_api:
   core_commands:
   - name: open
