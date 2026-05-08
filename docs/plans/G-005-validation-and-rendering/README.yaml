@@ -83,13 +83,17 @@ implementation_outline:
 - Add tests for exact changed paths and no side effects outside selected nodes.
 verification:
   commands:
-  - python -m pytest tests/mutations
+  - python -m pytest tests/formatters/yaml/ -k mutation
+  - python -m pytest tests/formatters/cst/ -k mutation
+  - python -m pytest tests/formatters/text/ -k mutation
   expected:
-  - set modifies only the selected node.
-  - append with dedupe=true is idempotent.
-  - delete removes only the selected key or item.
-  - move changes only sequence ordering.
-  - failed batch leaves original in-memory document unchanged.
+  - YAML formatter mutate_set modifies only the selected node.
+  - YAML formatter mutate_append with dedupe=True is idempotent.
+  - YAML formatter mutate_delete removes only the selected key or item.
+  - YAML formatter mutate_move changes only sequence ordering.
+  - Failed batch leaves original in-memory document unchanged.
+  - After every mutation session layer commits rendered buffer to session git branch.
+  scope: internal_g010_mutations
 acceptance_criteria:
 - Mutation code is independent from reader, validation, writer, and interfaces.
 - Every operation reports exact changed_paths.
