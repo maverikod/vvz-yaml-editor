@@ -7,6 +7,7 @@ status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
 global_intent: 'Own ForeignFormatter: an AbstractFormatter implementation that delegates
   complex formatter operations to external servers through OpenAPI calls backed by
   mcp-proxy-adapter. Foreign formatters must follow the same formatter contract as
