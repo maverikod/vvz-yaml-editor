@@ -1169,13 +1169,11 @@ session_model:
       to any project git repository.'
     branch_naming: buf/<buffer_id>
     on_open:
-    - Initialize bare internal git repo at <sessions_dir>/git/ on first use (git init
-      --bare). This repo is shared across all sessions and buffers.
-    - Create branch buf/<session_key>/<buffer_id> in the internal repo.
-    - 'Make the initial commit: content = rendered buffer at open time. Commit message:
-      ''open: <real_file_path> [may be modified]''. The ''[may be modified]'' marker
-      signals that the file may already have unsaved changes relative to disk at the
-      moment of open — this is normal and expected.'
+    - Initialize bare git repo at <session_dir>/git/ on connect (each session has
+      its own git repo). git init --bare.
+    - Create branch buf/<buffer_id> in <session_dir>/git/ on open.
+    - 'Make initial commit: content = rendered buffer at open time. Message: ''open:
+      <real_file_path> [may be modified]''.'
     on_mutation: 'After every successful mutation operation: render buffer to string
       and commit to the buffer branch. Commit message: ''<operation_name>: <brief
       params summary>''. This is the source of truth for undo/redo.'
