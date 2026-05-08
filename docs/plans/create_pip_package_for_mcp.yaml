@@ -1197,43 +1197,56 @@ session_model:
       to sessions_dir/<session_key>.clipboard for recovery on reconnect.
     cleanup: All clipboard items are discarded when the session is closed.
 buffer_model:
+  definition:
+    description: A buffer is an in-memory representation of a file open for editing
+      within a session.
+    fields:
+      filename: Bare file name without path (e.g. README.yaml). Used as the .buf file
+        name on disk.
+      formatter: The formatter assigned at open time (text, yaml, cst, foreign, ...).
+        Never changes for the lifetime of the buffer.
+      modified: Boolean flag. True if any mutation has been applied since open or
+        last save. Always False for readonly buffers.
+      readonly: Boolean flag. True if the buffer was opened in readonly mode. Set
+        at open time, never changes.
+      relative_path: Path of the file relative to the project root (e.g. docs/plans/G-015/README.yaml).
+        Used to locate the real file on disk.
+  disk_representation:
+    location: 'Inside the session directory: <sessions_base_dir>/<session_key>/'
+    naming: 'Bare filename only, no path components, extension replaced with .buf.
+      Example: README.yaml -> README.buf'
+    collision_note: 'If two files with the same bare name but different paths are
+      open in the same session (e.g. src/config.yaml and tests/config.yaml), the .buf
+      file name is disambiguated by prepending a short hash of relative_path: <hash8>_<filename>.buf'
+    not_indexed: true
+    purpose: On-disk copy of current buffer content. Written after every mutation.
+      Loaded on reconnect.
   flags:
     modified:
       default: false
-      description: True if any mutation operation has been applied to the buffer since
-        open or last save. Set to True by every mutation. Reset to False only by save
-        or save_as. Never set to True by readonly buffers.
+      description: True if any mutation has been applied to the buffer since open
+        or last save.
       invariants:
       - Set to True after every successful mutation.
       - Reset to False after save or save_as.
-      - Always False when open_mode=readonly.
-      - 'Checked by disconnect(close_unsaved=False): session close is blocked if any
+      - Always False when readonly=True.
+      - 'Checked by disconnect(close_unsaved=False): session close blocked if any
         buffer has modified=True.'
-    open_mode:
-      description: Determines whether the buffer accepts mutations and participates
-        in write-lock enforcement.
-      readonly:
-        auto_write: Never written automatically. The .buf file is not updated on mutation
-          (mutations are rejected before reaching that point).
-        checks: No write-lock check on open. No save-before-close check. No participation
-          in SESSION_HAS_UNSAVED_BUFFERS evaluation.
-        modified_flag: Always False. Mutations are rejected with BUFFER_READONLY before
-          modified can be set.
-        multiple_sessions: Multiple sessions may hold readonly buffers for the same
-          file simultaneously.
-        value: readonly
-      readwrite:
-        auto_write: .buf file updated after every mutation.
-        checks: Write-lock acquired on open. Checked in SESSION_HAS_UNSAVED_BUFFERS
-          on disconnect. Validated before save.
-        modified_flag: Tracks actual mutation state.
-        multiple_sessions: Only one session may hold a readwrite buffer for the same
-          real file at a time.
-        value: readwrite
+    readonly:
+      default: false
+      description: 'If True: buffer accepts no mutations, .buf file is not written,
+        no write-lock is acquired, modified is always False.'
+      invariants:
+      - Set at open time from open_mode parameter. Never changes.
+      - Mutation operations rejected with BUFFER_READONLY before any state change.
+      - No write-lock acquired on open. Multiple sessions may hold readonly buffers
+        for the same file simultaneously.
+      - Not included in SESSION_HAS_UNSAVED_BUFFERS evaluation.
+      - .buf file is not created or updated for readonly buffers.
   invariants:
-  - open_mode is set at open/new time and never changes for the lifetime of the buffer.
-  - A readonly buffer never produces BUFFER_LOCKED for other sessions.
+  - filename and relative_path are set at open time and never change.
+  - formatter is set at open time and never changes.
+  - readonly is set at open time and never changes.
+  - modified=True is impossible when readonly=True.
+  - A readonly buffer never causes BUFFER_LOCKED for other sessions.
   - A readonly buffer never contributes to SESSION_HAS_UNSAVED_BUFFERS.
-  - A readonly buffer rejects all mutation operations with BUFFER_READONLY before
-    any state change occurs.
-  - modified=True is impossible when open_mode=readonly.
