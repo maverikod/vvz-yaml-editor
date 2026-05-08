@@ -515,7 +515,7 @@ validation:
   validate_content:
     input: raw Python source string
     behavior: parse via libcst; return syntax errors as diagnostics
-    used_by: validate_file for .py in G-008
+    used_by: ai_editor/file_validation.py for .py files
   validate_document:
     input: CSTTree
     behavior: compile tree.module.code; return compile errors as diagnostics
