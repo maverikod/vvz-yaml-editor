@@ -1,0 +1,145 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-010
+parent_step_name: text_ai_formatters
+step_id: G-010/T-001
+step_name: abstract_formatter_base
+title: AbstractFormatter base class and FormatterCommandCatalog contract
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-010-text-ai-formatters/README.yaml
+parent_global_context: 'G-010 owns AbstractFormatter and the initial text and YAML
+  formatter backends. Formatters define document parsing, rendering, validation, address
+  normalization, fragment editing, unit iteration, unit retrieval, diagnostics, and
+  unit comparison. Formatters must not open, save, close, or own file lifecycle. T-001
+  defines the abstract base class and the FormatterCommandCatalog contract that all
+  other T steps depend on.
+
+  '
+intent: 'Define AbstractFormatter as an abstract base class with all required abstract
+  methods and required metadata fields typed. Define FormatterCommandCatalog and FormatterCommandMetadata
+  dataclasses. Define the unit contract (minimum fields: address, unit_kind, display_text,
+  metadata). These contracts must be stable before any concrete formatter is implemented.
+
+  '
+why_this_step_exists: 'All other G-010 tactical steps (text formatter T-003, YAML
+  formatter T-004..T-006) and all dependent subsystems (G-009, G-011, G-012, G-013,
+  G-015) depend on AbstractFormatter as a stable contract. Defining it first in isolation
+  prevents each formatter from independently defining incompatible abstract interfaces.
+
+  '
+owned_code_paths:
+- ai_editor/formatters/base.py
+- ai_editor/formatters/__init__.py
+- tests/formatters/test_base_contract.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- ai_editor/writer.py
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
+- ai_editor/formatters/registry.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-001 contracts (ValidationResult, OperationResult, Diagnostic)
+  - G-007 writer.py (default write method delegates here)
+  provides_to:
+  - G-010/T-002 (formatter registry)
+  - G-010/T-003 (text formatter implements AbstractFormatter)
+  - G-010/T-004..T-006 (YAML formatter implements AbstractFormatter)
+  - G-009 editor core (uses AbstractFormatter interface)
+  - G-011 universal search (uses iter_units, match_unit, compare_units)
+  - G-012 foreign formatter (implements AbstractFormatter)
+  - G-013 CST formatter (implements AbstractFormatter)
+public_contracts_provided:
+- 'AbstractFormatter — abstract base class with @abstractmethod for all methods listed
+  in G-010/README.yaml abstract_formatter_contract.required_methods. Required metadata
+  class attributes: formatter_name (str), supported_payload_kinds (list[str]), supported_address_kinds
+  (list[str]), supported_paste_modes (list[str]), can_render_to_text (bool), can_parse_from_text
+  (bool). Default non-abstract write(content, path) delegates to ai_editor/writer.py
+  write_result.
+
+  '
+- 'FormatterCommandCatalog — dataclass: formatter_name, formatter_version, standard_commands
+  (list[FormatterCommandMetadata]), specific_commands (list[FormatterCommandMetadata]),
+  openapi_schemas (dict), diagnostics (list).
+
+  '
+- 'FormatterCommandMetadata — dataclass: name, kind (''standard''|''formatter_specific''),
+  description, input_schema, output_schema, openapi_operation, side_effects, writes_files
+  (bool), requires_buffer (bool), requires_file_path (bool), examples (list).
+
+  '
+- 'FormatterUnit — dataclass with minimum fields: address (Any), unit_kind (str),
+  display_text (str), metadata (dict). Formatter-specific subclasses may add fields.
+
+  '
+implementation_notes: 'Use Python ABC. All abstract methods use @abstractmethod decorator.
+  write(content: str, path: str) -> None is NOT abstract; default implementation delegates
+  to ai_editor/writer.py write_result to avoid forcing all formatters to re-implement
+  atomic write logic. FormatterCommandCatalog must be JSON-serialisable.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/formatters/test_base_contract.py -v
+  expected:
+  - AbstractFormatter cannot be instantiated directly.
+  - Concrete subclass that implements all abstract methods can be instantiated.
+  - Concrete subclass missing any abstract method raises TypeError.
+  - FormatterCommandCatalog is JSON-serialisable.
+  - FormatterUnit has address, unit_kind, display_text, metadata fields.
+  - default write() delegates to ai_editor/writer.py without raising.
+acceptance_criteria:
+- AbstractFormatter declares all required abstract methods with correct signatures.
+- Required metadata class attributes are declared.
+- default write() is not abstract and delegates to writer.py.
+- FormatterCommandCatalog and FormatterCommandMetadata are JSON-serialisable dataclasses.
+- FormatterUnit minimum fields are address, unit_kind, display_text, metadata.
+- All symbols importable from ai_editor.formatters.
+model_assignment_spec:
+  performer: coding_agent
+  title: Define AbstractFormatter, FormatterCommandCatalog, FormatterUnit
+  owned_paths:
+  - ai_editor/formatters/base.py
+  - ai_editor/formatters/__init__.py
+  - tests/formatters/test_base_contract.py
+  forbidden_paths:
+  - ai_editor/formatters/text/
+  - ai_editor/formatters/yaml/
+  - ai_editor/formatters/registry.py
+  - ai_editor/editor_core/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement base.py with AbstractFormatter ABC, FormatterCommandCatalog
+    dataclass, FormatterCommandMetadata dataclass, FormatterUnit dataclass. AbstractFormatter
+    has @abstractmethod for all methods in G-010/README abstract_formatter_contract.
+    Default non-abstract write(content, path) delegates to ai_editor/writer.py. Export
+    all from ai_editor/formatters/__init__.py. Write tests in tests/formatters/test_base_contract.py
+    verifying all acceptance criteria. Do not implement any concrete formatter, registry,
+    or validation logic.
+
+    '
+  non_goals:
+  - Formatter registry (T-002)
+  - Text formatter (T-003)
+  - YAML formatter (T-004..T-006)
+  - Any validation logic
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
