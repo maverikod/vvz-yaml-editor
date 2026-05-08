@@ -21,12 +21,13 @@ owned_docs_paths:
 - docs/reader_api.md
 forbidden_code_paths:
 - ai_editor/contracts/
-- ai_editor/document_io/
+- ai_editor/formatters/yaml/document_io/
 - ai_editor/path_language/
 - ai_editor/mutations/
 - ai_editor/validation/
 - ai_editor/transaction_writer/
 - ai_editor/interfaces/
+- ai_editor/sessions/
 - .venv
 - venv
 - site-packages
