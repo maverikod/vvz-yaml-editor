@@ -87,13 +87,17 @@ implementation_outline:
 - Implement per-check validation diagnostics suitable for MCP responses.
 verification:
   commands:
-  - python -m pytest tests/validation
+  - python -m pytest tests/formatters/yaml/ -k validate
+  - python -m pytest tests/formatters/cst/ -k validate
+  - python -m pytest tests/formatters/text/ -k validate
   expected:
-  - Valid plan_task_v1 fixture passes all checks.
-  - Invalid status fails semantic validation.
-  - Empty verification fails semantic validation.
-  - Invalid required references fail schema or semantic validation.
-  - Non-deterministic render cases are reported as RENDER_NOT_DETERMINISTIC when applicable.
+  - YAML formatter validate_content returns YAML_PARSE_FAILED for invalid YAML.
+  - YAML formatter validate_document checks plan_task_v1 semantic rules.
+  - YAML formatter validate_document returns RENDER_NOT_DETERMINISTIC when applicable.
+  - CST formatter validate_document uses compile() and returns syntax diagnostics.
+  - Text formatter validate_content and validate_document always return success=True.
+  - Validation never writes files or modifies buffer state.
+  scope: internal_g010_g013_validation
 acceptance_criteria:
 - Validation subsystem owns all schema and semantic rules.
 - Writer can use validation as a gate without containing validation logic.
