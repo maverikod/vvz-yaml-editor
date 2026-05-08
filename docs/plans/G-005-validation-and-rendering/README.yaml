@@ -72,12 +72,13 @@ mutation_operations:
 - op: move
   purpose: Move a sequence item to a new index.
 subsystem_independence_rules:
-- This subsystem must not read files from disk.
-- This subsystem must not render YAML text for persistence.
-- This subsystem must not validate plan_task_v1 schema or semantics.
-- This subsystem must not create backups or perform atomic writes.
-- This subsystem must not expose CLI or MCP commands.
-- Transaction writer must call this subsystem instead of reimplementing mutations.
+- Mutations must live inside the formatter that owns them. Do not create a standalone
+  mutations module.
+- Formatters must not read or write files in mutation methods.
+- Formatters must not validate plan_task_v1 schema inside mutation methods.
+- Formatters must not expose CLI or MCP commands directly.
+- Session layer (G-015) is responsible for committing rendered buffer to session git
+  after every mutation.
 implementation_outline:
 - Mutations are formatter-internal. Do not create ai_editor/mutations/ or any standalone
   mutation module.
