@@ -47,7 +47,7 @@ allowed_dependencies:
   - G-010/T-003 (text formatter registers itself)
   - G-010/T-004 (YAML formatter registers itself)
   - G-009 editor core open() (calls resolve_by_extension or resolve_by_name)
-  - G-007 file_validation (calls resolve_by_extension or resolve_by_name)
+  - ai_editor/file_validation.py validate_file (calls resolve_by_extension or resolve_by_name)
 public_contracts_provided:
 - 'FormatterRegistry — class with: register(name, extensions, formatter_class); resolve_by_extension(file_path)
   -> AbstractFormatter class or FORMATTER_NOT_FOUND; resolve_by_name(name) -> AbstractFormatter
