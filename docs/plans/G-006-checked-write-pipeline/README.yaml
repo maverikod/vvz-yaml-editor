@@ -17,8 +17,10 @@ why_this_block_exists: Validation is formatter-internal. This step's work is abs
   rules are owned by the YAML formatter. No standalone ai_editor/validation/ module
   exists.
 owned_code_paths:
-- ai_editor/validation/
-- tests/validation/
+- ai_editor/formatters/yaml/ (YAML validation code lives here, owned by G-010)
+- ai_editor/formatters/cst/ (CST validation code lives here, owned by G-013)
+- ai_editor/formatters/text/ (text validation code lives here, owned by G-010)
+- tests/formatters/ (validation tests live alongside formatter tests)
 owned_docs_paths:
 - docs/validation_rules.md
 forbidden_code_paths:
