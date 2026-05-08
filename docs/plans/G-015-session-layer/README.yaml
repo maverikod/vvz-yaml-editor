@@ -1,0 +1,427 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-015
+step_name: session_layer
+title: Session layer - connect, buffers, history, clipboard, and lifecycle
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+global_intent: 'Own the session layer. A session is the stateful context in which
+  a client opens buffers, edits documents, tracks operation history, and manages a
+  clipboard. A session is the editor. Every buffer operation requires a session_key.
+  G-015 owns the session directory, ses_settings.json, .buf files, the session-local
+  bare git repo, write-lock enforcement, and session-scoped clipboard. G-009 owns
+  AbstractBuffer lifecycle; G-015 aggregates and coordinates buffers through sessions.
+
+  '
+why_this_block_exists: 'Sessions are the top-level coordination unit above buffers.
+  Without this layer there is no place to own the session directory on disk, idle
+  timeout, the auto_write and readonly flags that apply uniformly to all buffers in
+  a session, the editor-internal git repo for undo/redo, the write-lock table columns,
+  and the session-scoped clipboard. Every other subsystem is stateless per call; G-015
+  is the stateful envelope that makes the editor feel like a familiar editor.
+
+  '
+owned_code_paths:
+- ai_editor/sessions/
+- tests/sessions/
+owned_docs_paths:
+- docs/sessions.md
+forbidden_code_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/interfaces/
+- ai_editor/writer.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - G-001 contracts (ResultEnvelope, ErrorCode, SessionKey, SessionDescriptor, BufferDescriptor,
+    WriteAllResult)
+  - G-007 writer (write_buf for .buf files; write_result for real files on save/save_as
+    and auto_write)
+  - G-009 AbstractBuffer (open, new, save, save_as, close, reload, validate, write_all)
+  - G-010 AbstractFormatter (render after mutation for git commit)
+  - gitpython (editor-internal bare git repo)
+  may_be_used_by:
+  - G-008 public interfaces and CLI adapter
+public_contracts_provided:
+- connect(idle_timeout_seconds, auto_write, readonly) -> SessionDescriptor
+- reconnect(session_key) -> SessionDescriptor
+- disconnect(session_key, force, close_unsaved) -> DisconnectResult
+- session_status(session_key) -> SessionDescriptor
+- write_all(session_key, force) -> WriteAllResult
+- startup_sweep()
+session_attributes:
+  session_key:
+    type: UUID4 string
+    set_at: connect
+    invariant: Assigned once. Never reused. Primary identifier for all buffer operations.
+  created_at:
+    type: ISO-8601 datetime seconds precision
+    set_at: connect
+    invariant: Never changes.
+  last_active_at:
+    type: ISO-8601 datetime seconds precision
+    updated: After every operation.
+  idle_timeout_seconds:
+    type: integer
+    default: 3600
+    set_at: connect
+    invariant: 'Never changes. If now minus last_active_at exceeds idle_timeout_seconds
+      the session is expired. Expiry always behaves as close_unsaved=True.
+
+      '
+  auto_write:
+    type: boolean
+    default: false
+    set_at: connect
+    invariant: Never changes for the lifetime of the session.
+    behavior: 'If True after every successful mutation the session layer calls write_result
+      (backup + atomic write + read-back + project git commit) for the buffer real
+      file. New unsaved buffers with real_file_path=None are silently skipped.
+
+      '
+  readonly:
+    type: boolean
+    default: false
+    set_at: connect
+    invariant: Never changes for the lifetime of the session.
+    behavior: 'If True all buffers opened in this session have readonly=True forced
+      unconditionally. Mutation operations are rejected with BUFFER_READONLY. The
+      close_unsaved check is skipped on disconnect because no modified buffers are
+      possible.
+
+      '
+  buffer_ids:
+    type: ordered list of UUID4 strings
+    persisted_in: ses_settings.json
+    behavior: Restored at reconnect. Updated after every open and close.
+session_directory:
+  path_pattern: <sessions_base_dir>/<session_key>/
+  sessions_base_dir: 'Configured in ai_editor section of config.json at sessions.base_dir.
+    Default is <project_root>/.ai_editor_sessions/
+
+    '
+  contents:
+    ses_settings.json: 'Session attributes and buffer_ids. Written at connect and
+      after every state-changing operation. Read at reconnect to restore full session
+      state.
+
+      '
+    buf_files: '<buffer_id>.buf - current in-memory buffer content for one open buffer.
+      Written after every mutation via write_buf. Read at reconnect to restore buffer
+      content without re-opening real files.
+
+      '
+    cst_files: '<buffer_id>.cst - CST formatter sidecar for .py buffers. Written after
+      every mutation by CSTFormatter. Read at reconnect.
+
+      '
+    clipboard_json: 'clipboard.json - session clipboard state. Written after copy/cut.
+      Cleared on session close.
+
+      '
+    git_dir: 'git/ - bare git repo created via git init --bare. One branch buf/<buffer_id>
+      per open buffer. Entire directory deleted with the session directory on close.
+
+      '
+  not_indexed: 'ses_settings.json, .buf, .cst, and clipboard.json must never be indexed
+    by the code analysis database.
+
+    '
+ses_settings_json:
+  path: <sessions_base_dir>/<session_key>/ses_settings.json
+  format: JSON
+  not_indexed: true
+  fields:
+    session_key: UUID4 string
+    created_at: ISO-8601 datetime
+    last_active_at: ISO-8601 datetime
+    idle_timeout_seconds: integer
+    auto_write: boolean
+    readonly: boolean
+    buffer_ids: list of UUID4 strings
+  written_at: At connect and after every operation that changes session state.
+  read_at: At reconnect to restore all session attributes and buffer list.
+session_lifecycle:
+  connect:
+    trigger: Client calls connect with idle_timeout_seconds, auto_write, readonly.
+    steps:
+    - Generate UUID4 session_key.
+    - Create session directory at sessions_base_dir/session_key/.
+    - Write ses_settings.json with all session attributes and empty buffer_ids list.
+    - Initialize bare git repo at session_dir/git/ via gitpython.
+    - Return SessionDescriptor with session_key and empty open_buffers list.
+  reconnect:
+    trigger: Client calls reconnect(session_key).
+    invariant: 'Does not re-open real files from disk. Restores buffer content from
+      .buf files written during the previous session.
+
+      '
+    steps:
+    - Read ses_settings.json to restore session attributes and buffer_ids.
+    - For each buffer_id read the .buf file to restore buffer content without re-opening
+      real files.
+    - Return SessionDescriptor with session_key and restored buffer_descriptor list.
+    - Update last_active_at and rewrite ses_settings.json.
+  disconnect:
+    trigger: Client calls disconnect(session_key, force=False, close_unsaved=False).
+    close_unsaved_false: 'Default and safe path. If session.readonly=False check every
+      open buffer for modified=True. If any modified buffer exists abort and return
+      SESSION_HAS_UNSAVED_BUFFERS with list of modified buffer_ids. If session.readonly=True
+      skip check because no modified buffers are possible.
+
+      '
+    close_unsaved_true: 'Force-close regardless of modified flags. All unsaved buffer
+      changes permanently discarded. Real files unchanged.
+
+      '
+    idle_timeout_expiry: Always behaves as close_unsaved=True.
+    session_close_steps:
+    - Release all write locks via UPDATE files SET editing_pid=NULL session_key=NULL
+      WHERE session_key equals this session.
+    - Rename session directory to session_key.closing then rmtree. Removes ses_settings.json,
+      all .buf files, all .cst files, git/, and clipboard.json.
+  startup_sweep:
+    trigger: Called once on server start.
+    steps:
+    - Scan sessions_base_dir for session directories.
+    - For each directory read ses_settings.json. If missing or corrupt or if now minus
+      last_active_at exceeds idle_timeout_seconds treat as expired.
+    - For expired sessions release all write locks in files table then delete the
+      session directory.
+    - Recovers from server crashes and hard kills without leaving stale locks.
+buffer_operations:
+  open:
+    description: Open a file-backed buffer in this session.
+    lock_rule: 'The same real file may not be open readwrite in two different sessions
+      simultaneously.
+
+      '
+    steps:
+    - Check write-lock. If another live session holds readwrite lock return BUFFER_LOCKED.
+    - If same file already open in this session return existing buffer_id.
+    - Call G-009 AbstractBuffer.open to parse and register the buffer.
+    - Create branch buf/buffer_id in session_dir/git/ with initial commit. Content
+      is rendered buffer. Message is open followed by real_file_path and may be modified.
+    - Write buffer_id.buf via write_buf.
+    - Update ses_settings.json buffer_ids.
+  mutation:
+    description: Any operation that changes buffer content.
+    invariant: 'Mutation is applied to in-memory buffer and .buf file only. The real
+      file is written only by write_result on auto_write path or explicit save/save_as.
+
+      '
+    steps:
+    - Apply mutation via formatter.
+    - Render buffer via formatter.render.
+    - Commit rendered content to buf/buffer_id branch. Message is operation name followed
+      by brief params summary.
+    - Write rendered content to buffer_id.buf via write_buf.
+    - If auto_write=True and buffer has a real file call write_result.
+  undo:
+    description: undo(session_key, buffer_id, steps=1)
+    behavior: 'git checkout to HEAD minus steps on buf/buffer_id branch. Reload buffer
+      content from that commit. Write buffer_id.buf. modified stays True unless HEAD
+      minus steps equals the initial open commit.
+
+      '
+    limit: Cannot undo past first commit. Returns UNDO_AT_BEGINNING.
+  redo:
+    description: redo(session_key, buffer_id, steps=1)
+    behavior: 'Move HEAD forward by steps commits on buf/buffer_id branch. Returns
+      REDO_AT_END if already at latest commit.
+
+      '
+    redo_stack_policy: 'Any new mutation after undo creates a new commit and permanently
+      discards the redo future, exactly like standard git.
+
+      '
+  save:
+    description: Write buffer to its real file.
+    steps:
+    - Call formatter.validate_document. If fails abort and return error.
+    - Render buffer via formatter.render.
+    - Call write_result for backup, atomic write, and read-back verification.
+    - Create one project git commit. Message is formatter_name followed by save and
+      relative_file_path. Best-effort; GIT_COMMIT_FAILED diagnostic on failure but
+      write still succeeds.
+    - Reset buffer modified=False.
+    - Update ses_settings.json.
+  close:
+    description: Close a buffer. Real file unchanged if not saved.
+    steps:
+    - Delete branch buf/buffer_id from session_dir/git/.
+    - Delete buffer_id.buf file.
+    - Release write lock via UPDATE files SET editing_pid=NULL session_key=NULL.
+    - Remove buffer_id from ses_settings.json buffer_ids.
+write_all_command:
+  description: write_all(session_key, force=False) writes all eligible buffers to
+    their real files.
+  force_flag: 'force=False writes only buffers where modified=True. force=True writes
+    all non-readonly buffers regardless of modified.
+
+    '
+  new_unsaved_buffers: Buffers with real_file_path=None are silently skipped.
+  per_buffer_steps:
+  - Call formatter.validate_document. If fails add to failed_buffers and skip write.
+  - Call write_result. If fails add to failed_buffers.
+  - On success create one project git commit per file.
+  result_fields:
+  - success is True only if all eligible buffers were written without error
+  - written_buffers is list of buffer_ids successfully written
+  - failed_buffers is list of dicts with buffer_id, error_code, and message
+  - skipped_buffers is list of buffer_ids skipped due to readonly, no path, or not
+    modified
+write_lock_policy:
+  rule: The same real file may not be open readwrite in two different sessions simultaneously.
+  db_columns: 'files table has editing_pid INTEGER NULL and session_key VARCHAR NULL.
+    Both set atomically on open and both released on close.
+
+    '
+  acquire: 'UPDATE files SET editing_pid and session_key WHERE path matches and editing_pid
+    is NULL or belongs to a dead process. Zero rows affected means BUFFER_LOCKED.
+
+    '
+  release: 'UPDATE files SET editing_pid=NULL session_key=NULL WHERE editing_pid matches
+    current process and session_key matches. Called in finally block. Guaranteed even
+    on exception.
+
+    '
+  stale_locks: 'editing_lock_holder_is_alive uses os.kill(pid, 0). Dead pid means
+    clear atomically before re-acquire.
+
+    '
+  readonly_buffers: 'No write-lock acquired. Multiple sessions may hold readonly buffers
+    for the same file simultaneously.
+
+    '
+editor_git_policy:
+  repo_location: 'sessions_base_dir/session_key/git/ - bare repo, one per session.
+    Created at connect via gitpython git init --bare.
+
+    '
+  gitpython: All editor-internal git operations use gitpython. Required runtime dependency.
+  branch_per_buffer: 'buf/buffer_id. One branch per open buffer. Created at open.
+    Deleted at close.
+
+    '
+  commit_on_open: 'Initial commit at open time. Content is full rendered buffer. Message
+    is open followed by path and may be modified.
+
+    '
+  commit_on_mutation: 'Every mutation commits rendered content to the buffer branch.
+    Message is operation name followed by brief params summary.
+
+    '
+  failure_policy: 'If gitpython fails such as disk full or corrupted repo the mutation
+    proceeds without history and HISTORY_UNAVAILABLE diagnostic is attached to the
+    response.
+
+    '
+  separation: 'Editor-internal git is completely separate from any project git. No
+    cross-repo operations ever occur. Project git is touched only by write_result
+    as a best-effort one-commit-per-file operation.
+
+    '
+clipboard_policy:
+  scope: 'Session-scoped. Copy/paste is allowed between any buffers within the same
+    session. Cross-session clipboard access is rejected with SESSION_LOCK_CONFLICT.
+
+    '
+  storage: 'In-memory during session. Persisted to session_dir/clipboard.json for
+    recovery on reconnect.
+
+    '
+  compatibility: 'text to text is allowed. yaml to yaml is allowed. yaml to text is
+    allowed only when paste mode explicitly requests rendered text. text to yaml is
+    rejected by default unless paste mode explicitly requests parse_as_yaml. Unsupported
+    combinations return CLIPBOARD_FORMAT_MISMATCH.
+
+    '
+  cleanup: Clipboard cleared on session close.
+error_codes_owned:
+- SESSION_NOT_FOUND
+- SESSION_EXPIRED
+- SESSION_HAS_UNSAVED_BUFFERS
+- SESSION_LOCK_CONFLICT
+- BUFFER_LOCKED
+- UNDO_AT_BEGINNING
+- REDO_AT_END
+- HISTORY_UNAVAILABLE
+- GIT_COMMIT_FAILED
+verification:
+  scope: global_completion_gate
+  commands:
+  - python -m pytest tests/sessions/
+  expected:
+  - connect creates session_key directory with ses_settings.json and git bare repo.
+  - connect returns session_key and empty buffer list.
+  - reconnect reads ses_settings.json and restores buffer_descriptor list from .buf
+    files without re-opening real files.
+  - disconnect with close_unsaved=False and modified buffer returns SESSION_HAS_UNSAVED_BUFFERS.
+  - disconnect with close_unsaved=True closes despite modified buffers and real files
+    unchanged.
+  - disconnect deletes session directory atomically.
+  - open same file readwrite in two sessions returns BUFFER_LOCKED on second.
+  - open same file twice in same session returns existing buffer_id.
+  - Mutation commits to buffer branch and writes .buf file.
+  - undo restores buffer to previous commit and writes .buf file.
+  - undo at first commit returns UNDO_AT_BEGINNING.
+  - New mutation after undo resets redo stack and redo returns REDO_AT_END.
+  - close deletes buffer branch and .buf file.
+  - Session close deletes entire directory atomically.
+  - startup_sweep releases stale locks and deletes expired session directories.
+  - Clipboard paste from session A into session B returns SESSION_LOCK_CONFLICT.
+  - idle_timeout expiry closes session as close_unsaved=True.
+  - connect with auto_write=True causes mutation to write real file immediately.
+  - connect with readonly=True opens all buffers readonly and disconnect skips close_unsaved
+    check.
+  - write_all with force=False writes only modified buffers and returns written failed
+    and skipped lists.
+  - write_all with force=True writes all non-readonly buffers.
+  - write_all with validation failure records buffer in failed_buffers and others
+    continue.
+acceptance_criteria:
+- Session directory is created at connect and deleted atomically at disconnect.
+- ses_settings.json is the single source of truth for session state across restarts.
+- All buffer operations require session_key and session layer routes them to G-009.
+- Write-lock enforced via files.editing_pid and files.session_key released in finally
+  block.
+- Editor-internal git repo is isolated per session in session_dir/git with no connection
+  to project git.
+- Every mutation commits rendered content to the buffer branch and writes .buf file.
+- undo/redo operate on the buffer branch only and real file is unchanged until explicit
+  save.
+- auto_write and readonly are set at connect and never change for the session lifetime.
+- Clipboard is session-scoped and cross-session paste is rejected with SESSION_LOCK_CONFLICT.
+- startup_sweep runs at server start and clears stale locks and expired session directories.
+- write_all result is always truthful and partial-write-safe and session remains open
+  on partial failure.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: 'Implement the session layer under ai_editor/sessions/ and tests/sessions/.
+    The session is the top-level stateful context. Own the session directory lifecycle,
+    ses_settings.json, .buf file writes via G-007 write_buf, editor-internal bare
+    git repo via gitpython, write-lock enforcement in files table using editing_pid
+    and session_key columns, session-scoped clipboard, and startup_sweep. Delegate
+    buffer parse/render/validate to G-009 AbstractBuffer and G-010 formatters. Delegate
+    .buf atomic write to G-007 write_buf. Delegate real file write to G-007 write_result.
+    Do not implement formatter internals, path parsing, search, public CLI, MCP wrappers,
+    .venv, venv, or site-packages.
+
+    '
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
