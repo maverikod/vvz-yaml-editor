@@ -72,8 +72,9 @@ abstract_buffer_contract:
   - Own formatter fallback from structural formatter to text formatter on parse failure.
   - Own open_as_text option that bypasses formatter auto-detection and forces text
     formatter.
-  - Own pre-save validation by calling formatter.validate_document(document) before
-    render and write.
+  - 'Own file edit lock: on open acquire editing_pid + session_key in files table;
+    on close release both. Return BUFFER_LOCKED if another live process/session holds
+    the lock.'
   - 'Own file edit lock: on open acquire editing_pid + session_key in files table;
     on close release it.'
   - Delegate parse/render to the buffer formatter.
