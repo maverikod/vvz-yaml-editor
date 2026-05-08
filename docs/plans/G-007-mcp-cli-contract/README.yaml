@@ -186,9 +186,9 @@ persistence_safety_policy:
 git_policy:
   editor_git:
     applies_to: Every buffer mutation (any operation that changes buffer content).
-    description: The editor maintains an internal bare git repo at sessions_dir/git/
-      (owned by G-015). Every mutation on a buffer is committed to branch buf/<session_key>/<buffer_id>
-      in this repo via gitpython. This is the undo/redo history mechanism. Has no
+    description: Each session has its own bare git repo at <session_dir>/git/ (owned
+      by G-015). Every mutation on a buffer is committed to branch buf/<buffer_id>
+      in that repo via gitpython. This is the undo/redo history mechanism. Has no
       connection to any project git repo.
     invariant: Editor git is always active. No fallback needed. If gitpython fails,
       the mutation still proceeds and HISTORY_UNAVAILABLE diagnostic is attached.
