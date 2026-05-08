@@ -61,6 +61,7 @@ public_api_surface:
   - save
   - save_as
   - close
+  - write_all
   edit_functions:
   - copy
   - cut
@@ -69,6 +70,9 @@ public_api_surface:
   - redo
   formatter_discovery_functions:
   - formatter_commands
+  project_git_note: 'Each successful result write (save, save_as, write_all, auto_write)
+    creates one project git commit per file. Best-effort: GIT_COMMIT_FAILED diagnostic
+    attached on failure.'
   search_functions:
   - find
   - find_one
