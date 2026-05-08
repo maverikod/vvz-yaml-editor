@@ -1196,3 +1196,44 @@ session_model:
     storage: Clipboard items are stored in memory during the session. Optionally persisted
       to sessions_dir/<session_key>.clipboard for recovery on reconnect.
     cleanup: All clipboard items are discarded when the session is closed.
+buffer_model:
+  flags:
+    modified:
+      default: false
+      description: True if any mutation operation has been applied to the buffer since
+        open or last save. Set to True by every mutation. Reset to False only by save
+        or save_as. Never set to True by readonly buffers.
+      invariants:
+      - Set to True after every successful mutation.
+      - Reset to False after save or save_as.
+      - Always False when open_mode=readonly.
+      - 'Checked by disconnect(close_unsaved=False): session close is blocked if any
+        buffer has modified=True.'
+    open_mode:
+      description: Determines whether the buffer accepts mutations and participates
+        in write-lock enforcement.
+      readonly:
+        auto_write: Never written automatically. The .buf file is not updated on mutation
+          (mutations are rejected before reaching that point).
+        checks: No write-lock check on open. No save-before-close check. No participation
+          in SESSION_HAS_UNSAVED_BUFFERS evaluation.
+        modified_flag: Always False. Mutations are rejected with BUFFER_READONLY before
+          modified can be set.
+        multiple_sessions: Multiple sessions may hold readonly buffers for the same
+          file simultaneously.
+        value: readonly
+      readwrite:
+        auto_write: .buf file updated after every mutation.
+        checks: Write-lock acquired on open. Checked in SESSION_HAS_UNSAVED_BUFFERS
+          on disconnect. Validated before save.
+        modified_flag: Tracks actual mutation state.
+        multiple_sessions: Only one session may hold a readwrite buffer for the same
+          real file at a time.
+        value: readwrite
+  invariants:
+  - open_mode is set at open/new time and never changes for the lifetime of the buffer.
+  - A readonly buffer never produces BUFFER_LOCKED for other sessions.
+  - A readonly buffer never contributes to SESSION_HAS_UNSAVED_BUFFERS.
+  - A readonly buffer rejects all mutation operations with BUFFER_READONLY before
+    any state change occurs.
+  - modified=True is impossible when open_mode=readonly.
