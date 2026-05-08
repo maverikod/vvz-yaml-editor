@@ -280,7 +280,10 @@ mcp_proxy_adapter_integration:
     job_id; classmethod metadata() -> Dict.'
   queue_dispatch: 'rename execute() must enqueue the job via mcp-proxy-adapter queue
     (never run inline) and return {success: true, job_id: <str>} immediately. Result
-    is delivered via WebSocket per ws_job_result_policy in G-008.'
+    is delivered via WebSocket: open /ws, send {action: subscribe, subscription_type:
+    queue_job, job_id: <job_id>}, wait for terminal event job_completed|job_failed|job_stopped,
+    extract RenameJobResult from payload, send unsubscribe. Polling via queue_get_job_status
+    is the fallback.'
   hooks_registration: 'Register in ai_editor/hooks_register.py: reg.register(RenameCommand,
     ''custom''). Entry point in adapter hooks: from ai_editor.hooks_register import
     register_ai_editor_commands; hooks.register_custom_commands_hook(register_ai_editor_commands).'
