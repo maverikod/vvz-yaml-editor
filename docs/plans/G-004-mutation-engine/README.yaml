@@ -53,13 +53,19 @@ core_responsibilities:
   them.
 public_read_operations:
 - name: yaml_load
-  responsibility: Return document summary and diagnostics.
+  responsibility: Open file in session, return document summary and diagnostics. Delegates
+    to session.open + formatter summary.
+  signature: yaml_load(session_key, file_path) -> DocumentSummary
 - name: yaml_get
-  responsibility: Return exact subtree by structural path.
+  responsibility: Return exact subtree by structural path from open buffer. Delegates
+    to find_one.
+  signature: yaml_get(session_key, buffer_id, path) -> subtree dict
 - name: yaml_get_command
-  responsibility: Return one command object selected by command_name.
+  responsibility: Return one command object selected by command_name from open buffer.
+  signature: yaml_get_command(session_key, buffer_id, command_name) -> command dict
 - name: yaml_get_verification
-  responsibility: Return the verification list from a plan task.
+  responsibility: Return the verification list from a plan task buffer.
+  signature: yaml_get_verification(session_key, buffer_id) -> list
 subsystem_independence_rules:
 - This subsystem must not parse path strings or configure ruamel.yaml directly — delegate
   to G-010 YAMLFormatter.
