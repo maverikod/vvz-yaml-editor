@@ -143,10 +143,10 @@ persistence_safety_policy:
     been committed to the session git branch. writer.py handles only physical file
     write + project git commit.
   git_available:
-    before_write: Create file backup only. No git commit on project repo.
-    on_failure: Restore from backup.
-    rationale: Project git is not the editor's responsibility. Backup is always the
-      safety mechanism for save/save_as.
+    before_write: Create file backup.
+    after_write: 'Attempt project git commit (best-effort). If fails: attach GIT_COMMIT_FAILED,
+      write still success=True.'
+    on_failure: Restore from backup. No git commit attempted.
   git_not_available:
     before_write: Create file backup.
     on_failure: Restore from backup.
