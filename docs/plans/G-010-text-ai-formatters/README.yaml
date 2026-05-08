@@ -22,6 +22,8 @@ owned_code_paths:
 - ai_editor/formatters/registry.py
 - ai_editor/formatters/text/
 - ai_editor/formatters/yaml/
+- ai_editor/schemas/
+- ai_editor/models.py
 - tests/formatters/text/
 - tests/formatters/yaml/
 owned_docs_paths:
