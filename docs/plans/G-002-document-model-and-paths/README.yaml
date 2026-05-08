@@ -11,10 +11,10 @@ global_intent: G-010-yaml-formatter internal module. Owned by G-010. Provides ru
   round-trip parser configuration, YamlDocument wrapper, DocumentSummary, ParseDiagnostic,
   deterministic renderer. Used internally by YAMLFormatter — not a public subsystem.
   Implementer reads G-010 for context.
-why_this_block_exists: Lower-level tasks need a stable document abstraction before
-  path parsing, reading, mutation, validation, and writing can be detailed. This block
-  defines only document IO mechanics and document metadata, so other subsystems do
-  not duplicate YAML parser setup or formatting preservation logic.
+why_this_block_exists: Internal submodule of G-010 YAMLFormatter. Provides ruamel.yaml
+  round-trip parser, YamlDocument wrapper, DocumentSummary, ParseDiagnostic, and deterministic
+  renderer. Lives under ai_editor/formatters/yaml/document_io/. Used exclusively by
+  YAMLFormatter internals. Not a public subsystem.
 owned_code_paths:
 - ai_editor/formatters/yaml/document_io/
 - tests/formatters/yaml/document_io/
