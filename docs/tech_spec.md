@@ -487,7 +487,9 @@ Example uses:
 ## G-006 — CST formatter (.py files)
 
 Owns: `ai_editor/formatters/cst/`, `tests/formatters/cst/`.
-Source: adapted from `cst-code/` (adapt-not-rewrite policy).
+CST is a built-in formatter, not a ForeignFormatter.
+Source: adapted from `cst-code/` — only tree operations and XPath queries are carried over.
+Storing identifiers inside source file code is forbidden and must not be used.
 
 Registered for extension `.py`, formatter name `cst`.
 
@@ -508,8 +510,7 @@ Public address for callers: `stable_id` (UUID4). `node_id` is internal.
 - Assigned once per node at first `_build_tree_index`. Value = UUID4. Never reassigned.
 - Stored in `TreeNodeMetadata.stable_id` and in sidecar `metadata_map`.
 - Survives mutations via `previous_metadata_map` snapshot + `previous_obj_to_id` mapping.
-- For INSERT/DELETE/MOVE on `FunctionDef`/`ClassDef`: transiently embedded as `# @node-id: <uuid>` in `leading_lines` during mutation, stripped immediately after recovery. Never written to disk or visible in `render()` output.
-- Never written into `.py` source as a persisted artifact.
+- Never written into `.py` source in any form. Never visible in `render()` output.
 
 ### Sidecar
 
@@ -560,16 +561,46 @@ replace(node_stable_id, code)
 replace_docstring(node_stable_id, text)
 ```
 
+### iter_units
+
+Iterates over all nodes in the CST tree by recursive descent.
+Every subtree node is yielded, including nested classes, methods, and functions.
+Returns nodes as `FormatterUnit` with `stable_id` as address.
+
+### match_unit
+
+Current implementation: comparison by `stable_id` only.
+Two units match if and only if their `stable_id` values are equal.
+
+### compare_units
+
+Structural comparison:
+- Node type must match.
+- Node data must match.
+- Children are compared recursively.
+- If any child does not match → the nodes are not equal.
+
+### Clipboard serialization
+
+Fragment serialization uses the static method:
+```
+CSTFormatter.to_string(fragment) -> str
+```
+The resulting string is stored as `body` in `clipboard.json`.
+On paste, `body` is deserialized back to a CST fragment before insertion.
+
 ### Specific commands (CST formatter only)
 
 ```
-cst_query(selector) — XPath-like search using Lark grammar
-  examples:
+cst_query(selector) — XPath-like queries over the CST tree
+  Queries operate on tree structure only.
+  Examples:
     //FunctionDef[@name='foo']
     class > method:first
     Def:*[start_line>=100]
     function[@name^='_']:not([name^='__'])
-  returns: list of nodes in declarative format; full body via get_unit(stable_id)
+  Returns: list of nodes in declarative format.
+  Full body of any node: get_unit(stable_id)
 
 cst_get_skeleton()      — declarative overview with stable_id prefixes
 cst_get_unit(stable_id) — full source of one node including body
@@ -582,59 +613,6 @@ Compiles `tree.module.code` via Python `compile()` built-in.
 Returns syntax diagnostics. Does not write files.
 
 ---
-
-## G-007 — Project-wide rename
-
-Owns: `ai_editor/project_refactor/`, `ai_editor/commands/rename_*.py`, `tests/project_refactor/`.
-
-Rename is always enqueued in `mcp-proxy-adapter` job queue. Never runs inline.
-Works directly through `CSTFormatter` without a session.
-
-### Safety checkpoint
-
-Before the first file modification:
-- Git available: create tag `pre-rename/<job_uuid>` + checkpoint commit in project git.
-- Git unavailable: create file backups (`.bak`) via `writer.py`.
-
-On any failure after checkpoint: automatic rollback. `rollback_performed=True` in result.
-`dry_run=True`: discover references, return preview. No writes, no tags, no backups.
-
-### Rename target
-
-```
-kind        method | class | package
-file_path   absolute path to definition file
-stable_id   CST stable_id of definition node
-old_name    current name string
-scope       optional list of paths to restrict reference search
-```
-
-### Reference search strategy (per file)
-
-```
-Sidecar valid (source_sha256 matches):  search metadata_map directly
-Sidecar stale or missing:               re-parse via CSTFormatter, rebuild sidecar
-Parse error:                            skip file, record in skipped_files
-```
-
-Matching is CST structural, not text substring.
-
-### Result
-
-```
-RenameJobResult:
-  success, job_id, old_name, new_name, dry_run,
-  changed_files, skipped_files, reference_count,
-  rollback_performed, git_tag, diagnostics
-```
-
----
-
-## G-008 — Session layer
-
-Owns: `ai_editor/sessions/`, `tests/sessions/`.
-
-### Session: general principles
 
 A session is a directory on disk. It exists as long as its directory exists.
 There is no TTL and no auto-deletion. If the `session_id` is known, the session is accessible.
