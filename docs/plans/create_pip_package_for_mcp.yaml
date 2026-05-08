@@ -563,8 +563,9 @@ implementation_steps:
   - Track original_hash, current_hash, dirty, revision, and status.
   - Ensure one file_path cannot have multiple open buffers.
   - Keep address values opaque and formatter-owned.
-  - AbstractBuffer does not know session keys, .ses/.buf files, or git. Those belong
-    to the session layer.
+  - AbstractBuffer accepts session_key as a required parameter in every method but
+    does not own session file structure (.buf, .cst, session git). Those belong to
+    the session layer.
   deliverables:
   - ai_editor/editor_core/
   - tests/editor_core/
