@@ -791,12 +791,13 @@ model_assignment_spec:
   implementation_order:
   - package_skeleton
   - editor_core_buffer_registry
-  - text_ai_formatters
+  - text_yaml_formatters
   - foreign_formatters
   - format_validation
   - universal_search
+  - session_layer
   - format_aware_clipboard
-  - ai_formatter_compatibility
+  - checked_persistence
   - public_api
   - cli
   - mcp_integration_docs
