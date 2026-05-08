@@ -622,3 +622,10 @@ formatter_contract_extensions:
     - write files
     - modify document
     - re-parse from disk
+stable_id_in_node_data_during_mutation:
+  invariant: HISTORICAL REFERENCE ONLY — DO NOT IMPLEMENT. This section documents
+    the inline @node-id comment transport mechanism that existed in cst-code and is
+    now REMOVED. The acceptance_criteria explicitly prohibit set_stable_id and get_stable_id
+    in mutation flow. The correct mechanism is previous_metadata_map + previous_obj_to_id
+    (documented in mutation_operations/stable_id_survival_mechanism). This section
+    is kept solely to explain what was removed and why the replacement was needed.
