@@ -73,11 +73,11 @@ subsystem_independence_rules:
 - Caller (G-009 or G-015) calls formatter.validate_document and formatter.render before
   invoking writer.py.
 implementation_outline:
-- Create transaction_writer package with request, backup, hashing, atomic_write, and
-  orchestration modules.
-- Add tests for dry-run no-op behavior, successful writes, failed validation, failed
-  mutation, backup failure, and read-back verification.
-- Ensure checked write result is JSON-serializable through G-001 contracts.
+- Implement write_buf(content, buf_path) and write_result(content, real_path, formatter_name,
+  relative_path) in ai_editor/writer.py.
+- 'write_buf: atomic write via .tmp + os.replace. No backup, no read-back, no git.'
+- 'write_result: backup + atomic write + read-back + project git commit (best-effort).'
+- Add tests in tests/test_writer.py covering all safety_rules scenarios.
 verification:
   commands:
   - python -m pytest tests/test_writer.py
