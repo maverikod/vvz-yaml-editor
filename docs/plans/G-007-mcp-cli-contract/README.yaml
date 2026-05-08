@@ -40,11 +40,17 @@ allowed_dependencies:
   - G-001-package-contracts-and-distribution
   - gitpython (for project git commit after result write)
 public_contracts_provided:
-- 'write_buf(content, buf_path) — buffer write: atomic, no backup, no read-back'
-- 'write_result(content, real_path) — result write: backup + atomic + read-back +
-  project git commit'
-- BackupRecord
-- FileHashPair
+- 'write_buf(content: str, buf_path: str) -> None — atomic write: write to .tmp then
+  os.replace. No backup, no read-back, no git.'
+- 'write_result(content: str, real_path: str, formatter_name: str, relative_path:
+  str) -> WriteResultRecord — backup + atomic write + read-back + project git commit
+  (best-effort).'
+- 'WriteResultRecord — dataclass: success (bool), old_hash (str | None), new_hash
+  (str), backup (BackupRecord | None), diagnostics (list).'
+- 'BackupRecord — dataclass: original_path (str), backup_path (str), created_at (str).
+  Backup stored alongside original with .bak suffix.'
+- 'FileHashPair — dataclass: old_hash (str | None), new_hash (str). SHA-256 hex of
+  file bytes before and after write.'
 core_responsibilities:
 - 'Implement write_buf(content, buf_path): atomic write to .tmp then os.replace. No
   backup, no read-back, no git.'
