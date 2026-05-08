@@ -5,9 +5,12 @@ step_name: validation_rules
 title: Validation, schema, semantic rules, and render checks subsystem
 status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
-global_intent: Own all validation logic for YAML documents and plan_task_v1 semantics.
-  This subsystem decides whether a loaded or mutated document is acceptable, but it
-  does not mutate, read from disk directly, or write files.
+global_intent: G-006 is ABSORBED into G-010 (AbstractFormatter). Validation is formatter-internal.
+  AbstractFormatter defines abstract methods validate_content and validate_document
+  that each formatter implements. plan_task_v1 semantic rules live inside the YAML
+  formatter validation. No standalone ai_editor/validation/ module exists — all validation
+  code lives inside the formatter that owns it (ai_editor/formatters/yaml/, ai_editor/formatters/cst/,
+  ai_editor/formatters/text/). G-010 owns the abstract validation contract on AbstractFormatter.
 why_this_block_exists: 'Lower-level validation tasks must be able to understand the
   complete validation problem from this global step: syntax, schema, semantic checks,
   rendered-YAML checks, deterministic rendering checks, and diagnostics. This logic
