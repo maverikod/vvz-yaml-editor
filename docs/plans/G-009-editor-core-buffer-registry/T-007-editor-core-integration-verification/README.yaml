@@ -49,7 +49,8 @@ allowed_dependencies:
   - ai_editor/writer.py (called via save pipeline)
   provides_to:
   - G-015 session layer implementer (docs/editor_core.md as reference)
-  - G-008 public interfaces implementer (docs/editor_core.md as reference)
+  - ai_editor/api.py and cli.py public interface implementers (docs/editor_core.md
+    as reference)
 public_contracts_provided:
 - docs/editor_core.md documenting AbstractBuffer contract, BufferRegistry, BufferAddress,
   BufferState, ClipboardItem, write_all.
