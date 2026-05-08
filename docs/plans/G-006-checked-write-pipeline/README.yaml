@@ -50,12 +50,15 @@ public_contracts_provided:
 - 'Text formatter: validate_content and validate_document always return success=True
   (owned by G-010).'
 core_responsibilities:
-- Validate YAML document structure after parsing.
-- Validate rendered YAML can be parsed back to an equivalent structure.
-- Validate deterministic rendering for supported documents.
-- Own JSON Schema files and schema loading.
-- Own plan_task_v1 semantic checks.
-- Return detailed machine-readable validation diagnostics.
+- Validation lives inside each formatter. Do not create ai_editor/validation/.
+- AbstractFormatter defines abstract validate_content and validate_document. Each
+  formatter implements them.
+- YAML formatter owns plan_task_v1 rules, schema validation, and render determinism
+  check.
+- CST formatter validates via compile().
+- Text formatter always returns success=True.
+- Tactical steps T-001..T-009 under this directory are OBSOLETE — content is now owned
+  by G-010 and G-013 tactical steps.
 plan_task_v1_rules:
 - format must equal plan_task_v1.
 - node_id must match file-level conventions used by the plans repository.
