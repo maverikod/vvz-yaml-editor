@@ -736,7 +736,7 @@ implementation_steps:
   id: step_09
   title: Implement session layer
   verification:
-  - connect creates session directory with session.ses and git/ repo.
+  - connect creates session directory with ses_settings.json and git/ repo.
   - connect returns session_key and empty buffer list.
   - reconnect restores buffer_descriptor list from session.ses and .buf files without
     re-opening real files.
