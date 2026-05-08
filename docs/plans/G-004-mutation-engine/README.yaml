@@ -87,10 +87,11 @@ acceptance_criteria:
 - Lower-level read tasks can understand their goal from this README alone.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only read/query APIs and model-friendly inspection helpers.
-    Do not edit path_language, document_io, mutations, validation, transaction_writer,
-    or interfaces. If a needed behavior belongs to another subsystem, request or depend
-    on its public contract.
+  instruction: Implement yaml_load, yaml_get, yaml_get_command, yaml_get_verification
+    as thin compatibility wrappers in ai_editor/formatters/yaml/compat/ using G-011
+    AbstractSearch and G-010 YAMLFormatter internals. These are not independent functions
+    — they delegate entirely to open/find_one/list_units with YAML formatter. Do not
+    create ai_editor/reader/. Do not duplicate YAML parsing or path resolution.
 observations_template:
 - command: ''
   expected: ''
