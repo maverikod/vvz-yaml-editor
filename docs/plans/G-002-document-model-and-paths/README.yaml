@@ -51,11 +51,12 @@ core_responsibilities:
 - Render documents deterministically enough for YAMLFormatter validate_document to
   verify.
 subsystem_independence_rules:
-- This subsystem must not parse structural path strings.
-- This subsystem must not apply mutations.
-- This subsystem must not validate plan_task_v1 semantics.
-- This subsystem must not write files atomically or create backups.
-- Other subsystems must use document_io APIs instead of configuring ruamel.yaml themselves.
+- This submodule must not parse structural path strings.
+- This submodule must not apply mutations.
+- This submodule must not validate plan_task_v1 semantics.
+- This submodule must not write files atomically or create backups.
+- G-010 YAMLFormatter is the only caller of document_io APIs. No other subsystem may
+  use document_io directly.
 tactical_scope_rule:
 - Tactical steps T-001..T-007 are internal to G-010 and live under docs/plans/G-010-text-ai-formatters/.
 - Each tactical step edits only ai_editor/formatters/yaml/document_io/ and tests/formatters/yaml/document_io/.
