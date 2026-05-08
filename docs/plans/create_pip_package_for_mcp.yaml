@@ -1027,18 +1027,18 @@ session_model:
     sessions_base_dir: 'Configured via ai_editor section in config.json: sessions.base_dir.
       Default: <project_root>/.ai_editor_sessions/'
   buffer_descriptor:
-    description: Returned to the client on connect, reconnect, and after every open/new/close
-      operation.
+    description: Returned to client on connect, reconnect, and after every open/new/close.
+      Full flag semantics defined in /buffer_model.
     fields:
-      buffer_id: UUID4 string. Stable for the lifetime of the buffer within the session.
-      session_key: UUID4 of the owning session.
+      buf_file_path: Absolute path of the .buf file. Present only for readwrite buffers.
+      buffer_id: UUID4. Stable for the lifetime of the buffer within the session.
+      formatter: Name of the active formatter (text, yaml, cst, foreign, ...).
+      modified: Boolean. True if any mutation has been applied since open or last
+        save. Always False for readonly buffers. See /buffer_model/flags/modified.
+      open_mode: readonly | readwrite. Set at open time, never changes. See /buffer_model/flags/open_mode.
       real_file_path: Absolute path of the real file on disk. Null for new unsaved
         buffers.
-      formatter: Name of the active formatter (text, yaml, cst, foreign, ...).
-      open_mode: readonly | readwrite
-      modified: Boolean. True if any mutation operation has been applied to the buffer
-        since open or last save.
-      buf_file_path: Path to the temporary buffer file on disk (see buffer_file).
+      session_key: UUID4 of the owning session.
   buffer_file:
     cleanup: Deleted as part of session directory deletion on session close.
     not_indexed: true
