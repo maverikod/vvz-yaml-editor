@@ -996,9 +996,11 @@ session_model:
     description: Every mutation operation on a buffer is recorded as a git commit
       in a dedicated per-buffer branch. This provides full undo/redo history for the
       lifetime of the buffer.
-    git_repo: '[TBD: branch is created in the git repository of the real file''s project
-      if git is available there; otherwise a bare internal git repo under sessions_dir
-      is used as fallback.]'
+    git_repo: 'Always a bare internal git repo under <sessions_dir>/git/. This repo
+      is owned exclusively by ai_editor and has no connection to any project repository.
+      The buffer branch is created there regardless of whether the real file''s project
+      uses git or not. This ensures isolation: the project git history is never touched
+      by editor operations.'
     branch_naming: buf/<session_key>/<buffer_id>
     on_open:
     - 'If the real file is under a git repo: create branch buf/<session_key>/<buffer_id>
