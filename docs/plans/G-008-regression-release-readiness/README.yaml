@@ -41,6 +41,7 @@ allowed_dependencies:
   - G-010 AbstractFormatter public contracts
   - G-011 AbstractSearch public contracts
   - G-015 session layer public contracts
+  - G-004 YAML compat wrappers (ai_editor/formatters/yaml/compat/)
 public_contracts_provided:
 - ai_editor.interfaces.public_api
 - ai_editor.interfaces.cli
