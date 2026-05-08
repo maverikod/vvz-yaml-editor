@@ -139,7 +139,12 @@ module_architecture:
     purpose: 'Checked persistence helper: backup, atomic write, read-back diagnostics.
       Called by editor core on save/save_as.'
   - path: ai_editor/schemas/plan_task_v1.schema.json
-    purpose: JSON Schema for plan_task_v1 used by YAML formatter validation.
+    purpose: 'Atomic write helper used by two distinct paths: (1) buffer write — session
+      layer (G-015) writes .buf file to <session_dir>/<filename>.buf after every mutation,
+      no backup, no read-back; (2) result write — editor core (G-009) writes real
+      file to disk on save/save_as, with backup before write and read-back after.
+      Both paths call formatter.write(content, path) which delegates to this helper.
+      Owned by G-007.'
   - path: ai_editor/interfaces/cli.py
     purpose: 'Thin CLI diagnostic wrapper. Console script target: ai_editor.interfaces.cli:main.'
   - path: tests/
