@@ -94,10 +94,13 @@ verification:
   - GIT_COMMIT_FAILED diagnostic attached when project git commit fails; write still
     returns success.
 acceptance_criteria:
-- transaction_writer is the only normal persistence subsystem.
-- It contains orchestration, not duplicated parser, mutation, or validation internals.
-- Every write result is truthful and machine-readable.
-- Lower-level writer tasks can be decomposed without editing other subsystem directories.
+- ai_editor/writer.py is the only module that performs physical file writes (both
+  buf and result paths).
+- writer.py contains only write mechanics — no formatter internals, no mutation logic,
+  no validation.
+- 'Every result write result is truthful and machine-readable: old_hash, new_hash,
+  backup_record.'
+- 'Buffer writes (.buf) are fast and simple: atomic, no backup, no read-back.'
 model_assignment_spec:
   performer: coding_agent
   instruction: Implement only ai_editor/writer.py and tests/test_writer.py. Do not
