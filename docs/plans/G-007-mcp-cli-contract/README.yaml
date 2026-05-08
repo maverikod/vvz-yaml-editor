@@ -190,10 +190,10 @@ git_policy:
   project_git:
     applies_to: save and save_as operations only — when the real file is written to
       disk.
-    description: Writing the real file to disk is a plain file write. The project
-      git repository (if any) is not touched by the transaction_writer directly. If
-      the project uses git, the calling user or MCP client may choose to commit the
-      result — that is outside the scope of ai_editor.
+    description: 'write_result writes the real file to disk AND creates one project
+      git commit per file (best-effort via gitpython). Project git commit message:
+      ''<formatter_name>: save <relative_file_path>''. If git commit fails: GIT_COMMIT_FAILED
+      diagnostic attached, write still returns success=True.'
     invariant: transaction_writer never calls git on the project repo. It only writes
       bytes to disk, creates a backup, and verifies hashes.
   summary: Two separate git contexts exist. Editor git (G-015) tracks every mutation
