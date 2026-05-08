@@ -47,13 +47,14 @@ public_contracts_provided:
 - BackupRecord
 - FileHashPair
 core_responsibilities:
-- Implement read -> parse -> patch in memory -> validate -> render -> validate rendered
-  YAML -> write.
-- Provide dry_run behavior that never changes file bytes or creates backups.
-- Create backups before real writes.
-- Write atomically and verify written bytes.
-- Return old_hash, new_hash, backup_uuid, changed_paths, validation_result, and diagnostics.
-- Ensure failed validation, mutation, render, backup, or write stages return success=false.
+- 'Implement write_buf(content, buf_path): atomic write to .tmp then os.replace. No
+  backup, no read-back, no git.'
+- 'Implement write_result(content, real_path): backup -> atomic write -> read-back
+  -> project git commit (best-effort).'
+- Formatter.write(content, path) is the abstract method; writer.py is the default
+  implementation.
+- Return old_hash, new_hash, backup_record on result write.
+- Return GIT_COMMIT_FAILED diagnostic if project git commit fails; write still succeeds.
 write_pipeline:
 - read_file_bytes
 - compute_old_hash
