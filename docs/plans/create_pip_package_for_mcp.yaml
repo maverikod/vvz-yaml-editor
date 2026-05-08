@@ -991,20 +991,21 @@ session_model:
     sessions may run concurrently; the same file may not be open for writing in two
     sessions simultaneously.
   session_lifecycle:
-    connect: 'Client connects and receives a session_key (UUID4). Along with it the
-      client receives session_descriptor: the list of buffer_descriptors for all buffers
-      already open in that session (empty on first connect).'
-    reconnect: Client provides session_key on reconnect and receives the current session_descriptor
-      without re-opening files.
-    disconnect: Session remains alive for a configurable idle_timeout after disconnect.
-      All open buffers retain their state. On explicit close or timeout expiry all
-      buf files are removed, git buffer branches are deleted, and write locks are
-      released.
+    connect: Client calls connect(idle_timeout_seconds=3600). Server creates session
+      directory <sessions_base_dir>/<session_key>/, writes session.ses, initialises
+      bare git repo at <session_dir>/git/. Returns session_key and empty session_descriptor.
+    disconnect: Session directory and all contents remain on disk for idle_timeout
+      seconds. State fully preserved.
     invariants:
     - session_key is UUID4, assigned once, never reused.
-    - Each session has exactly one .ses file on disk.
-    - A session with no open buffers is still a valid session until explicitly closed
-      or timed out.
+    - Session directory exists iff session is active or within idle_timeout.
+    - A session with no open buffers is valid until explicitly closed or timed out.
+    reconnect: Client provides session_key. Server locates <sessions_base_dir>/<session_key>/,
+      reads session.ses, restores buffer list from .buf files. Returns session_descriptor.
+      Git repo already intact.
+    session_close: All buffers closed, write locks released, session directory deleted
+      atomically (rename to <session_key>.closing then rmtree). Includes git/, all
+      .buf files, session.ses.
   session_file:
     path_pattern: <sessions_base_dir>/<session_key>/session.ses
     format: 'JSON: {session_key, created_at, last_active_at, idle_timeout_seconds,
