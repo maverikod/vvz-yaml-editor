@@ -85,10 +85,10 @@ module_architecture:
       session keys, .ses/.buf files, or git. Does not know formatter internals.'
   - path: ai_editor/sessions/
     purpose: 'Session layer (G-015): connect/reconnect/disconnect, session_key lifecycle,
-      per-session directory (<sessions_base_dir>/<session_key>/), .ses and .buf file
-      management, write-lock enforcement, session-local bare git repo for undo/redo,
-      session-scoped clipboard. After every mutation commits rendered buffer to session
-      git branch buf/<buffer_id>.'
+      per-session directory (<sessions_base_dir>/<session_key>/), ses_settings.json
+      and .buf file management, write-lock enforcement, session-local bare git repo
+      for undo/redo, session-scoped clipboard. After every mutation commits rendered
+      buffer to session git branch buf/<buffer_id>.'
   - path: ai_editor/formatters/base.py
     purpose: 'AbstractFormatter contract: parse, render, validate_content [abstract],
       validate_document [abstract], mutate_set [abstract], mutate_replace_block [abstract],
