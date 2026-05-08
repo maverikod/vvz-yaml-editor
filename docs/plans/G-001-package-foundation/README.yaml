@@ -56,10 +56,11 @@ allowed_dependencies:
 public_contracts_provided:
 - ResultEnvelope
 - ErrorCode (includes all session, buffer, formatter, search, clipboard, validation,
-  write error codes)
+  write, and git error codes — see /error_model/typed_errors in ТЗ)
 - Diagnostic
 - ValidationResult
 - OperationResult
+- WriteAllResult
 - SessionKey (UUID4 string type alias)
 - SessionDescriptor
 - BufferDescriptor
