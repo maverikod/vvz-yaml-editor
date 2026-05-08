@@ -7,6 +7,7 @@ status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
 global_intent: 'Own AbstractSearch: a format-independent search/query layer over formatter-provided
   units. Search must not open/save files and must not know YAML path syntax or text
   line range internals. It asks the buffer for the document and formatter, asks the
