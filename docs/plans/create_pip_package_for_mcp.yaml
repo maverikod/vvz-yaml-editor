@@ -1028,14 +1028,13 @@ session_model:
         since open or last save.
       buf_file_path: Path to the temporary buffer file on disk (see buffer_file).
   buffer_file:
-    path_pattern: <sessions_dir>/<session_key>_<buffer_id>.buf
-    purpose: Temporary on-disk copy of the buffer content. Written after every mutation
-      operation so buffer state survives server restart. Loaded on session recovery.
-    not_indexed: The .buf file is never submitted to the code analysis indexer.
-    write_policy: Every mutation to the buffer (any operation that sets modified=true)
-      triggers an immediate write of the current rendered content to the .buf file.
-    cleanup: Deleted when the buffer is closed (with or without save) or when the
-      session expires.
+    cleanup: Deleted as part of session directory deletion on session close.
+    not_indexed: true
+    path_pattern: <sessions_base_dir>/<session_key>/<buffer_id>.buf
+    purpose: Temporary on-disk copy of current buffer content. Written after every
+      mutation so state survives restart. Loaded on reconnect.
+    write_policy: Written after every mutation (any operation that sets modified=true
+      on the buffer).
   write_lock_policy:
     rule: The same real file may not be open for writing (open_mode=readwrite) in
       two different sessions simultaneously.
