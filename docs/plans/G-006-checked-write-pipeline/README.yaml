@@ -42,12 +42,13 @@ allowed_dependencies:
   - G-007-transaction-writer
   - G-008-interfaces-and-release
 public_contracts_provided:
-- validate_yaml_document(document)
-- validate_rendered_yaml(text)
-- validate_schema(document, schema_name)
-- validate_plan_task_v1(document)
-- validate_render_determinism(document)
-- ValidationReport
+- 'AbstractFormatter abstract validation methods: validate_content [abstract], validate_document
+  [abstract] (owned by G-010).'
+- 'YAML formatter: validate_content (parse+schema+semantic+render check), validate_document,
+  plan_task_v1 rules (owned by G-010).'
+- 'CST formatter: validate_document via compile() (owned by G-013).'
+- 'Text formatter: validate_content and validate_document always return success=True
+  (owned by G-010).'
 core_responsibilities:
 - Validate YAML document structure after parsing.
 - Validate rendered YAML can be parsed back to an equivalent structure.
