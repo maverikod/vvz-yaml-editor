@@ -109,6 +109,7 @@ cli_surface:
   - new
   - save
   - save-as
+  - write-all
   - close
   - validate
   - validate-file
