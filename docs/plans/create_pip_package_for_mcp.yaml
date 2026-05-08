@@ -134,8 +134,9 @@ module_architecture:
       SessionDescriptor, ValidationResult, OperationResult, WriteAllResult, clipboard
       and search contracts.'
   - path: ai_editor/clipboard.py
-    purpose: Session-scoped format-aware clipboard. Copy/paste between buffers within
-      the same session only.
+    purpose: JSON Schema for plan_task_v1 validation. Used by YAML formatter validate_content
+      and validate_document for plan_task_v1 semantic validation. Owned by G-010 (YAML
+      formatter). Packaged inside the wheel as package data.
   - path: ai_editor/writer.py
     purpose: 'Checked persistence helper: backup, atomic write, read-back diagnostics.
       Called by editor core on save/save_as.'
