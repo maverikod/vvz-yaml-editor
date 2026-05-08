@@ -204,6 +204,11 @@ acceptance_criteria:
 - Paste compatibility is decided through formatter contracts, not ad hoc editor-core
   logic.
 - Future json and markdown formatters can be added by implementing AbstractFormatter.
+- ai_editor/models.py contains the JSON Schema for plan_task_v1 validation and is
+  owned by this step. It is packaged as package-data via pyproject.toml (G-001 adds
+  the glob).
+- ai_editor/schemas/ contains plan_task_v1.schema.json. G-001 adds schemas/ to pyproject.toml
+  package-data so it is bundled in the wheel.
 model_assignment_spec:
   performer: coding_agent
   instruction: Implement only AbstractFormatter contracts and the initial text and
