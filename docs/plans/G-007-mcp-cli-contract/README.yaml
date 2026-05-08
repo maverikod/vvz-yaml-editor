@@ -200,3 +200,25 @@ git_policy:
   summary: Two separate git contexts exist. Editor git (G-015) tracks every mutation
     for undo/redo. Project git is never touched by the editor — only the real file
     bytes are written on save.
+write_paths:
+  buffer_write:
+    caller: Session layer (G-015) after every mutation.
+    backup: No backup for .buf files. If write fails the in-memory buffer is still
+      valid; next mutation will retry.
+    path: <session_dir>/<filename>.buf
+    purpose: Persist current buffer content to disk so state survives server restart.
+    verify: No read-back needed — .buf is a cache, not authoritative.
+  result_write:
+    caller: Editor core (G-009) on save/save_as.
+    backup: Backup created before write. On failure backup is restored.
+    path: Real file path on disk (e.g. docs/plans/G-007.../README.yaml).
+    purpose: Persist the final edited content as the real file.
+    verify: Read-back after write to confirm bytes match rendered content.
+  shared_mechanism: 'Both write paths use atomic write from ai_editor/writer.py: render
+    content -> write to .tmp -> os.replace. Buffer write skips backup and read-back.
+    Result write includes backup and read-back.'
+  abstract_write_method: 'AbstractFormatter.write(content: str, path: str) -> None.
+    Abstract method. Default implementation calls ai_editor/writer.py atomic write.
+    Formatters may override to handle encoding or binary formats. Must not be called
+    directly by session or editor core — they call the appropriate helper (write_buf
+    or write_result) which in turn calls formatter.write.'
