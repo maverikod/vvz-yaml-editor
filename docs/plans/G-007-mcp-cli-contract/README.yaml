@@ -5,9 +5,14 @@ step_name: transaction_writer
 title: Atomic transaction writer and checked write orchestration subsystem
 status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
-global_intent: Own the checked write transaction subsystem. This layer orchestrates
-  document_io, mutations, and validation to implement safe persistence, but it does
-  not own their internal logic, CLI commands, or MCP server wrappers.
+global_intent: 'Own the checked write helper (ai_editor/writer.py). This module provides
+  atomic file write with backup and read-back verification. It is used for two distinct
+  write paths that share the same mechanism: (1) buffer write — session layer writes
+  .buf file to <session_dir>/<filename>.buf after every mutation; (2) result write
+  — editor core writes the real file to disk on save/save_as. Both paths call the
+  same writer with different target paths. AbstractFormatter provides an abstract
+  write method that receives rendered content as string and a target path; the formatter
+  may override serialization but delegates atomic persistence to ai_editor/writer.py.'
 why_this_block_exists: 'Lower-level writer tasks must understand the entire persistence
   task from this global block: all writes are transactions, every write is checked,
   failed operations leave files unchanged, and successful writes must report hashes,
