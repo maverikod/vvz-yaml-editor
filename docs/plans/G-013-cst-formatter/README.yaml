@@ -550,9 +550,10 @@ acceptance_criteria:
 - stable_id is assigned EXACTLY ONCE per node at first _build_tree_index. Value =
   UUID4. Never reassigned, never changed, never re-embedded in source.
 - stable_id is stored in TreeNodeMetadata.stable_id and persisted in sidecar metadata_map.
-- stable_id survives mutations via previous_metadata_map exact_key + previous_obj_to_id
-  ONLY. No inline @node-id comment transport. No set_stable_id. No get_stable_id in
-  mutation flow.
+- 'stable_id survives INSERT/DELETE/MOVE via inline comment transport (set_stable_id/get_stable_id
+  on FunctionDef/ClassDef) + previous_metadata_map + previous_obj_to_id. For REPLACE/REPLACE_DOCSTRING:
+  previous_metadata_map exact_key only. Inline comments are transient in-memory only
+  — never written to disk.'
 - node_stable_id.py is used ONLY for strip_inline_node_id_lines_from_source at parse
   time (defensive cleaner for legacy files).
 - 'Sidecar has two checksums: source_sha256 and tree_sha256. Both validated on load.'
