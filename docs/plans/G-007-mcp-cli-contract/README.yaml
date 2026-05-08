@@ -151,8 +151,10 @@ persistence_safety_policy:
     before_write: Create file backup.
     on_failure: Restore from backup.
     rationale: Same behavior regardless of project git presence.
-  invariant: transaction_writer always uses file backup as safety before write. Never
-    touches project git. Editor git is G-015's responsibility.
+  invariant: writer.py always uses file backup as safety before result write. Editor
+    git (undo/redo) is G-015's responsibility. Project git commit is performed by
+    write_result after successful file write — best-effort, separate from the backup
+    mechanism.
 git_policy:
   editor_git:
     applies_to: Every buffer mutation (any operation that changes buffer content).
