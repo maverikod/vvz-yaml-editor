@@ -52,11 +52,14 @@ public_contracts_provided:
 - CST formatter concrete mutation implementations (owned by G-013).
 - Text formatter concrete mutation implementations (owned by G-010).
 core_responsibilities:
-- Implement set, replace_block, append, delete, and move operations.
-- Apply operations only to in-memory YAML document objects.
-- Use path_language to resolve mutation targets and parents.
-- Track changed_paths using normalized structural paths.
-- Provide all-or-nothing in-memory batch mutation behavior.
+- Mutations live inside each formatter. Do not create ai_editor/mutations/.
+- Each formatter implements mutate_set, mutate_replace_block, mutate_append, mutate_delete,
+  mutate_move.
+- Mutations operate only on the in-memory document — never read or write files.
+- After every successful mutation the session layer (G-015) calls render() and commits
+  to session git.
+- Tactical steps T-001..T-008 under this directory are OBSOLETE — their content is
+  now owned by G-010 and G-013 tactical steps.
 mutation_operations:
 - op: set
   purpose: Replace scalar or structured value at a structural path.
