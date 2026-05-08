@@ -115,44 +115,19 @@ observations_template:
   status: ''
 tactical_decomposition:
 - tactical_step_id: T-001
-  tactical_step_name: transaction_writer_package_boundary
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-001-transaction-writer-package-boundary/README.yaml
-  purpose: Define transaction writer package boundary and public surface.
+  tactical_step_name: write_buf_implementation
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-001-write-buf/README.yaml
+  purpose: 'Implement write_buf: atomic write via .tmp + os.replace. No backup, no
+    read-back, no git.'
 - tactical_step_id: T-002
-  tactical_step_name: checked_write_contracts
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-002-checked-write-contracts/README.yaml
-  purpose: Define checked write request, result, backup, hash, and stage diagnostics
-    contracts.
+  tactical_step_name: write_result_implementation
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-002-write-result/README.yaml
+  purpose: 'Implement write_result: backup + atomic write + read-back + project git
+    commit (best-effort).'
 - tactical_step_id: T-003
-  tactical_step_name: read_and_hashing_stage
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-003-read-and-hashing-stage/README.yaml
-  purpose: Own file byte read and content hash calculation policy.
-- tactical_step_id: T-004
-  tactical_step_name: dry_run_semantics
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-004-dry-run-semantics/README.yaml
-  purpose: Own dry-run no-write and no-backup semantics.
-- tactical_step_id: T-005
-  tactical_step_name: backup_stage
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-005-backup-stage/README.yaml
-  purpose: Own backup creation and backup failure policy for real writes.
-- tactical_step_id: T-006
-  tactical_step_name: atomic_replace_and_readback
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-006-atomic-replace-and-readback/README.yaml
-  purpose: Own atomic byte replace and post-write read-back verification.
-- tactical_step_id: T-007
-  tactical_step_name: checked_write_orchestration
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-007-checked-write-orchestration/README.yaml
-  purpose: Own yaml_write_checked orchestration and truthful stage failure semantics.
-- tactical_step_id: T-008
-  tactical_step_name: transaction_writer_docs_and_integration_verification
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-008-transaction-writer-docs-and-integration-verification/README.yaml
-  purpose: Own transaction writer documentation and integration verification planning
-    without production edits.
-- tactical_step_id: T-009
-  tactical_step_name: changed_path_mismatch_gate
-  readme_path: docs/plans/G-007-mcp-cli-contract/T-009-changed-path-mismatch-gate/README.yaml
-  purpose: Own expected-vs-actual changed path comparison and CHANGED_PATH_MISMATCH
-    rejection before persistence.
+  tactical_step_name: writer_tests
+  readme_path: docs/plans/G-007-mcp-cli-contract/T-003-writer-tests/README.yaml
+  purpose: Tests for write_buf and write_result covering all safety_rules scenarios.
 branch_self_containment_policy:
 - Technical Specification -> this G-007 README.yaml -> any one T-YYY README.yaml under
   this directory must give an implementer the full picture for that tactical branch.
