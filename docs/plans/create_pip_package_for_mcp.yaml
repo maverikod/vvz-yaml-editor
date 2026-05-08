@@ -738,8 +738,8 @@ implementation_steps:
   verification:
   - connect creates session directory with ses_settings.json and git/ repo.
   - connect returns session_key and empty buffer list.
-  - reconnect restores buffer_descriptor list from session.ses and .buf files without
-    re-opening real files.
+  - reconnect restores buffer_descriptor list from ses_settings.json and .buf files
+    without re-opening real files.
   - disconnect with close_unsaved=False and modified buffer returns SESSION_HAS_UNSAVED_BUFFERS.
   - disconnect with close_unsaved=True closes despite modified buffers.
   - open in two sessions for same file readwrite returns BUFFER_LOCKED on second.
