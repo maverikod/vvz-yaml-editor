@@ -30,9 +30,8 @@ forbidden_code_paths:
 - site-packages
 allowed_dependencies:
   may_be_used_by:
-  - G-010 YAMLFormatter (primary consumer — YAML mutations use path_language internally)
-  - G-007 writer (ai_editor/writer.py uses path_language for changed_path verification)
-  - G-008 interfaces_release
+  - G-010 YAMLFormatter (primary consumer — uses path_language for YAML address resolution
+    and mutations)
   may_depend_on:
   - G-001-package-contracts-and-distribution
   - G-002 document_io (at ai_editor/formatters/yaml/document_io/)
