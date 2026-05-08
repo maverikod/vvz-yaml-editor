@@ -1004,9 +1004,11 @@ coverage_gap_closures:
     write-lock enforcement across sessions, and session-scoped clipboard. G-009 owns
     AbstractBuffer lifecycle; G-015 aggregates and manages buffers through sessions.'
 - gap: clipboard_scoped_to_session
-  resolution: 'Clipboard is session-scoped: copy/paste is allowed between different
-    buffers within the same session only. Cross-session clipboard operations are rejected.
-    Clipboard storage lives under sessions_dir and is cleared on session close.'
+  resolution: 'G-015 owns the session layer: connect/reconnect/disconnect, session_key
+    (UUID4), ses_settings.json session files, .buf buffer files, per-buffer git branches
+    in the session-local bare git repo (<session_dir>/git/), undo/redo via git commits,
+    write-lock enforcement across sessions, and session-scoped clipboard. G-009 owns
+    AbstractBuffer lifecycle; G-015 aggregates and manages buffers through sessions.'
 - gap: git_in_editor_for_history
   resolution: G-015 owns the editor-internal bare git repo (sessions_dir/git/). This
     repo is separate from any project git. Project git is only touched by the save/save_as
