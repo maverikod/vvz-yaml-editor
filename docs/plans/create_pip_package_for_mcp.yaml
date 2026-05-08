@@ -1006,6 +1006,16 @@ session_model:
     session_close: All buffers closed, write locks released, session directory deleted
       atomically (rename to <session_key>.closing then rmtree). Includes git/, all
       .buf files, session.ses.
+    explicit_close:
+      close_unsaved_false: Default and safe path. Before closing, check every open
+        buffer for modified=True. If any modified buffer exists — abort, return SESSION_HAS_UNSAVED_BUFFERS
+        with list of modified buffer_ids. Session and all buffers remain intact.
+      close_unsaved_true: Force-close regardless of modified flags. All unsaved buffer
+        changes permanently discarded. Real files unchanged. Must be passed explicitly
+        — never the default.
+      idle_timeout_expiry: Always behaves as close_unsaved=True. Session expired —
+        all unsaved changes lost. The only implicit close_unsaved=True.
+      param: disconnect(session_key, force=True, close_unsaved=False)
   session_file:
     path_pattern: <sessions_base_dir>/<session_key>/session.ses
     format: 'JSON: {session_key, created_at, last_active_at, idle_timeout_seconds,
