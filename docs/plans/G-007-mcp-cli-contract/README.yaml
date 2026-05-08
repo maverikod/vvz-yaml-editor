@@ -18,8 +18,8 @@ why_this_block_exists: 'Lower-level writer tasks must understand the entire pers
   failed operations leave files unchanged, and successful writes must report hashes,
   backups, changed paths, and validation results.'
 owned_code_paths:
-- ai_editor/transaction_writer/
-- tests/transaction_writer/
+- ai_editor/writer.py
+- tests/test_writer.py
 owned_docs_paths:
 - docs/transaction_writer.md
 forbidden_code_paths:
