@@ -39,7 +39,6 @@ allowed_dependencies:
   may_depend_on:
   - G-009 AbstractBuffer public contracts (resolves buffer via session_key + buffer_id)
   - G-010 formatter unit, match, and compare contracts
-  - G-015 session layer (session_key required for all search operations)
 public_contracts_provided:
 - AbstractSearch
 - formatter-unit search API
