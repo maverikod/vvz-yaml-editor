@@ -1273,6 +1273,56 @@ session_model:
     storage: Clipboard items are stored in memory during the session. Optionally persisted
       to sessions_dir/<session_key>.clipboard for recovery on reconnect.
     cleanup: All clipboard items are discarded when the session is closed.
+  session_commands_model:
+    commands_are_session_attributes: Session is the editor. All editing commands are
+      attributes of the session, not of the file. A buffer is the in-memory representation
+      of a file; the session orchestrates all operations over its buffers — open,
+      save, write_all, undo, redo, find, copy, cut, paste, validate. This mirrors
+      familiar editor command sets (e.g. :w, :wq, :wa in vim).
+    editor_git_commits:
+      description: After every successful buffer mutation the session commits the
+        rendered buffer content to the session-local git repo (<session_dir>/git/)
+        on branch buf/<buffer_id>. This provides per-buffer undo/redo history. Owned
+        by G-015.
+      trigger: Every mutation on any buffer in the session.
+    project_git_commits:
+      commit_message: '"<formatter_name>: save <relative_file_path>"'
+      description: When a buffer is written to the real file (via save, save_as, write_all,
+        or auto_write), the session creates one git commit per written file in the
+        project git repository (if git is available in project_root). Each file gets
+        its own commit.
+      failure_policy: 'If project git commit fails (dirty working tree, no git, no
+        user config): write is still considered successful. A GIT_COMMIT_FAILED diagnostic
+        is attached to the response. Git commit is best-effort.'
+      multi_file_exception: Project-wide rename (G-014) creates a single multi-file
+        commit for all changed files, preceded by a git tag pre-rename/<uuid>. This
+        is the only case where multiple files share one project git commit.
+      trigger: Every successful result write (save, save_as, write_all, auto_write).
+    write_all_command:
+      behavior:
+      - 'For each open buffer in the session where readonly=False:'
+      - 'Call formatter.validate_document(document). If validation fails: record in
+        failed_buffers with error; skip write.'
+      - 'Call formatter.write(content, real_file_path). If write fails: record in
+        failed_buffers with error.'
+      - 'On success: create one project git commit for this file.'
+      - 'New unsaved buffers (real_file_path=null): skip silently unless save_as path
+        is provided.'
+      description: write_all(force=False) writes all eligible buffers in the session
+        to their real files.
+      force_flag: 'force=False (default): only write buffers where modified=True.
+        force=True: write all non-readonly buffers regardless of modified flag.'
+      partial_result:
+        fields:
+        - 'success: bool (True only if ALL eligible buffers were written without error)'
+        - 'written_buffers: list of buffer_ids successfully written'
+        - 'failed_buffers: list of {buffer_id, error_code, message} for buffers that
+          failed validation or write'
+        - 'skipped_buffers: list of buffer_ids skipped (readonly, new unsaved without
+          path, or not modified when force=False)'
+        invariant: Even when success=False the caller receives complete information
+          about which buffers succeeded and which failed. Partial writes are valid
+          — the session remains open with all buffers intact.
 buffer_model:
   definition:
     description: A buffer is an in-memory representation of a file open for editing
