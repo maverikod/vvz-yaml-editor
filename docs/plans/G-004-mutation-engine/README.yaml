@@ -67,10 +67,12 @@ subsystem_independence_rules:
   public contracts.
 - This subsystem must not write files, create backups, or implement CLI/MCP wrappers.
 implementation_outline:
-- Implement read service functions in ai_editor/reader/.
-- Convert document fragments into JSON-compatible values.
-- Preserve typed errors from document_io and path_language in read responses.
-- Add tests for successful reads, missing paths, ambiguous paths, and serialization.
+- Implement thin compat wrappers in ai_editor/formatters/yaml/compat/.
+- Delegate yaml_load/yaml_get/yaml_get_command/yaml_get_verification entirely to G-010
+  YAMLFormatter and G-011 AbstractSearch.
+- Convert formatter results to JSON-compatible values.
+- Preserve typed errors from formatter and search layers in compat responses.
+- Add tests under tests/formatters/yaml/compat/.
 verification:
   commands:
   - python -m pytest tests/reader
