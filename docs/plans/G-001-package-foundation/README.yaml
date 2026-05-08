@@ -107,6 +107,8 @@ acceptance_criteria:
 - Package metadata is ready for pip installation.
 - No CLI console entry point is declared by G-001.
 - owned_test_paths and owned_code_paths do not overlap.
+- pyproject.toml package-data includes ai_editor/schemas/**/*.json so G-010 schema
+  files are bundled in the wheel without G-001 owning those files.
 tactical_decomposition:
 - tactical_step_id: T-001
   tactical_step_name: package_configuration
