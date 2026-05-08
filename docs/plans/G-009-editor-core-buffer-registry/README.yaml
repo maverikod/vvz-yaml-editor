@@ -62,9 +62,11 @@ abstract_buffer_contract:
   - validate(session_key, buffer_id) -> ValidationResult
   - write_all(session_key, force=False) -> WriteAllResult
   responsibilities:
-  - Own file_path binding and one-open-buffer-per-file rule.
+  - session_key is required for every buffer operation. AbstractBuffer does not work
+    without a session.
+  - Own file_path binding and one-open-buffer-per-file-per-session rule.
   - Own unsaved/New file buffers.
-  - Own original_hash, current_hash, dirty, revision, and status.
+  - Own filename, relative_path, formatter, modified, readonly buffer fields.
   - Own stale disk checks before save/save_as.
   - Own backup and atomic write orchestration through persistence helpers.
   - Own formatter fallback from structural formatter to text formatter on parse failure.
@@ -72,11 +74,12 @@ abstract_buffer_contract:
     formatter.
   - Own pre-save validation by calling formatter.validate_document(document) before
     render and write.
-  - 'Own file edit lock: on open acquire editing_pid in files table; on close release
-    it. Return BUFFER_LOCKED if another live process holds the lock.'
+  - 'Own file edit lock: on open acquire editing_pid + session_key in files table;
+    on close release it.'
   - Delegate parse/render to the buffer formatter.
   - Delegate address interpretation and fragment editing to the buffer formatter.
   - Delegate search/query behavior to AbstractSearch.
+  - Delegate write orchestration to formatter.write() which uses ai_editor/writer.py.
 buffer_model:
   buffer_fields:
     filename: Bare file name without path (e.g. README.yaml). Set at open time, never
