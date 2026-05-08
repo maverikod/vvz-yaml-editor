@@ -293,9 +293,8 @@ branch_self_containment_policy:
   this directory must give an implementer the full picture for that tactical branch.
 - Tactical README files under G-008 must repeat the relevant parent context and must
   not require reading sibling T branches.
-- Maximizing tactical steps means maximizing independent steps inside G-008 only;
-  no T step under G-008 may include implementation work from parser internals, path
-  internals, mutation internals, validation internals, transaction writer internals,
+- No T step under G-008 may include implementation work from formatter internals,
+  path internals, mutation internals, validation internals, writer internals (ai_editor/writer.py),
   or unrelated branches.
 ws_job_result_policy:
   client_library: mcp_proxy_adapter.client.jsonrpc_client.ws_job_status
