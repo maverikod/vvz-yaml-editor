@@ -83,7 +83,8 @@ verification:
   scope: internal_g010_submodule
 acceptance_criteria:
 - All YAML parser configuration is centralized in document_io.
-- Other subsystems can consume YamlDocument without owning parser details.
+- G-010 YAMLFormatter uses YamlDocument internally without re-implementing parser
+  details.
 - No path, mutation, validation, or writer behavior is implemented here.
 model_assignment_spec:
   performer: coding_agent
