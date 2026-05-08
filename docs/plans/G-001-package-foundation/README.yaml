@@ -82,6 +82,9 @@ subsystem_independence_rules:
 implementation_outline:
 - Create pyproject.toml with hatchling, dependencies, optional dev dependencies, and
   package-data policy.
+- pyproject.toml must include package-data glob for ai_editor/schemas/**/*.json so
+  that plan_task_v1.schema.json (created by G-010) is bundled in the wheel. G-001
+  owns pyproject.toml; G-010 owns the schema file itself.
 - Do not declare console entry points in G-001; console entry point is owned by G-008.
 - Create ai_editor/contracts/ with stable DTOs and error codes.
 - Export package version without importing heavy subsystems.
