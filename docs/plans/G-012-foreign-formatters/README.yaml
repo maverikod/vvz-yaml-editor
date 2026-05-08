@@ -82,9 +82,9 @@ openapi_mcp_proxy_rules:
 - ForeignFormatter may perform format-specific validation, CST/AST address handling,
   unit iteration, and edit fragment operations.
 example_use_cases:
-- .py -> CST-backed ForeignFormatter
-- .ts -> TypeScript AST/CST ForeignFormatter
-- .md -> future Markdown local or foreign formatter
+- .ts -> TypeScript AST/CST via external language server ForeignFormatter
+- .md -> Markdown via external formatter ForeignFormatter
+- .go, .rs, .java -> language-specific external formatter ForeignFormatter
 verification:
   scope: global_completion_gate
   commands:
