@@ -1051,12 +1051,27 @@ session_model:
         branch, permanently discarding the redo future (exactly like standard git).
         The redo stack resets on every new mutation.
     invariants:
-    - Git commits on the buffer branch never touch the working tree of the project.
-    - Buffer branch is always local. Never pushed to any remote.
-    - Undo/redo only move HEAD on the buffer branch. They do not affect the real file
-      until save is called.
-    - If git operations fail (disk full, corrupted repo) the operation proceeds without
-      history; a HISTORY_UNAVAILABLE diagnostic is attached to the response.
+      git_library: gitpython (required runtime dependency). Chosen for API reliability
+        over subprocess. Used only by the session layer (G-015) for all editor-internal
+        git operations.
+      invariants:
+      - Git commits on the buffer branch never touch the project git repository.
+      - Project git is only affected by save/save_as writing the real file to disk
+        — same as any other file write.
+      - Buffer branch is always local to the editor-internal repo. Never pushed to
+        any remote.
+      - Undo/redo only move HEAD on the buffer branch. They do not affect the real
+        file until save is called.
+      - If gitpython operations fail (disk full, corrupted repo) the operation proceeds
+        without history; a HISTORY_UNAVAILABLE diagnostic is attached to the response.
+      - The editor-internal git repo and any project git repo are completely separate;
+        no cross-repo operations ever occur.
+      project_git_separation: The editor-internal git repo (sessions_dir/git/) is
+        entirely separate from any project git repository. Editor history operations
+        (undo, redo, buffer branch create/delete) use only the editor-internal repo.
+        The project git repository is touched only when save or save_as writes the
+        real file to disk — this is a normal file write, not a git operation performed
+        by the editor.
     on_session_close:
       trigger: Session close (explicit disconnect, idle_timeout expiry, or server-side
         forced close).
