@@ -54,39 +54,22 @@ allowed_dependencies:
   - G-014 project_refactor
   - G-015 session_layer
 public_contracts_provided:
-- ResultEnvelope — wraps success, error_code, message, details, diagnostics. All API
-  responses use this shape.
-- 'ErrorCode — enum covering ALL typed errors from ТЗ /error_model/typed_errors: SESSION_NOT_FOUND,
-  SESSION_EXPIRED, SESSION_LOCK_CONFLICT, SESSION_HAS_UNSAVED_BUFFERS, SESSION_READONLY,
-  BUFFER_NOT_FOUND, BUFFER_ALREADY_OPEN, BUFFER_HAS_UNSAVED_CHANGES, BUFFER_STALE,
-  BUFFER_INVALID, BUFFER_LOCKED, BUFFER_READONLY, FORMATTER_NOT_FOUND, FORMATTER_UNSUPPORTED,
-  FORMATTER_COMMAND_DISCOVERY_FAILED, FORMATTER_COMMAND_SCHEMA_INVALID, FORMATTER_COMMAND_UNSUPPORTED,
-  FORMAT_VALIDATION_FAILED, FOREIGN_FORMATTER_FAILED, FOREIGN_FORMATTER_TIMEOUT, FOREIGN_FORMATTER_CONTRACT_VIOLATION,
-  PATH_PARSE_FAILED, PATH_NOT_FOUND, PATH_NOT_UNIQUE, TARGET_TYPE_MISMATCH, ADDRESS_INVALID,
-  ADDRESS_NOT_FOUND, ADDRESS_NOT_UNIQUE, SEARCH_QUERY_INVALID, SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE,
-  SEARCH_SCOPE_INVALID, FORMATTER_SEARCH_UNSUPPORTED, CLIPBOARD_EMPTY, CLIPBOARD_ITEM_NOT_FOUND,
-  CLIPBOARD_ITEM_EXISTS, CLIPBOARD_FORMAT_MISMATCH, CLIPBOARD_SOURCE_STALE, CLIPBOARD_INVALID_MODE,
-  YAML_PARSE_FAILED, CST_PARSE_FAILED, VALIDATION_FAILED, SCHEMA_VALIDATION_FAILED,
-  SEMANTIC_VALIDATION_FAILED, RENDER_NOT_DETERMINISTIC, CHANGED_PATH_MISMATCH, WRITE_FAILED,
-  BACKUP_FAILED, SAVE_TARGET_EXISTS, SAVE_TARGET_MISSING, UNDO_AT_BEGINNING, REDO_AT_END,
-  HISTORY_UNAVAILABLE, GIT_COMMIT_FAILED, GIT_NOT_AVAILABLE, RENAME_TARGET_NOT_FOUND,
-  RENAME_INVALID_IDENTIFIER, RENAME_GIT_CHECKPOINT_FAILED, RENAME_ROLLBACK_FAILED.'
-- 'Diagnostic — dataclass: code (ErrorCode), message (str), path (str | None), details
-  (dict). Used by all subsystems for structured error reporting.'
-- 'ValidationResult — dataclass: success (bool), diagnostics (list[Diagnostic]). Returned
-  by formatter.validate_content and formatter.validate_document.'
-- 'OperationResult — dataclass: success (bool), error_code (ErrorCode | None), message
-  (str), diagnostics (list[Diagnostic]). Returned by mutation and write operations.'
+- ResultEnvelope — wraps success (bool), error_code (str | None), message (str), details
+  (dict), diagnostics (dict).
+- ErrorCode — enum. Must include ALL codes from ТЗ /error_model/typed_errors. Full
+  list is authoritative there; T-004 reads it directly.
+- 'Diagnostic — dataclass: code (str), message (str), path (str | None), details (dict).'
+- 'ValidationResult — dataclass: success (bool), diagnostics (list[Diagnostic]).'
+- 'OperationResult — dataclass: success (bool), error_code (str | None), message (str),
+  diagnostics (list[Diagnostic]).'
 - 'WriteAllResult — dataclass: success (bool), written_buffers (list[str]), failed_buffers
-  (list[dict] with buffer_id/error_code/message), skipped_buffers (list[str]), diagnostics
-  (list[Diagnostic]). success=True only if ALL eligible buffers were written without
-  error.'
-- SessionKey — UUID4 string type alias.
+  (list[dict]), skipped_buffers (list[str]), diagnostics (list[Diagnostic]).'
+- 'SessionKey — type alias: str (UUID4).'
 - 'SessionDescriptor — dataclass: session_key (SessionKey), open_buffers (list[BufferDescriptor]),
   diagnostics (list[Diagnostic]).'
 - 'BufferDescriptor — dataclass: buffer_id (str), session_key (SessionKey), filename
   (str), relative_path (str | None), formatter (str), modified (bool), readonly (bool),
-  buf_file_path (str | None). buf_file_path is None for readonly buffers.'
+  buf_file_path (str | None).'
 - Package version export — __version__ string in ai_editor/__init__.py.
 core_responsibilities:
 - Define package identity and build backend.
