@@ -39,12 +39,12 @@ forbidden_code_paths:
 allowed_dependencies:
   may_depend_on: []
   may_be_used_by:
-  - G-002 document_io
+  - G-002 document_io (internal to G-010)
   - G-003 path_language
-  - G-004 reader_queries (compat)
-  - G-005 mutation_operations
-  - G-006 validation_rules
-  - G-007 transaction_writer
+  - G-004 reader_queries (compat, internal to G-010)
+  - G-005 mutation_operations (absorbed into G-010 and G-013)
+  - G-006 validation_rules (absorbed into G-010 and G-013)
+  - G-007 writer (ai_editor/writer.py)
   - G-008 interfaces_release
   - G-009 editor_core_buffer_registry
   - G-010 text_yaml_formatters
