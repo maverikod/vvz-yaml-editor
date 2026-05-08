@@ -51,6 +51,7 @@ package_target:
   - ruamel.yaml
   - jsonschema
   - jsonpath-ng
+  - gitpython
   optional_dependencies:
     dev:
     - pytest
