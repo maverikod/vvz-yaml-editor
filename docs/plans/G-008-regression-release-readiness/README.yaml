@@ -26,9 +26,14 @@ forbidden_code_paths:
 - ai_editor/contracts/
 - ai_editor/formatters/yaml/document_io/
 - ai_editor/formatters/yaml/compat/
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
+- ai_editor/formatters/cst/
+- ai_editor/formatters/base.py
 - ai_editor/editor_core/
 - ai_editor/sessions/
 - ai_editor/search/
+- ai_editor/writer.py
 - .venv
 - venv
 - site-packages
