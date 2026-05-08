@@ -7,6 +7,7 @@ status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
 global_intent: 'Own AbstractFormatter and the first formatter backends: text and YAML.
   A formatter defines document parsing, rendering, validation, address normalization,
   fragment editing, unit iteration, unit retrieval, diagnostics, and unit comparison
