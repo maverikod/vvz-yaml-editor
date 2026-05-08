@@ -99,7 +99,9 @@ model_assignment_spec:
     Provides ruamel.yaml round-trip parser, YamlDocument in-memory wrapper, DocumentSummary,
     ParseDiagnostic, and deterministic renderer. All code lives under ai_editor/formatters/yaml/document_io/
     and is used exclusively by YAMLFormatter internals. Do not use from editor_core,
-    sessions, or any subsystem outside G-010.
+    sessions, or any subsystem outside G-010. The contracts this module must implement
+    are fully specified in /public_contracts_provided above — no need to read G-010
+    for that.
 observations_template:
 - command: ''
   expected: ''
