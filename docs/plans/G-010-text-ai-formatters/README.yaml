@@ -261,3 +261,21 @@ formatter_contract_extensions:
       render; returns diagnostics on failure
     cst_formatter_behavior: compiles tree.module.code; returns syntax diagnostics
       on failure
+mutation_and_validation_policy:
+  mutation_ownership: All mutation operations (set, replace_block, append, delete,
+    move) are implemented inside each formatter. G-005 has no standalone module —
+    its content is absorbed here.
+  mutation_git_commit: After every successful mutation the caller (session layer G-015)
+    calls formatter.render(document) and commits the result to session git branch
+    buf/<buffer_id>. The formatter is not responsible for git — it only returns the
+    mutated document.
+  validation_ownership: validate_content and validate_document are abstract on AbstractFormatter.
+    Each formatter implements them. G-006 has no standalone module — its content is
+    absorbed here.
+  text_formatter_validation: text formatter validate_content and validate_document
+    always return success=True. Text imposes no structural constraints.
+  yaml_formatter_validation: YAML formatter validate_content validates parse, schema,
+    semantic (plan_task_v1 rules), and render determinism. validate_document validates
+    in-memory document against the same rules.
+  cst_formatter_validation: CST formatter validate_document compiles tree.module.code
+    via compile() built-in and returns syntax diagnostics. Owned by G-013.
