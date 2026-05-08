@@ -46,7 +46,7 @@ allowed_dependencies:
   consumes_from:
   - G-009/T-001 through T-006 (all editor core components under test)
   - G-010 text formatter (used as test formatter via stubs or real implementation)
-  - G-007 writer.py (called via save pipeline)
+  - ai_editor/writer.py (called via save pipeline)
   provides_to:
   - G-015 session layer implementer (docs/editor_core.md as reference)
   - G-008 public interfaces implementer (docs/editor_core.md as reference)
