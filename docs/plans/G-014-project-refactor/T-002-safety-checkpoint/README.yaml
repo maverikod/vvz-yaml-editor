@@ -1,0 +1,147 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-014
+parent_step_name: project_refactor
+step_id: G-014/T-002
+step_name: safety_checkpoint
+title: Safety checkpoint - git tag plus commit or file backup before rename
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-014-project-refactor/README.yaml
+parent_global_context: 'G-014 owns project-wide rename refactoring always run via
+  mcp-proxy-adapter queue. A safety checkpoint must always precede the first file
+  modification: git tag+commit in the project git repo when git is available, or file
+  backups via writer.py when git is not available. T-002 owns this checkpoint logic
+  in isolation.
+
+  '
+intent: 'Implement the safety checkpoint module: create_git_checkpoint(job_uuid, old_name,
+  new_name, project_root) -> (tag_name, commit_sha) creates git tag pre-rename/<job_uuid>
+  and a checkpoint commit in the project git repo; create_backup_checkpoint(files,
+  writer) -> BackupRecord creates .bak backups for all files that will be modified;
+  rollback_git(tag_name, project_root); rollback_backups(backup_record). detect_git_availability(project_root)
+  -> bool.
+
+  '
+why_this_step_exists: 'The safety checkpoint is independently testable without the
+  reference search or execution pipeline. Isolating it here means T-004 (execution
+  pipeline) can call a well-tested checkpoint function without re-implementing git/backup
+  logic. The git vs backup decision belongs entirely in this step.
+
+  '
+owned_code_paths:
+- ai_editor/project_refactor/safety_checkpoint.py
+- tests/project_refactor/test_safety_checkpoint.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-014/T-001 contracts (RenameJobResult, GIT_NOT_AVAILABLE error code)
+  - G-007 writer.py backup mechanism (copy file to .bak before write)
+  - gitpython (project git operations only; NOT editor-internal git)
+  provides_to:
+  - G-014/T-004 rename_pipeline (calls create checkpoint and rollback)
+public_contracts_provided:
+- 'detect_git_availability(project_root: str) -> bool: runs git rev-parse in project_root;
+  returns True if successful.
+
+  '
+- 'create_git_checkpoint(job_uuid: str, old_name: str, new_name: str, project_root:
+  str) -> tuple[str, str]: creates tag pre-rename/<job_uuid> and checkpoint commit.
+  Returns (tag_name, commit_sha). Raises RENAME_GIT_CHECKPOINT_FAILED on failure.
+
+  '
+- 'BackupRecord — dataclass: files (dict[str, str]) mapping original_path to backup_path.
+  Used for restore.
+
+  '
+- 'create_backup_checkpoint(file_paths: list[str]) -> BackupRecord: copies each file
+  to <path>.bak using shutil.copy2. Returns BackupRecord.
+
+  '
+- 'rollback_git(tag_name: str, project_root: str) -> bool: runs git checkout to pre-rename
+  tag. Returns True if successful; False otherwise (logged, not raised).
+
+  '
+- 'rollback_backups(backup_record: BackupRecord) -> bool: restores each file from
+  its .bak copy. Returns True if all restored; False on partial failure.
+
+  '
+- 'Note: dry_run=True callers must NOT call create_git_checkpoint or create_backup_checkpoint.
+  Checkpoint functions are not called on dry runs.
+
+  '
+implementation_notes: 'create_git_checkpoint uses gitpython to operate on the PROJECT
+  git repo at project_root. This is completely separate from the editor-internal git
+  repo in sessions_dir. rollback_git and rollback_backups must never raise; they log
+  failures and return bool. RENAME_GIT_CHECKPOINT_FAILED is raised by create_git_checkpoint
+  if git operation fails. create_backup_checkpoint uses shutil.copy2 to preserve metadata.
+  Backup paths: <original_path>.bak_<job_uuid> to avoid collision with existing .bak
+  files.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/project_refactor/test_safety_checkpoint.py -v
+  expected:
+  - detect_git_availability returns True in a valid git repo.
+  - detect_git_availability returns False outside a git repo.
+  - create_git_checkpoint creates tag pre-rename/<uuid> in project git repo.
+  - create_git_checkpoint raises RENAME_GIT_CHECKPOINT_FAILED if git fails.
+  - create_backup_checkpoint creates .bak_<uuid> copies for each file.
+  - rollback_git restores working tree to checkpoint tag.
+  - rollback_backups restores all files from .bak_<uuid> copies.
+  - rollback_git returns False on failure without raising.
+  - rollback_backups returns False on partial failure without raising.
+acceptance_criteria:
+- detect_git_availability is correct for git and non-git directories.
+- create_git_checkpoint uses project git (not editor-internal git).
+- rollback functions never raise; they log and return bool.
+- dry_run callers must not call checkpoint functions.
+- Backup path includes job_uuid to prevent collision.
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement safety checkpoint and rollback for rename
+  owned_paths:
+  - ai_editor/project_refactor/safety_checkpoint.py
+  - tests/project_refactor/test_safety_checkpoint.py
+  forbidden_paths:
+  - ai_editor/editor_core/
+  - ai_editor/formatters/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement safety_checkpoint.py with: detect_git_availability(project_root)
+    -> bool using subprocess or gitpython; create_git_checkpoint(job_uuid, old_name,
+    new_name, project_root) -> (tag_name, commit_sha) using gitpython on PROJECT git
+    repo; BackupRecord dataclass; create_backup_checkpoint(file_paths) -> BackupRecord
+    using shutil.copy2 with path.bak_<job_uuid>; rollback_git(tag_name, project_root)
+    -> bool; rollback_backups(backup_record) -> bool. Write tests in tests/project_refactor/test_safety_checkpoint.py.
+    Do not implement reference search, rename execution, or MCP command.
+
+    '
+  non_goals:
+  - Reference search engine (T-003)
+  - Rename execution pipeline (T-004)
+  - MCP command class (T-005)
+  - Editor-internal session git operations
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
