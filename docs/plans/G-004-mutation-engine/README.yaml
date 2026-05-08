@@ -53,19 +53,27 @@ core_responsibilities:
   them.
 public_read_operations:
 - name: yaml_load
-  responsibility: Open file in session, return document summary and diagnostics. Delegates
-    to session.open + formatter summary.
-  signature: yaml_load(session_key, file_path) -> DocumentSummary
+  responsibility: Open file in session and return DocumentSummary.
+  delegate_to: session.open(session_key, file_path, formatter=yaml) then YAMLFormatter.summarize(buffer.document).
+  signature: 'yaml_load(session_key: str, file_path: str) -> DocumentSummary'
 - name: yaml_get
-  responsibility: Return exact subtree by structural path from open buffer. Delegates
-    to find_one.
-  signature: yaml_get(session_key, buffer_id, path) -> subtree dict
+  responsibility: Return exact subtree at structural path from open buffer. Result
+    must be JSON-serializable.
+  delegate_to: 'AbstractSearch.find_one(session_key, buffer_id, query={kind: path,
+    value: path}) -> match.node serialized to dict.'
+  signature: 'yaml_get(session_key: str, buffer_id: str, path: str) -> dict'
 - name: yaml_get_command
-  responsibility: Return one command object selected by command_name from open buffer.
-  signature: yaml_get_command(session_key, buffer_id, command_name) -> command dict
+  responsibility: Return one command object by name from the commands list of an open
+    buffer.
+  delegate_to: 'AbstractSearch.find_one(session_key, buffer_id, query={kind: field_equals,
+    field: name, value: command_name}) -> match.node serialized to dict.'
+  signature: 'yaml_get_command(session_key: str, buffer_id: str, command_name: str)
+    -> dict'
 - name: yaml_get_verification
-  responsibility: Return the verification list from a plan task buffer.
-  signature: yaml_get_verification(session_key, buffer_id) -> list
+  responsibility: Return the verification list from an open plan_task buffer.
+  delegate_to: 'AbstractSearch.find_one(session_key, buffer_id, query={kind: path,
+    value: verification}) -> match.node serialized to list.'
+  signature: 'yaml_get_verification(session_key: str, buffer_id: str) -> list'
 subsystem_independence_rules:
 - This subsystem must not parse path strings or configure ruamel.yaml directly — delegate
   to G-010 YAMLFormatter.
