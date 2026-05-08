@@ -41,15 +41,15 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
-  may_depend_on:
-  - G-001 contracts (ResultEnvelope, ErrorCode, Diagnostic)
-  - G-009 editor core buffer access (open/save/close)
-  - G-013 CSTFormatter (tree-based reference search)
-  - G-010 text formatter (fallback reference search)
-  - G-007 transaction_writer persistence policy (git vs backup)
   may_be_used_by:
   - G-008 public interfaces and CLI adapter
   - external MCP wrappers via mcp-proxy-adapter job queue only
+  may_depend_on:
+  - G-001 contracts (ResultEnvelope, ErrorCode, Diagnostic)
+  - G-013 CSTFormatter (tree-based reference search and rename — direct, no session)
+  - G-010 text formatter (fallback reference search)
+  - G-007 writer (ai_editor/writer.py — file backup and atomic write for git-unavailable
+    fallback)
 public_contracts_provided:
 - rename(target, new_name, update_references=True, dry_run=False, scope=null) -> job_id
 - rename_status(job_id) -> RenameJobResult
