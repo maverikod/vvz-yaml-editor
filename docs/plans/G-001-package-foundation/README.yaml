@@ -52,10 +52,14 @@ allowed_dependencies:
   - G-013 cst_formatter
 public_contracts_provided:
 - ResultEnvelope
-- ErrorCode
+- ErrorCode (includes all session, buffer, formatter, search, clipboard, validation,
+  write error codes)
 - Diagnostic
 - ValidationResult
 - OperationResult
+- SessionKey (UUID4 string type alias)
+- SessionDescriptor
+- BufferDescriptor
 - Package version export
 core_responsibilities:
 - Define package identity and build backend.
