@@ -1249,7 +1249,7 @@ session_model:
       - If deletion fails (disk error), failure is logged. Stale directories cleaned
         on next startup sweep.
       startup_sweep: 'On server start: scan sessions_base_dir for session directories.
-        For each: read session.ses, check if session is expired or file is missing/corrupt.
+        For each: read ses_settings.json, check if session is expired or file is missing/corrupt.
         If so — release all write locks for that session_key in files table, then
         delete the session directory. Recovers from crashes and hard kills.'
       steps:
