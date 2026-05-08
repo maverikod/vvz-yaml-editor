@@ -40,11 +40,10 @@ allowed_dependencies:
   - G-010 YAMLFormatter
   - G-011 AbstractSearch
 public_contracts_provided:
-- yaml_load(file_path)
-- yaml_get(file_path, path)
-- yaml_get_command(file_path, command_name)
-- yaml_get_verification(file_path)
-- ReadQueryResult
+- yaml_load(session_key, file_path) -> DocumentSummary
+- yaml_get(session_key, buffer_id, path) -> subtree dict
+- yaml_get_command(session_key, buffer_id, command_name) -> command dict
+- yaml_get_verification(session_key, buffer_id) -> list
 core_responsibilities:
 - Delegate YAML loading entirely to G-010 YAMLFormatter (which internally uses document_io).
 - Delegate path resolution entirely to G-011 AbstractSearch (which internally uses
