@@ -10,7 +10,7 @@ Line ranges are an emergency fallback only.
 
 ```
 Session
-  └─ owns: session directory, git repo, buf files, clipboard, session attributes
+  └─ owns: session directory, session git, buf files, clipboard, session attributes
        │
 Buffer
   └─ owns: binding of one file to one formatter, modified flag, write-lock
@@ -22,7 +22,24 @@ Formatter
 
 Formatters do not know about sessions or buffers.
 Buffers do not know about other buffers or sessions.
-Sessions coordinate buffers and own git history and clipboard.
+Sessions coordinate buffers and own session git history and clipboard.
+
+### Two git repositories
+
+The system maintains two completely separate git repositories:
+
+**Session git** (`<session_dir>/git/`):
+- Created when a session is created.
+- One branch per open buffer: `buf/<buffer_id>`.
+- A commit is made on every operation that mutates the buffer.
+- This is the undo/redo mechanism — any buffer state can be recovered as long as the session exists.
+- Clipboard operations (`copy`, `cut`) also produce commits in session git.
+- Deleted together with the session directory when the session is closed.
+
+**Project git** (the project's own repository):
+- Used only on explicit `save` / `save_as` — i.e. after content is transferred from buffer to the real project file.
+- Records stable, intentional checkpoints of the project source.
+- Never touched during buffer mutations, clipboard operations, or session lifecycle operations.
 
 ---
 
