@@ -16,8 +16,8 @@ why_this_block_exists: Lower-level tasks need a stable document abstraction befo
   defines only document IO mechanics and document metadata, so other subsystems do
   not duplicate YAML parser setup or formatting preservation logic.
 owned_code_paths:
-- ai_editor/document_io/
-- tests/document_io/
+- ai_editor/formatters/yaml/document_io/
+- tests/formatters/yaml/document_io/
 owned_docs_paths:
 - docs/document_io.md
 forbidden_code_paths:
