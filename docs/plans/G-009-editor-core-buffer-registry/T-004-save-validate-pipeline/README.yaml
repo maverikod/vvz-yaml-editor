@@ -49,7 +49,8 @@ allowed_dependencies:
   - G-009/T-002 BufferRegistry and BufferAddress
   - G-009/T-003 ConcreteBuffer buffer fields (document, formatter, modified, original_hash,
     current_hash, file_path, editing_pid)
-  - G-007 writer.py write_result (backup plus atomic write plus read-back)
+  - ai_editor/writer.py write_result (backup plus atomic write plus read-back; owned
+    by ai_editor package, not a separate global step)
   - G-010 AbstractFormatter validate_document and render methods
   - G-001 contracts (ValidationResult, OperationResult, VALIDATION_FAILED, BUFFER_STALE,
     BUFFER_NOT_FOUND, SAVE_TARGET_EXISTS)
