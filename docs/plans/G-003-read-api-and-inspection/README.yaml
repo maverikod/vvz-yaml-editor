@@ -89,10 +89,9 @@ acceptance_criteria:
   code.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only structural YAML path parsing and resolution. Do not
-    implement read API helpers, mutations, validation, transaction writing, CLI, or
-    MCP wrappers. Lower detailed steps under this block should treat path_language
-    as a standalone subsystem.
+  instruction: Implement only structural YAML path parsing and resolution under ai_editor/path_language/.
+    Do not implement compat wrappers, mutations, validation, writer logic, CLI, or
+    MCP wrappers. G-010 YAMLFormatter is the primary caller of this subsystem.
 observations_template:
 - command: ''
   expected: ''
