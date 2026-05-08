@@ -33,12 +33,14 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
-  may_depend_on:
-  - G-001-package-contracts-and-distribution
-  - G-004-reader-queries
-  - G-006-validation-rules
-  - G-007-transaction-writer
   may_be_used_by: []
+  may_depend_on:
+  - G-001 package contracts
+  - G-007 writer (ai_editor/writer.py)
+  - G-009 AbstractBuffer public contracts
+  - G-010 AbstractFormatter public contracts
+  - G-011 AbstractSearch public contracts
+  - G-015 session layer public contracts
 public_contracts_provided:
 - ai_editor.interfaces.public_api
 - ai_editor.interfaces.cli
