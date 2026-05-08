@@ -475,7 +475,8 @@ implementation_steps:
   actions:
   - Create pyproject.toml with hatchling build backend.
   - Create ai_editor package and tests directory.
-  - Define package metadata, runtime dependencies, and dev optional dependencies.
+  - Define package metadata, runtime dependencies (ruamel.yaml, jsonschema, jsonpath-ng,
+    gitpython), and dev optional dependencies.
   deliverables:
   - pyproject.toml
   - ai_editor/__init__.py
@@ -492,6 +493,8 @@ implementation_steps:
   - Track original_hash, current_hash, dirty, revision, and status.
   - Ensure one file_path cannot have multiple open buffers.
   - Keep address values opaque and formatter-owned.
+  - AbstractBuffer does not know session keys, .ses/.buf files, or git. Those belong
+    to the session layer.
   deliverables:
   - ai_editor/editor_core/
   - tests/editor_core/
@@ -521,7 +524,7 @@ implementation_steps:
   - Formatter contract does not include open, save, close, buffer registry, or stale
     disk checks.
   - Every formatter exposes list_commands() with standard command metadata.
-  - Registry resolves .yaml/.yml to AI formatter and text extensions to text formatter.
+  - Registry resolves .yaml/.yml to YAML formatter and text extensions to text formatter.
   - Invalid command schema returns FORMATTER_COMMAND_SCHEMA_INVALID.
 - id: step_04
   title: Implement text formatter
@@ -543,7 +546,7 @@ implementation_steps:
   - Text paste requires target_address.
   - Text list_commands includes standard commands and text-specific metadata.
 - id: step_05
-  title: Implement AI formatter
+  title: Implement YAML formatter
   actions:
   - Represent YAML documents as ruamel.yaml trees.
   - Implement YAML structural addresses for keys, indexes, and list filters such as
@@ -624,15 +627,67 @@ implementation_steps:
   - find_one returns SEARCH_NOT_UNIQUE for multiple matches.
   - Search does not parse YAML paths or text line ranges directly.
 - id: step_09
+  title: Implement session layer
+  actions:
+  - Implement connect(idle_timeout_seconds) -> {session_key, session_descriptor}.
+  - Implement reconnect(session_key) -> {session_key, session_descriptor} restoring
+    open buffer list.
+  - Implement disconnect(session_key) marking session as closed after idle_timeout.
+  - 'Implement session_status(session_key) -> {session_key, open_buffers: [buffer_descriptor]}.'
+  - Implement .ses file management under sessions_dir for persistence across restarts.
+  - 'Implement .buf file management: write after every mutation, load on reconnect.'
+  - 'Implement write-lock enforcement: same file may not be open readwrite in two
+    sessions simultaneously. files table gains session_key column.'
+  - Implement editor-internal bare git repo at sessions_dir/git/ via gitpython.
+  - 'On buffer open: create branch buf/<session_key>/<buffer_id> with initial commit
+    ''open: <path> [may be modified]''.'
+  - 'On mutation: render buffer and commit to buffer branch. Commit message: ''<operation>:
+    <params>''.'
+  - 'Implement undo(session_key, buffer_id, steps=1): checkout HEAD~steps, reload
+    buffer from that commit, update .buf file. Returns UNDO_AT_BEGINNING if at first
+    commit.'
+  - 'Implement redo(session_key, buffer_id, steps=1): only valid if no new mutation
+    after last undo. Returns REDO_AT_END if at latest commit. Redo stack resets on
+    any new mutation.'
+  - 'On buffer close: delete branch buf/<session_key>/<buffer_id>, delete .buf file,
+    release lock.'
+  - 'On session close: delete all session branches, run git gc --prune=now, delete
+    all .buf files, delete .ses file, release all locks.'
+  - 'Implement startup sweep: on server start delete orphaned branches from sessions
+    with no valid .ses file.'
+  - 'Implement session-scoped clipboard: copy/paste allowed between buffers within
+    the same session; cross-session access rejected.'
+  deliverables:
+  - ai_editor/sessions/
+  - tests/sessions/
+  - docs/sessions.md
+  verification:
+  - connect returns session_key and empty buffer list.
+  - reconnect restores buffer_descriptor list without re-opening files.
+  - disconnect leaves session alive for idle_timeout then cleans up.
+  - open in two sessions for the same file in readwrite returns BUFFER_LOCKED on second.
+  - Same file opened twice in same session returns same buffer_id.
+  - Mutation creates git commit on buffer branch.
+  - undo returns buffer to previous commit state.
+  - undo at first commit returns UNDO_AT_BEGINNING.
+  - New mutation after undo resets redo stack.
+  - redo after new mutation returns REDO_AT_END.
+  - Buffer close deletes branch and .buf file.
+  - Session close deletes all branches and runs git gc.
+  - Clipboard paste from buffer in session A into buffer in session B is rejected.
+- id: step_10
   title: Implement format-aware clipboard
   actions:
   - Implement clipboard item contract with source_buffer_id, source_formatter, source_address,
     source_revision, payload_kind, and payload.
   - Implement paste request contract with target_buffer_id, target_formatter, target_address,
     mode, and clipboard_item_id.
+  - 'Enforce session scope: clipboard items are accessible only within the session
+    that created them.'
   - Implement compatibility rules for text->text, yaml->yaml, yaml->text rendered
     text, and text->yaml parse_as_yaml.
   - Implement CLIPBOARD_FORMAT_MISMATCH and CLIPBOARD_SOURCE_STALE.
+  - Clear clipboard on session close.
   deliverables:
   - ai_editor/clipboard.py
   - tests/test_clipboard.py
@@ -641,7 +696,8 @@ implementation_steps:
   - cut marks source buffer dirty.
   - paste marks target buffer dirty without writing files.
   - Incompatible formatter paste returns CLIPBOARD_FORMAT_MISMATCH.
-- id: step_10
+  - Cross-session paste is rejected.
+- id: step_11
   title: Implement checked persistence helpers
   actions:
   - Implement stale disk checks for save/save_as.
@@ -657,31 +713,32 @@ implementation_steps:
   - Stale file-backed buffer returns BUFFER_STALE.
   - Successful save returns old_hash and new_hash.
   - save_as respects overwrite=false with SAVE_TARGET_EXISTS.
-- id: step_11
+- id: step_12
   title: Implement public API and YAML compatibility wrappers
   actions:
+  - 'Expose session lifecycle commands: connect, reconnect, disconnect, session_status.'
   - 'Expose generic editor commands: open, new, save, save_as, close, validate_file,
-    formatter_commands, copy, cut, paste, find, find_one, list_units, validate.'
+    formatter_commands, copy, cut, paste, find, find_one, list_units, validate, undo,
+    redo.'
   - Expose YAML compatibility wrappers as mappings over generic buffer/search/formatter/save
     architecture.
+  - All commands require session_key alongside buffer_id where applicable.
   - Ensure all responses are JSON-serializable and preserve nested success=false truthfully.
   deliverables:
   - ai_editor/api.py
   - tests/test_public_api.py
   verification:
+  - Session commands satisfy the session_model contract.
   - Generic editor commands satisfy the public_api contract.
   - validate_file is visible as a standalone public API command.
   - formatter_commands returns standard and formatter-specific command schemas.
-  - yaml_get uses search/get_unit compatibility instead of separate YAML-only architecture.
-  - yaml_write_checked uses formatter operations plus save/save_as compatibility flow.
   - API responses can be serialized with json.dumps.
-- id: step_12
+- id: step_13
   title: Add CLI and MCP integration docs
   actions:
   - Implement CLI as a thin diagnostic wrapper over public API.
-  - Document MCP request/response examples for generic editor commands.
-  - Document validate_file for project-manager file checks.
-  - Document formatter_commands and formatter-specific OpenAPI command discovery.
+  - CLI supports connect, disconnect, open, find, copy, paste, save, undo, redo.
+  - Document MCP request/response examples for session and buffer commands.
   - Document YAML compatibility examples as compatibility wrappers, not core architecture.
   deliverables:
   - ai_editor/interfaces/cli.py
@@ -690,11 +747,11 @@ implementation_steps:
   - tests/interfaces/test_cli.py
   verification:
   - ai-editor --help exits with code 0.
+  - CLI can connect and open a file in one call.
   - CLI can run validate-file by file_path.
-  - CLI can list formatter-commands for a file_path or formatter name.
-  - CLI can open/find/copy/paste/save through generic commands.
-  - Docs show BufferAddress with source.address and target.address.
-- id: step_13
+  - CLI can undo/redo through generic commands.
+  - Docs show session_key in all buffer command examples.
+- id: step_14
   title: Add packaging and release checks
   actions:
   - Run ruff, mypy, pytest, build, and twine check.
