@@ -35,12 +35,13 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
+  may_be_used_by:
+  - G-010 YAMLFormatter (primary owner of validation implementations)
+  - G-013 CST formatter (owns CST validation via compile())
+  - G-009 editor core (calls validate_document before save/save_as)
+  - G-008 public interfaces (expose validate and validate_file commands)
   may_depend_on:
   - G-001-package-contracts-and-distribution
-  - G-002-document-io
-  may_be_used_by:
-  - G-007-transaction-writer
-  - G-008-interfaces-and-release
 public_contracts_provided:
 - 'AbstractFormatter abstract validation methods: validate_content [abstract], validate_document
   [abstract] (owned by G-010).'
