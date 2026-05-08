@@ -60,20 +60,27 @@ public_api_surface:
   - save
   - save_as
   - close
-  validation_functions:
-  - validate
-  - validate_file
-  formatter_discovery_functions:
-  - formatter_commands
   edit_functions:
   - copy
   - cut
   - paste
+  - undo
+  - redo
+  formatter_discovery_functions:
+  - formatter_commands
   search_functions:
   - find
   - find_one
   - list_units
-  ai_compatibility_functions:
+  session_functions:
+  - connect
+  - reconnect
+  - disconnect
+  - session_status
+  validation_functions:
+  - validate
+  - validate_file
+  yaml_compatibility_functions:
   - yaml_load
   - yaml_validate
   - yaml_get
@@ -81,10 +88,6 @@ public_api_surface:
   - yaml_update_command
   - yaml_append_verification
   - yaml_validate_plan_task
-  foreign_formatter_functions:
-  - validate_file with foreign formatter selection
-  - formatter_commands with foreign OpenAPI schema discovery
-  - ForeignFormatter-backed formatter registry entries
 cli_surface:
   executable: ai-editor
   commands:
