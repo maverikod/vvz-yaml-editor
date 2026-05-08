@@ -112,7 +112,8 @@ acceptance_criteria:
 - close() releases lock in finally block; guaranteed even on exception.
 - reload() re-applies formatter selection and resets modified.
 - ConcreteBuffer stores original_hash, current_hash, revision, document fields.
-- Buffer fields: filename, relative_path, formatter, modified, readonly, buffer_status.
+- 'Buffer fields include: filename, relative_path, formatter, modified, readonly,
+  buffer_status.'
 model_assignment_spec:
   performer: coding_agent
   title: Implement concrete buffer lifecycle and file edit lock
