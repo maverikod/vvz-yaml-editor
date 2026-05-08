@@ -270,9 +270,9 @@ mutation_and_validation_policy:
     move) are implemented inside each formatter. G-005 has no standalone module —
     its content is absorbed here.
   mutation_git_commit: After every successful mutation the caller (session layer G-015)
-    calls formatter.render(document) and commits the result to session git branch
-    buf/<buffer_id>. The formatter is not responsible for git — it only returns the
-    mutated document.
+    calls formatter.render(document) and commits the result to session-local git repo
+    (<session_dir>/git/) on branch buf/<buffer_id>. The formatter is not responsible
+    for git — it only returns the mutated document.
   validation_ownership: validate_content and validate_document are abstract on AbstractFormatter.
     Each formatter implements them. G-006 has no standalone module — its content is
     absorbed here.
