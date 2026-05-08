@@ -31,12 +31,13 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
+  may_be_used_by:
+  - G-008 public API (re-exports as compatibility surface)
+  - G-010 YAMLFormatter (owns this compat layer)
   may_depend_on:
   - G-001-package-contracts-and-distribution
-  - G-002-document-io
-  - G-003-path-language
-  may_be_used_by:
-  - G-008-interfaces-and-release
+  - G-010 YAMLFormatter
+  - G-011 AbstractSearch
 public_contracts_provided:
 - yaml_load(file_path)
 - yaml_get(file_path, path)
