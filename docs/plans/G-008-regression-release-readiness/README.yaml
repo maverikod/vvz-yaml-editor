@@ -24,12 +24,11 @@ owned_docs_paths:
 - docs/regression_observations.md
 forbidden_code_paths:
 - ai_editor/contracts/
-- ai_editor/document_io/
-- ai_editor/path_language/
-- ai_editor/reader/
-- ai_editor/mutations/
-- ai_editor/validation/
-- ai_editor/transaction_writer/
+- ai_editor/formatters/yaml/document_io/
+- ai_editor/formatters/yaml/compat/
+- ai_editor/editor_core/
+- ai_editor/sessions/
+- ai_editor/search/
 - .venv
 - venv
 - site-packages
