@@ -9,13 +9,19 @@ language_policy:
   documentation_language: English
   code_logs_commands_prompts_and_specs: English
 summary:
-  goal: Create a production-ready Python pip package that provides a small, familiar
-    editor interface for MCP servers and AI models. The package must separate file/buffer
-    lifecycle, formatter-specific editing, universal search, and format validation.
-    YAML is the first structured formatter and text is the first plain formatter;
-    foreign formatters must make complex CST/AST or server-side formatters possible
-    through OpenAPI/MCP-proxy-adapter without redesigning AbstractBuffer, AbstractFormatter,
-    or AbstractSearch.
+  goal: 'Create a production-ready Python pip package that provides a small, familiar
+    editor interface for MCP servers and AI models. The package operates in sessions:
+    each client connects and receives a session_key, under which it opens buffers
+    for files. Buffers are backed by temporary .buf files and tracked by .ses session
+    files on disk. All mutations are applied to the buffer only; the real file is
+    written only on explicit save. Operation history is stored as git commits on a
+    per-buffer branch (buf/<session_key>/<buffer_id>), enabling undo/redo for the
+    lifetime of the buffer. On buffer close the branch is deleted. The package must
+    separate file/buffer lifecycle, formatter-specific editing, universal search,
+    and format validation. YAML is the first structured formatter and text is the
+    first plain formatter; foreign formatters must make complex CST/AST or server-side
+    formatters possible through OpenAPI/MCP-proxy-adapter without redesigning AbstractBuffer,
+    AbstractFormatter, or AbstractSearch.'
   main_principle: validate_file/open/new buffer -> search/select addresses -> copy/cut/paste
     in buffers -> formatter.validate_document -> formatter.render -> checked save/save_as
   non_goals:
