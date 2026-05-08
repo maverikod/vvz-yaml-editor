@@ -42,9 +42,9 @@ allowed_dependencies:
   may_be_used_by:
   - G-008-interfaces-and-release
 public_contracts_provided:
-- yaml_write_checked(file_path, operations, validate_schema, dry_run)
-- CheckedWriteRequest
-- CheckedWriteResult
+- 'write_buf(content, buf_path) — buffer write: atomic, no backup, no read-back'
+- 'write_result(content, real_path) — result write: backup + atomic + read-back +
+  project git commit'
 - BackupRecord
 - FileHashPair
 core_responsibilities:
