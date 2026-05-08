@@ -243,16 +243,27 @@ render_contract:
   output: tree.module.code
   guarantee: clean Python source, no markers of any kind
 save_orchestration:
-  owner: editor core (buffer.save / buffer.save_as)
+  owner: CSTFormatter (called by session layer after every mutation and on save/save_as)
   steps:
   - 1. validate_document(document) -> ValidationResult. Failure -> abort, return error.
   - 2. render(document) -> python_source string.
-  - 3. Editor core writes .py file atomically.
-  - '4. CSTFormatter.write_sidecar(py_path, tree): compute source_sha256 = SHA-256(tree.module.code);
+  - '3. Write sidecar to session dir: compute source_sha256 = SHA-256(tree.module.code);
     serialise metadata_map to JSON body; compute tree_sha256 = SHA-256(json_body_bytes);
     write ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>'' as header
-    line, then JSON body, atomically to .cst/<stem>.tree.'
-  - 5. tree.disk_source_sha256_hex = source_sha256.
+    line, then JSON body, atomically to <session_dir>/<buffer_id>.cst. This happens
+    after EVERY mutation (buf write path).'
+  - '4. If session.auto_write=True (result write path): formatter.write(python_source,
+    real_file_path) via ai_editor/writer.py (backup + atomic write + read-back). Then
+    also write sidecar to .cst/<stem>.tree alongside the real .py file.'
+  - '5. If session.auto_write=False: real file and project-side sidecar are NOT written.
+    Only session-side sidecar (<buffer_id>.cst) is written.'
+  - '6. On explicit save/save_as (not auto_write): step 4 always executes — write
+    real file and project-side sidecar.'
+  sidecar_locations:
+    project_side: .cst/<stem>.tree alongside the real .py file. Written on save/save_as
+      and on auto_write=True mutations.
+    session_side: <session_dir>/<buffer_id>.cst. Written after every mutation (always).
+      Contains current in-session tree state.
 mutation_operations:
   inline_comment_transport:
     invariant: THIS MECHANISM IS NOT USED IN THE ADAPTED CSTFORMATTER. set_stable_id/get_stable_id
