@@ -7,7 +7,6 @@ status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
 source_documents:
 - docs/tech_spec.md
-- docs/plans/G-007-mcp-cli-contract/README.yaml
 - docs/plans/G-009-editor-core-buffer-registry/README.yaml
 - docs/plans/G-013-cst-formatter/README.yaml
 - docs/metadatastd.md
