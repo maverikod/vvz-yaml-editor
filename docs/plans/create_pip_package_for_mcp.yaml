@@ -999,8 +999,8 @@ coverage_gap_closures:
     the same catalog, including formatter-specific commands and writes_files metadata.
 - gap: session_layer_above_buffers
   resolution: 'G-015 owns the session layer: connect/reconnect/disconnect, session_key
-    (UUID4), .ses session files, .buf buffer files, per-buffer git branches in the
-    editor-internal bare git repo (sessions_dir/git/), undo/redo via git commits,
+    (UUID4), ses_settings.json session files, .buf buffer files, per-buffer git branches
+    in the editor-internal bare git repo (sessions_dir/git/), undo/redo via git commits,
     write-lock enforcement across sessions, and session-scoped clipboard. G-009 owns
     AbstractBuffer lifecycle; G-015 aggregates and manages buffers through sessions.'
 - gap: clipboard_scoped_to_session
