@@ -90,6 +90,8 @@ abstract_formatter_contract:
   - own buffer registry
   - own stale disk checks
   - own search result policy
+  - perform git operations of any kind
+  - know about session_key, .buf files, or session directory
 unit_contract:
   purpose: Provide a common shape for search without forcing all formatters to expose
     the same document tree model.
