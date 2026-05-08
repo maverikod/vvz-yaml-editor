@@ -32,13 +32,14 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
-  may_depend_on:
-  - G-010 AbstractFormatter contract
-  - mcp-proxy-adapter OpenAPI call semantics
   may_be_used_by:
   - G-009 editor core through formatter registry
   - G-011 universal search layer through formatter contract
   - G-008 public interfaces and CLI adapter
+  - G-015 session layer (calls render() after mutation)
+  may_depend_on:
+  - G-010 AbstractFormatter contract
+  - mcp-proxy-adapter OpenAPI call semantics
 public_contracts_provided:
 - ForeignFormatter
 - foreign formatter configuration model
