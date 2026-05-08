@@ -91,10 +91,11 @@ acceptance_criteria:
 - No path, mutation, validation, or writer behavior is implemented here.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only YAML document IO and in-memory document representation.
-    Do not edit path_language, reader, mutations, validation, transaction_writer,
-    or interfaces. The lower-level tasks under this global block should fully understand
-    that their job is parser/rendering infrastructure only.
+  instruction: Internal YAML document IO module belonging to G-010 YAMLFormatter.
+    Provides ruamel.yaml round-trip parser, YamlDocument in-memory wrapper, DocumentSummary,
+    ParseDiagnostic, and deterministic renderer. All code lives under ai_editor/formatters/yaml/document_io/
+    and is used exclusively by YAMLFormatter internals. Do not use from editor_core,
+    sessions, or any subsystem outside G-010.
 observations_template:
 - command: ''
   expected: ''
