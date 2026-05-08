@@ -173,3 +173,24 @@ persistence_safety_policy:
   invariant: Exactly one safety mechanism is active per write. Transaction writer
     never runs a real write without either a git snapshot or a file backup preceding
     it.
+git_policy:
+  editor_git:
+    applies_to: Every buffer mutation (any operation that changes buffer content).
+    description: The editor maintains an internal bare git repo at sessions_dir/git/
+      (owned by G-015). Every mutation on a buffer is committed to branch buf/<session_key>/<buffer_id>
+      in this repo via gitpython. This is the undo/redo history mechanism. Has no
+      connection to any project git repo.
+    invariant: Editor git is always active. No fallback needed. If gitpython fails,
+      the mutation still proceeds and HISTORY_UNAVAILABLE diagnostic is attached.
+  project_git:
+    applies_to: save and save_as operations only — when the real file is written to
+      disk.
+    description: Writing the real file to disk is a plain file write. The project
+      git repository (if any) is not touched by the transaction_writer directly. If
+      the project uses git, the calling user or MCP client may choose to commit the
+      result — that is outside the scope of ai_editor.
+    invariant: transaction_writer never calls git on the project repo. It only writes
+      bytes to disk, creates a backup, and verifies hashes.
+  summary: Two separate git contexts exist. Editor git (G-015) tracks every mutation
+    for undo/redo. Project git is never touched by the editor — only the real file
+    bytes are written on save.
