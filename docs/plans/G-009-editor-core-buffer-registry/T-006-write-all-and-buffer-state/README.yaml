@@ -52,7 +52,7 @@ allowed_dependencies:
   - G-001 contracts (WriteAllResult)
   provides_to:
   - G-015 session layer (calls write_all and get_state and get_formatter)
-  - G-008 public interfaces (exposes write_all result to caller)
+  - ai_editor/api.py public API layer (exposes write_all result to caller)
 public_contracts_provided:
 - 'write_all(session_key, force=False) -> WriteAllResult: for each buffer in session
   where readonly=False: if force=False skip buffers where modified=False; call formatter.validate_document;
