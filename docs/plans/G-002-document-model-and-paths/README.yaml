@@ -7,10 +7,9 @@ status: draft
 source_documents:
 - docs/tech_spec.md
 - docs/plans/create_pip_package_for_mcp.yaml
-global_intent: G-010-yaml-formatter internal module. Owned by G-010. Provides ruamel.yaml
+global_intent: G-010 YAMLFormatter internal module. Owned by G-010. Provides ruamel.yaml
   round-trip parser configuration, YamlDocument wrapper, DocumentSummary, ParseDiagnostic,
   deterministic renderer. Used internally by YAMLFormatter — not a public subsystem.
-  Implementer reads G-010 for context.
 why_this_block_exists: Internal submodule of G-010 YAMLFormatter. Provides ruamel.yaml
   round-trip parser, YamlDocument wrapper, DocumentSummary, ParseDiagnostic, and deterministic
   renderer. Lives under ai_editor/formatters/yaml/document_io/. Used exclusively by
