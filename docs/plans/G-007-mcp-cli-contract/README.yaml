@@ -100,10 +100,11 @@ acceptance_criteria:
 - Lower-level writer tasks can be decomposed without editing other subsystem directories.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only the checked transaction writer. Do not edit parser,
-    path, reader, mutation, validation, interface, .venv, venv, or site-packages files.
-    All behavior must be verified by actual write attempts and separate read-back
-    checks.
+  instruction: Implement only ai_editor/writer.py and tests/test_writer.py. Do not
+    edit formatter internals, editor_core, sessions, interfaces, .venv, venv, or site-packages.
+    Caller (G-009 or G-015) is responsible for calling formatter.validate_document
+    and formatter.render before invoking writer.py. writer.py only handles the physical
+    write path.
 observations_template:
 - command: ''
   expected: ''
