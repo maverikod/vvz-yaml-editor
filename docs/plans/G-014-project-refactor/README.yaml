@@ -109,15 +109,19 @@ rename_operation_contract:
   returns: job_id string (mcp-proxy-adapter queue job)
 safety_checkpoint_policy:
   git_available:
-    before_rename:
-    - 'create git tag: pre-rename/<job_uuid>'
-    - 'create git commit: pre-rename checkpoint <old_name> -> <new_name>'
     after_success:
-    - 'create git commit: rename <old_name> -> <new_name> (N files changed)'
+    - 'Create one multi-file git commit in the PROJECT git repo: ''rename <old_name>
+      -> <new_name> (N files changed)''.'
+    before_rename:
+    - 'Create git tag in the PROJECT git repo: pre-rename/<job_uuid>.'
+    - 'Create git commit in the PROJECT git repo: ''pre-rename checkpoint <old_name>
+      -> <new_name>''.'
+    note: All git operations here are on the PROJECT git repo, not the editor-internal
+      git. G-014 does not use sessions or session git.
     on_any_failure:
-    - execute git checkout to pre-rename tag
-    - restore working tree to pre-rename state
-    - return RenameJobResult with success=false and rollback_performed=true
+    - Execute git checkout to pre-rename tag in the PROJECT git repo.
+    - Restore working tree to pre-rename state.
+    - Return RenameJobResult with success=false and rollback_performed=true.
   git_not_available:
     before_rename:
     - create file backup for every file that will be modified
