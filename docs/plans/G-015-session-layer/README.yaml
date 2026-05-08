@@ -42,8 +42,8 @@ allowed_dependencies:
   may_depend_on:
   - G-001 contracts (ResultEnvelope, ErrorCode, SessionKey, SessionDescriptor, BufferDescriptor,
     WriteAllResult)
-  - G-007 writer (write_buf for .buf files; write_result for real files on save/save_as
-    and auto_write)
+  - ai_editor/writer.py (write_buf for .buf files; write_result for real files on
+    save/save_as and auto_write)
   - G-009 AbstractBuffer (open, new, save, save_as, close, reload, validate, write_all)
   - G-010 AbstractFormatter (render after mutation for git commit)
   - gitpython (editor-internal bare git repo)
