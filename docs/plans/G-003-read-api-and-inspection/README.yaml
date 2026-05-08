@@ -64,10 +64,11 @@ error_codes_owned:
 - TARGET_TYPE_MISMATCH
 subsystem_independence_rules:
 - This subsystem must not read files directly; it receives YamlDocument from document_io.
-- This subsystem must not implement yaml_get, yaml_set, or yaml_write_checked.
+- This subsystem must not implement yaml_get, yaml_set, or yaml_write_checked as standalone
+  operations.
 - This subsystem must not apply mutations or validate schemas.
-- Reader, mutation, and writer subsystems must call this subsystem instead of parsing
-  paths themselves.
+- G-010 YAMLFormatter and G-004 compat wrappers must call this subsystem instead of
+  parsing paths themselves.
 implementation_outline:
 - Implement tokenizer and parser for supported path syntax.
 - Implement resolver over mapping/list structures from ruamel.yaml documents.
