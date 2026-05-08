@@ -585,8 +585,9 @@ acceptance_criteria:
   and get_stable_id are ALLOWED ONLY as transient in-memory mutation transport for
   FunctionDef/ClassDef during INSERT/DELETE/MOVE — result must never reach render()
   output or disk.
-- All five mutation operations work with stable_id. SimpleStatementSuite auto-expanded.
-  Match rejected with clear error.
+- append_persisted_node_ids, render_marker_block absent from adapted code (both from
+  node_id_markers.py). set_stable_id/get_stable_id allowed ONLY as in-memory transport
+  in INSERT/DELETE/MOVE.
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
