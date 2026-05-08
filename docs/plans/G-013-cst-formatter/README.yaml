@@ -534,21 +534,15 @@ acceptance_criteria:
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
-    cst-code. Do not rewrite from scratch. Adapt tree_builder: remove _trees registry,
-    TTL loop, load_file_to_tree. CSTFormatter.parse(raw_content: str, file_path=None)
-    receives string from editor core. STABLE_ID RULE: assigned exactly once per node
-    at first _build_tree_index, never changed after. Survival across mutations: snapshot
-    previous_metadata_map + previous_obj_to_id before mutation; after mutation call
-    _build_tree_index with both; match by exact_key (position+type) then by object
-    identity; unmatched nodes get new UUID4. DO NOT use set_stable_id or get_stable_id
-    in mutation flow — they violate the single-assignment rule. node_stable_id.py
-    is allowed ONLY for strip_inline_node_id_lines_from_source at parse time. Sidecar
-    header: ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>''. Validate
-    both on load. Write sidecar only from save orchestration. Default read format:
-    declarative (skeleton). get_unit(stable_id) full source. list_units() metadata
-    only. cst_query declarative. render() produces clean Python, no markers. Do not
-    call append_persisted_node_ids or render_marker_block. Do not edit editor_core,
-    search, interfaces, transaction_writer, text formatter, ai formatter, foreign
+    cst-code. Policy: adapt-not-rewrite. Do NOT copy files verbatim. Each tactical
+    step under G-013 contains the detailed change list for its assigned source files
+    (what to remove, rename, rewrite, keep). Read the tactical step README before
+    touching any file. Forbidden patterns from source_code_origin/forbidden_patterns
+    apply to all adapted code unconditionally. The global constraints defined in this
+    file (stable_id contract, sidecar contract, parse contract, mutation operations,
+    libcst_constraints_and_workarounds) are the authoritative specification — adapt
+    source code to match them, not the other way around. Do not edit editor_core,
+    sessions, search, interfaces, writer, text formatter, yaml formatter, foreign
     formatter, .venv, venv, site-packages.'
 observations_template:
 - command: ''
