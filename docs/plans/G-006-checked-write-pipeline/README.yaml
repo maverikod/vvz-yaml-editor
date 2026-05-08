@@ -86,10 +86,12 @@ subsystem_independence_rules:
 - Transaction writer and interfaces must call validation public contracts instead
   of duplicating validation rules.
 implementation_outline:
-- Create validation package with schema, semantic, render_check, and report modules.
-- Store plan_task_v1.schema.json under validation-owned package data.
-- Implement positive and negative validation fixtures.
-- Implement per-check validation diagnostics suitable for MCP responses.
+- Validation is formatter-internal. Do not create ai_editor/validation/ or any standalone
+  validation module.
+- Read G-010 for AbstractFormatter abstract validation method contracts.
+- Read G-013 for CST-specific validation (compile()) implementation details.
+- Validation tests live under tests/formatters/ alongside the formatter they belong
+  to.
 verification:
   commands:
   - python -m pytest tests/formatters/yaml/ -k validate
