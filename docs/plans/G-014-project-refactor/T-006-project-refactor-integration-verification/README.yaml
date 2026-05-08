@@ -1,0 +1,114 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-014
+parent_step_name: project_refactor
+step_id: G-014/T-006
+step_name: project_refactor_integration_verification
+title: Project refactor integration verification and docs
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-014-project-refactor/README.yaml
+parent_global_context: 'G-014 owns project-wide rename refactoring. T-006 is the verification
+  and documentation gate for the entire G-014 subsystem. It runs integration tests
+  that exercise all T-001..T-005 components together and produces docs/project_refactor.md.
+  It does not introduce new production code.
+
+  '
+intent: 'Write integration tests that verify all G-014 acceptance criteria together:
+  contracts, safety checkpoint, reference search, execution pipeline, and MCP command
+  dispatch. Produce docs/project_refactor.md documenting the public API, safety guarantees,
+  and usage examples for integrators.
+
+  '
+why_this_step_exists: 'Unit tests in T-001..T-005 test each component in isolation.
+  T-006 adds end-to-end tests of the full rename flow: validate -> checkpoint -> search
+  -> apply -> commit. These tests confirm the components interoperate correctly and
+  that all G-014 acceptance criteria are satisfied together.
+
+  '
+owned_code_paths:
+- tests/project_refactor/test_project_refactor_integration.py
+owned_docs_paths:
+- docs/project_refactor.md
+forbidden_paths:
+- ai_editor/project_refactor/
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-014/T-001 through T-005 (all project_refactor components under test)
+  - G-013 CSTFormatter (used via rename pipeline)
+  provides_to:
+  - G-008 public interfaces implementer (docs/project_refactor.md as reference)
+public_contracts_provided:
+- docs/project_refactor.md documenting rename API, safety guarantees, dry_run usage,
+  rollback behavior.
+implementation_notes: "Integration tests require a small Python fixture project with\
+  \ at least one method, class, and import reference to rename. Tests must be run\
+  \ in a temp directory to avoid modifying the real codebase. Key scenarios to test:\n\
+  \  full rename of method across multiple files in a real temp git repo\n  full rename\
+  \ without git available (backup fallback)\n  dry_run preview shows changed_files\
+  \ without writing\n  automatic rollback on simulated failure after checkpoint\n\
+  \  RENAME_INVALID_IDENTIFIER rejection before any file modification\n  parse-error\
+  \ file skipped and recorded in skipped_files\ndocs/project_refactor.md must include:\
+  \ purpose, API reference (execute_rename parameters and return fields), safety model\
+  \ (git checkpoint vs backup), dry_run workflow, rollback guarantee, and at least\
+  \ two usage examples.\n"
+verification:
+  commands:
+  - python -m pytest tests/project_refactor/ -v
+  - test -f docs/project_refactor.md
+  expected:
+  - All G-014 acceptance criteria pass in integration.
+  - rename returns job_id immediately without blocking caller.
+  - git tag pre-rename/<uuid> is created before first file modification.
+  - All discovered references are renamed in changed_files.
+  - dry_run=True returns preview without modifying files or creating git tag.
+  - Any failure triggers automatic rollback and rollback_performed=True.
+  - git unavailable falls back to file backups and operation proceeds normally.
+  - RenameJobResult is JSON-serialisable.
+  - docs/project_refactor.md exists and covers public API and safety model.
+acceptance_criteria:
+- Integration test suite passes for all G-014 acceptance criteria.
+- docs/project_refactor.md documents the rename API and safety guarantees.
+- No new production code is introduced in this step.
+- Integration tests run in temp directories; they do not modify the real project.
+model_assignment_spec:
+  performer: coding_agent
+  title: Write G-014 integration tests and docs/project_refactor.md
+  owned_paths:
+  - tests/project_refactor/test_project_refactor_integration.py
+  - docs/project_refactor.md
+  forbidden_paths:
+  - ai_editor/project_refactor/
+  - ai_editor/editor_core/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Write tests/project_refactor/test_project_refactor_integration.py
+    exercising complete rename workflows using temp directories and fixture Python
+    files. All G-014 acceptance criteria from G-014/README.yaml must be covered. Write
+    docs/project_refactor.md documenting execute_rename API, safety model, dry_run
+    workflow, and rollback guarantee. Do not add or modify production code.
+
+    '
+  non_goals:
+  - Adding production code to ai_editor/project_refactor/
+  - Implementing any formatter or session logic
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
