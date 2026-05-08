@@ -581,7 +581,9 @@ acceptance_criteria:
 - append_persisted_node_ids and render_marker_block (from node_id_markers.py) are
   FORBIDDEN — they write markers to disk. set_stable_id and get_stable_id are ALLOWED
   ONLY as in-memory mutation transport for FunctionDef/ClassDef during INSERT/DELETE/MOVE
-  — result must never reach render() output or disk.
+  — result must never reach render() output or disk. All five mutation operations
+  work with stable_id. SimpleStatementSuite auto-expanded. Match rejected with clear
+  error.
 - append_persisted_node_ids, render_marker_block, set_stable_id (in mutation), get_stable_id
   (in mutation) absent from adapted code.
 - All five mutation operations work with stable_id. SimpleStatementSuite auto-expanded.
