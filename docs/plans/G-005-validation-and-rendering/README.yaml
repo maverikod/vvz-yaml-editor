@@ -97,10 +97,12 @@ acceptance_criteria:
 - Lower-level mutation tasks can be decomposed without touching other subsystems.
 model_assignment_spec:
   performer: coding_agent
-  instruction: Implement only pure in-memory mutation operations. Do not read or write
-    files, validate schemas, implement CLI/MCP wrappers, or modify other subsystem
-    directories. All cross-subsystem usage must go through document_io and path_language
-    public contracts.
+  instruction: 'Implement mutation operations inside each formatter. AbstractFormatter
+    (G-010) defines abstract methods: mutate_set, mutate_replace_block, mutate_append,
+    mutate_delete, mutate_move. Each formatter implements these for its document model.
+    After every successful mutation the session layer (G-015) calls render() and commits
+    the result to session git branch buf/<buffer_id>. Do not create ai_editor/mutations/
+    as a standalone module. Mutation tests live under tests/formatters/.'
 observations_template:
 - command: ''
   expected: ''
