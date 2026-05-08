@@ -52,7 +52,9 @@ allowed_dependencies:
 public_contracts_provided:
 - connect(idle_timeout_seconds, auto_write, readonly) -> SessionDescriptor
 - reconnect(session_key) -> SessionDescriptor
-- disconnect(session_key, force, close_unsaved) -> DisconnectResult
+- 'disconnect(session_key, force, close_unsaved) -> DisconnectResult. DisconnectResult:
+  success (bool), session_key (str), closed (bool), unsaved_buffer_ids (list[str]),
+  diagnostics (list).'
 - session_status(session_key) -> SessionDescriptor
 - write_all(session_key, force) -> WriteAllResult
 - startup_sweep()
