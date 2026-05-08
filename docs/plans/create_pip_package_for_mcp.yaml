@@ -31,6 +31,10 @@ summary:
   - Do not make YAML-specific assumptions part of the editor core.
   - Do not treat external OpenAPI/MCP proxy completion as formatter success unless
     nested result.success is true.
+  - Do not push git buffer branches to any remote repository.
+  - Do not merge buffer branches into the project main branch on save.
+  - Do not index .ses or .buf files in the code analysis database.
+  - Do not allow the same file to be open for writing in two sessions simultaneously.
 package_target:
   distribution_name: ai-editor-mcp
   import_package: ai_editor
