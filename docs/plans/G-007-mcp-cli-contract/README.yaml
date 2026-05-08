@@ -194,8 +194,9 @@ git_policy:
       git commit per file (best-effort via gitpython). Project git commit message:
       ''<formatter_name>: save <relative_file_path>''. If git commit fails: GIT_COMMIT_FAILED
       diagnostic attached, write still returns success=True.'
-    invariant: transaction_writer never calls git on the project repo. It only writes
-      bytes to disk, creates a backup, and verifies hashes.
+    invariant: writer.py handles the physical write path only. It never calls git
+      on the project repo directly. Project git commit is done AFTER the write succeeds,
+      as a separate best-effort step.
   summary: Two separate git contexts exist. Editor git (G-015) tracks every mutation
     for undo/redo. Project git is never touched by the editor — only the real file
     bytes are written on save.
