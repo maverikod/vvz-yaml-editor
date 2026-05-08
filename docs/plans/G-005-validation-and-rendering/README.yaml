@@ -46,11 +46,11 @@ allowed_dependencies:
   - G-002 document_io (at ai_editor/formatters/yaml/document_io/)
   - G-003 path_language (at ai_editor/path_language/)
 public_contracts_provided:
-- MutationOperation
-- MutationBatchResult
-- apply_mutation(document, operation)
-- apply_mutation_batch(document, operations)
-- collect_changed_paths(operation_result)
+- 'AbstractFormatter abstract mutation methods: mutate_set, mutate_replace_block,
+  mutate_append, mutate_delete, mutate_move (owned by G-010).'
+- YAML formatter concrete mutation implementations (owned by G-010).
+- CST formatter concrete mutation implementations (owned by G-013).
+- Text formatter concrete mutation implementations (owned by G-010).
 core_responsibilities:
 - Implement set, replace_block, append, delete, and move operations.
 - Apply operations only to in-memory YAML document objects.
