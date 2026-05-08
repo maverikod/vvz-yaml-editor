@@ -29,7 +29,8 @@ forbidden_code_paths:
 - ai_editor/editor_core/
 - ai_editor/search/
 - ai_editor/interfaces/
-- ai_editor/transaction_writer/
+- ai_editor/sessions/
+- ai_editor/writer.py
 - .venv
 - venv
 - site-packages
