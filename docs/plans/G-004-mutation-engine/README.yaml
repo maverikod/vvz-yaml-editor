@@ -46,11 +46,14 @@ public_contracts_provided:
 - yaml_get_verification(file_path)
 - ReadQueryResult
 core_responsibilities:
-- Load YAML documents through document_io.
-- Resolve requested subtrees through path_language.
-- Return exact structural fragments, not line ranges.
-- Provide command-specific helpers that are thin read-only wrappers.
-- Produce JSON-serializable responses for MCP callers.
+- Delegate YAML loading entirely to G-010 YAMLFormatter (which internally uses document_io).
+- Delegate path resolution entirely to G-011 AbstractSearch (which internally uses
+  path_language).
+- Return exact structural fragments as JSON-serializable values.
+- Provide named compat helpers (yaml_load, yaml_get, yaml_get_command, yaml_get_verification)
+  as thin wrappers.
+- Preserve typed errors from G-010/G-011 in compat responses without re-interpreting
+  them.
 public_read_operations:
 - name: yaml_load
   responsibility: Return document summary and diagnostics.
