@@ -38,7 +38,8 @@ allowed_dependencies:
   may_be_used_by:
   - G-015 session layer (aggregates AbstractBuffer instances per session)
   - G-011 universal search layer
-  - G-008 public interfaces and CLI adapter
+  - G-008 public API (ai_editor/api.py, ai_editor/interfaces/cli.py — owned by G-008/G-009
+    integration step)
   may_depend_on:
   - G-010 formatter backends public contracts
   - mcp_proxy_adapter SimpleConfig/SimpleConfigModel/BaseValidator for config integration
