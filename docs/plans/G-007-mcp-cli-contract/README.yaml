@@ -90,13 +90,18 @@ implementation_outline:
 - Ensure checked write result is JSON-serializable through G-001 contracts.
 verification:
   commands:
-  - python -m pytest tests/transaction_writer
+  - python -m pytest tests/test_writer.py
   expected:
-  - dry_run=true reports would_change without byte changes.
-  - successful write changes only expected paths.
-  - failed validation leaves original file byte-for-byte unchanged.
-  - failed mutation leaves original file byte-for-byte unchanged.
-  - separate read after successful write confirms expected document state.
+  - 'Buffer write (.buf): written atomically, no backup, no read-back.'
+  - 'Result write (real file): backup created before write, atomic write, read-back
+    confirms bytes.'
+  - Failed formatter validate_document leaves real file unchanged.
+  - Stale buffer detected before result write returns BUFFER_STALE.
+  - Successful result write returns old_hash and new_hash.
+  - save_as with overwrite=False returns SAVE_TARGET_EXISTS.
+  - Project git commit created after successful result write.
+  - GIT_COMMIT_FAILED diagnostic attached when project git commit fails; write still
+    returns success.
 acceptance_criteria:
 - transaction_writer is the only normal persistence subsystem.
 - It contains orchestration, not duplicated parser, mutation, or validation internals.
