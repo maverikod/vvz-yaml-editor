@@ -6,6 +6,7 @@ title: Package contracts, distribution shell, and subsystem boundaries
 status: draft
 source_documents:
 - docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
 global_intent: Define the pip package as a composition of independent subsystems.
   This block owns package metadata, top-level contracts, public error/result types,
   and the rules that prevent lower-level steps from editing the same code files across
