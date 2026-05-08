@@ -2,64 +2,53 @@ format: global_package_step_v2
 plan_id: ai_editor_pip_package_for_mcp
 step_id: G-006
 step_name: validation_rules
-title: Validation, schema, semantic rules, and render checks subsystem
-status: draft
+title: Validation rules — ABSORBED into G-010 and G-013
+status: obsolete_absorbed
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
-global_intent: G-006 is ABSORBED into G-010 (AbstractFormatter). Validation is formatter-internal.
-  AbstractFormatter defines abstract methods validate_content and validate_document
-  that each formatter implements. plan_task_v1 semantic rules live inside the YAML
-  formatter validation. No standalone ai_editor/validation/ module exists — all validation
-  code lives inside the formatter that owns it (ai_editor/formatters/yaml/, ai_editor/formatters/cst/,
-  ai_editor/formatters/text/). G-010 owns the abstract validation contract on AbstractFormatter.
-why_this_block_exists: Validation is formatter-internal. This step's work is absorbed
-  into G-010 AbstractFormatter. validate_content and validate_document are abstract
-  methods on AbstractFormatter implemented by each formatter. plan_task_v1 semantic
-  rules are owned by the YAML formatter. No standalone ai_editor/validation/ module
-  exists.
+global_intent: 'G-006 is ABSORBED into G-010 (AbstractFormatter) and G-013 (CSTFormatter).
+  Validation is formatter-internal. AbstractFormatter defines abstract methods validate_content
+  and validate_document that each formatter implements. plan_task_v1 semantic rules
+  live inside the YAML formatter. No standalone ai_editor/validation/ module exists.
+
+  '
+why_this_block_exists: 'This step is kept for historical reference only. Its content
+  is fully absorbed into G-010 (AbstractFormatter abstract validation contract + YAML/text
+  implementations) and G-013 (CST validation via compile()). Do not implement any
+  code under ai_editor/validation/. Read G-010 for the abstract validation interface
+  definition. Read G-013 for CST-specific validation details.
+
+  '
 owned_code_paths:
-- ai_editor/formatters/yaml/ (YAML validation code lives here, owned by G-010)
-- ai_editor/formatters/cst/ (CST validation code lives here, owned by G-013)
-- ai_editor/formatters/text/ (text validation code lives here, owned by G-010)
-- tests/formatters/ (validation tests live alongside formatter tests)
-owned_docs_paths:
-- docs/validation_rules.md
+- ai_editor/formatters/yaml/  (YAML validation code, owned by G-010)
+- ai_editor/formatters/cst/   (CST validation code, owned by G-013)
+- ai_editor/formatters/text/  (text validation code, owned by G-010)
+- tests/formatters/            (validation tests alongside formatter tests)
+- ai_editor/schemas/           (plan_task_v1.schema.json, owned by G-010)
 forbidden_code_paths:
+- ai_editor/validation/
 - ai_editor/contracts/
-- ai_editor/formatters/yaml/document_io/
-- ai_editor/formatters/yaml/compat/
-- ai_editor/mutations/
-- ai_editor/transaction_writer/
-- ai_editor/interfaces/
+- ai_editor/editor_core/
 - ai_editor/sessions/
+- ai_editor/interfaces/
 - .venv
 - venv
 - site-packages
 allowed_dependencies:
-  may_be_used_by:
-  - G-010 YAMLFormatter (primary owner of validation implementations)
-  - G-013 CST formatter (owns CST validation via compile())
-  - G-009 editor core (calls validate_document before save/save_as)
-  - G-008 public interfaces (expose validate and validate_file commands)
   may_depend_on:
   - G-001-package-contracts-and-distribution
+  may_be_used_by:
+  - G-010 YAMLFormatter (owns YAML and text validation implementations)
+  - G-013 CSTFormatter (owns CST validation via compile())
+  - G-009 editor core (calls formatter.validate_document before save/save_as)
+  - G-008 public interfaces (expose validate and validate_file commands)
 public_contracts_provided:
 - 'AbstractFormatter abstract validation methods: validate_content [abstract], validate_document
-  [abstract] (owned by G-010).'
+  [abstract] (defined in G-010 ai_editor/formatters/base.py)'
 - 'YAML formatter: validate_content (parse+schema+semantic+render check), validate_document,
-  plan_task_v1 rules (owned by G-010).'
-- 'CST formatter: validate_document via compile() (owned by G-013).'
+  plan_task_v1 rules (G-010)'
+- 'CST formatter: validate_document via compile() (G-013)'
 - 'Text formatter: validate_content and validate_document always return success=True
-  (owned by G-010).'
-core_responsibilities:
-- Validation lives inside each formatter. Do not create ai_editor/validation/.
-- AbstractFormatter defines abstract validate_content and validate_document. Each
-  formatter implements them.
-- YAML formatter owns plan_task_v1 rules, schema validation, and render determinism
-  check.
-- CST formatter validates via compile().
-- Text formatter always returns success=True.
-- Tactical steps T-001..T-009 under this directory are OBSOLETE — content is now owned
-  by G-010 and G-013 tactical steps.
+  (G-010)'
 plan_task_v1_rules:
 - format must equal plan_task_v1.
 - node_id must match file-level conventions used by the plans repository.
@@ -68,9 +57,6 @@ plan_task_v1_rules:
 - commands must be a list of objects.
 - commands[].name values must be unique.
 - commands[].schema.required must reference only existing properties.
-- read_model.sees_live_tmpfs_worktree must be false for read-only plan_* disk commands.
-- buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
-    no merge, lock retained.
 - verification must be a non-empty list.
 - status must be one of draft, ready_for_review, ready_for_implementation, blocked.
 error_codes_owned:
@@ -78,6 +64,15 @@ error_codes_owned:
 - SCHEMA_VALIDATION_FAILED
 - SEMANTIC_VALIDATION_FAILED
 - RENDER_NOT_DETERMINISTIC
+core_responsibilities:
+- Validation must live inside the formatter that owns it. Do not create ai_editor/validation/.
+- AbstractFormatter defines abstract validate_content and validate_document. Each
+  formatter implements them.
+- YAML formatter owns plan_task_v1 rules, schema validation, and render determinism
+  check.
+- CST formatter validates via compile().
+- Text formatter always returns success=True.
+- Editor core (G-009) calls formatter.validate_document as first stage of save/save_as.
 subsystem_independence_rules:
 - Validation must live inside the formatter that owns it. Do not create a standalone
   validation module.
@@ -87,13 +82,14 @@ subsystem_independence_rules:
 - Formatters must not implement CLI or MCP wrappers.
 - Editor core (G-009) calls formatter.validate_document before every save/save_as.
 implementation_outline:
-- Validation is formatter-internal. Do not create ai_editor/validation/ or any standalone
-  validation module.
 - Read G-010 for AbstractFormatter abstract validation method contracts.
 - Read G-013 for CST-specific validation (compile()) implementation details.
 - Validation tests live under tests/formatters/ alongside the formatter they belong
   to.
+- Do not create ai_editor/validation/ or any standalone validation module.
+- plan_task_v1.schema.json lives under ai_editor/schemas/ and is owned by G-010.
 verification:
+  scope: internal_g010_g013_validation
   commands:
   - python -m pytest tests/formatters/yaml/ -k validate
   - python -m pytest tests/formatters/cst/ -k validate
@@ -105,14 +101,12 @@ verification:
   - CST formatter validate_document uses compile() and returns syntax diagnostics.
   - Text formatter validate_content and validate_document always return success=True.
   - Validation never writes files or modifies buffer state.
-  scope: internal_g010_g013_validation
 acceptance_criteria:
 - No standalone ai_editor/validation/ module exists.
 - All validation code lives inside the formatter that owns it (G-010 for YAML/text,
   G-013 for CST).
-- AbstractFormatter abstract validation methods are defined in G-010.
-- Editor core (G-009) calls formatter.validate_document as first stage of save/save_as.
-- Tactical steps T-001..T-009 under this directory are OBSOLETE.
+- AbstractFormatter abstract validation methods are defined in G-010 ai_editor/formatters/base.py.
+- Editor core (G-009) calls formatter.validate_document before every save/save_as.
 model_assignment_spec:
   performer: coding_agent
   instruction: 'Implement validation inside each formatter. AbstractFormatter (G-010)
@@ -120,57 +114,14 @@ model_assignment_spec:
     validate_document(document) -> ValidationResult. Each formatter implements these.
     YAML formatter owns plan_task_v1 semantic rules, schema validation, and render
     determinism check. CST formatter owns Python compile() validation. Text formatter
-    always returns success=true. Do not create ai_editor/validation/ as a standalone
-    module. Validation tests live under tests/formatters/.'
+    always returns success=True. Do NOT create ai_editor/validation/ as a standalone
+    module. Validation tests live under tests/formatters/. Read G-010 for abstract
+    contract. Read G-013 for CST details.
+
+    '
 observations_template:
 - command: ''
   expected: ''
   actual: ''
   error: ''
   status: ''
-tactical_decomposition:
-- tactical_step_id: T-001
-  tactical_step_name: validation_package_boundary
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-001-validation-package-boundary/README.yaml
-  purpose: Define validation package boundary and public surface.
-- tactical_step_id: T-002
-  tactical_step_name: validation_report_contract
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-002-validation-report-contract/README.yaml
-  purpose: Define ValidationReport, issue, diagnostics, and G-006 error-code contracts.
-- tactical_step_id: T-003
-  tactical_step_name: yaml_document_structure_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-003-ai-document-structure-validation/README.yaml
-  purpose: Own validation of already parsed YAML-compatible in-memory document structures.
-- tactical_step_id: T-004
-  tactical_step_name: schema_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-004-schema-validation/README.yaml
-  purpose: Own JSON Schema loading and named schema validation.
-- tactical_step_id: T-005
-  tactical_step_name: plan_task_semantic_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-005-plan-task-semantic-validation/README.yaml
-  purpose: Own plan_task_v1 semantic validation rules.
-- tactical_step_id: T-006
-  tactical_step_name: rendered_yaml_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-006-rendered-ai-validation/README.yaml
-  purpose: Own rendered YAML parse and structural equivalence validation.
-- tactical_step_id: T-007
-  tactical_step_name: render_determinism_validation
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-007-render-determinism-validation/README.yaml
-  purpose: Own render determinism validation.
-- tactical_step_id: T-008
-  tactical_step_name: validation_orchestration
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-008-validation-orchestration/README.yaml
-  purpose: Own high-level validation entry point orchestration and report aggregation.
-- tactical_step_id: T-009
-  tactical_step_name: validation_docs_and_integration_verification
-  readme_path: docs/plans/G-006-checked-write-pipeline/T-009-validation-docs-and-integration-verification/README.yaml
-  purpose: Own validation documentation and integration verification planning without
-    production edits.
-branch_self_containment_policy:
-- Technical Specification -> this G-006 README.yaml -> any one T-YYY README.yaml under
-  this directory must give an implementer the full picture for that tactical branch.
-- Tactical README files under G-006 must repeat the relevant parent context and must
-  not require reading sibling T branches.
-- Maximizing tactical steps means maximizing independent steps inside G-006 only;
-  no T step under G-006 may include work from mutations, transaction writer, interfaces,
-  CLI, MCP, reader, path_language, or direct file-writing branches.
