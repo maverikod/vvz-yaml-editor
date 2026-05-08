@@ -631,9 +631,11 @@ formatter_contract_extensions:
     - modify document
     - re-parse from disk
 stable_id_in_node_data_during_mutation:
-  invariant: HISTORICAL REFERENCE ONLY — DO NOT IMPLEMENT. This section documents
-    the inline @node-id comment transport mechanism that existed in cst-code and is
-    now REMOVED. The acceptance_criteria explicitly prohibit set_stable_id and get_stable_id
-    in mutation flow. The correct mechanism is previous_metadata_map + previous_obj_to_id
-    (documented in mutation_operations/stable_id_survival_mechanism). This section
-    is kept solely to explain what was removed and why the replacement was needed.
+  invariant: 'ACTIVE mechanism for INSERT/DELETE/MOVE on FunctionDef/ClassDef. set_stable_id
+    embeds # @node-id: <uuid> as leading_lines EmptyLine comment in node data (in
+    memory only). The comment travels with the node through LibCST transformation.
+    After transformation get_stable_id recovers stable_id. strip_inline_node_id_lines_from_source()
+    removes all @node-id lines from module.code. Result: stable_id is back in metadata
+    only, never in source or on disk. This mechanism is FORBIDDEN for disk persistence
+    (node_id_markers.py). It is ALLOWED ONLY as transient in-memory transport within
+    a single mutation step.'
