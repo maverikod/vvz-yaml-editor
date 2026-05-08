@@ -54,9 +54,14 @@ abstract_formatter_contract:
   - parse(raw_content) -> document
   - render(document) -> raw_content
   - validate_content(raw_content, *, file_path=null, schema=null, options=null) ->
-    validation_result
-  - validate_document(document, *, schema=null, options=null) -> validation_result
-  - validate(document) -> validation_result compatibility alias for validate_document
+    ValidationResult  [abstract]
+  - validate_document(document, *, schema=null, options=null) -> ValidationResult  [abstract]
+  - validate(document) -> ValidationResult  [alias for validate_document]
+  - mutate_set(document, address, value) -> document  [abstract]
+  - mutate_replace_block(document, address, value) -> document  [abstract]
+  - mutate_append(document, address, value, *, dedupe=False) -> document  [abstract]
+  - mutate_delete(document, address) -> document  [abstract]
+  - mutate_move(document, address, target_address) -> document  [abstract]
   - list_commands() -> FormatterCommandCatalog
   - normalize_address(address) -> normalized_address
   - copy_fragment(document, source_address) -> fragment
