@@ -53,6 +53,9 @@ abstract_formatter_contract:
   required_methods:
   - parse(raw_content) -> document
   - render(document) -> raw_content
+  - 'write(content: str, path: str) -> None  [abstract] — atomic write to path; default
+    impl uses ai_editor/writer.py; called by session layer for .buf write and by editor
+    core for result write'
   - validate_content(raw_content, *, file_path=null, schema=null, options=null) ->
     ValidationResult  [abstract]
   - validate_document(document, *, schema=null, options=null) -> ValidationResult  [abstract]
