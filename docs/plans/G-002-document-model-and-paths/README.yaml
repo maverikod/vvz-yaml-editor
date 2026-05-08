@@ -35,12 +35,20 @@ allowed_dependencies:
   may_depend_on:
   - G-001-package-contracts-and-distribution
 public_contracts_provided:
-- YamlDocument
-- DocumentSummary
-- ParseDiagnostic
-- parse_yaml_text(text) -> YamlDocument
-- render_yaml_document(document) -> str
-- summarize_yaml_document(document) -> DocumentSummary
+- YamlDocument — wraps the ruamel.yaml CommentedMap/CommentedSeq tree. Exposes the
+  root node for YAMLFormatter to traverse and mutate. Preserves mapping order, comments,
+  quotes, and block style.
+- 'DocumentSummary — dataclass: format (str | None), node_id (str | None), top_level_keys
+  (list[str]), valid_yaml (bool). Extracted from YamlDocument without structural path
+  parsing.'
+- 'ParseDiagnostic — dataclass: error_code (str, always YAML_PARSE_FAILED), message
+  (str), line (int | None), column (int | None).'
+- 'parse_yaml_text(text: str) -> YamlDocument — parses YAML with ruamel.yaml round-trip
+  mode. Returns YamlDocument on success. Raises ParseDiagnostic on failure.'
+- 'render_yaml_document(document: YamlDocument) -> str — renders back to YAML text.
+  Must be deterministic for the same document tree.'
+- 'summarize_yaml_document(document: YamlDocument) -> DocumentSummary — extracts top-level
+  keys and known fields without path parsing.'
 core_responsibilities:
 - Configure ruamel.yaml for round-trip parsing.
 - Preserve mapping order, comments, quotes, and block style where feasible.
