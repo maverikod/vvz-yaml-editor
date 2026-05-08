@@ -90,8 +90,10 @@ buffer_model:
       .buf not written, no write-lock, modified always False.'
     relative_path: Path relative to project root. Null for new unsaved buffers. Set
       at open time, never changes.
-  note: AbstractBuffer does not know session_key, .ses/.buf files, or git. Those belong
-    to G-015.
+  note: AbstractBuffer accepts session_key as a parameter in every method but does
+    not own session file structure (.buf, .cst, session git). Those belong to G-015.
+    Editor core uses session_key for file edit lock (files.session_key column) and
+    for routing buffers within a session.
 buffer_address_contract:
   required_fields:
   - buffer_id
