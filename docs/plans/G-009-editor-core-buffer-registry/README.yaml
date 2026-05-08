@@ -50,15 +50,17 @@ public_contracts_provided:
 - format-independent copy/cut/paste orchestration over BufferAddress
 abstract_buffer_contract:
   methods:
-  - open(file_path, formatter=auto, open_as_text=False) -> buffer_id
-  - new(formatter, display_name=New file) -> buffer_id
-  - save(buffer_id)
-  - save_as(buffer_id, file_path, overwrite=false)
-  - close(buffer_id, save=false|true|error_if_dirty)
-  - reload(buffer_id)
-  - get_state(buffer_id)
-  - get_formatter(buffer_id)
-  - validate(buffer_id) -> ValidationResult
+  - open(session_key, file_path, formatter=auto, open_as_text=False, readonly=False)
+    -> buffer_id
+  - new(session_key, formatter, display_name=New file) -> buffer_id
+  - save(session_key, buffer_id)
+  - save_as(session_key, buffer_id, file_path, overwrite=false)
+  - close(session_key, buffer_id, save=false|true|error_if_dirty)
+  - reload(session_key, buffer_id)
+  - get_state(session_key, buffer_id)
+  - get_formatter(session_key, buffer_id)
+  - validate(session_key, buffer_id) -> ValidationResult
+  - write_all(session_key, force=False) -> WriteAllResult
   responsibilities:
   - Own file_path binding and one-open-buffer-per-file rule.
   - Own unsaved/New file buffers.
