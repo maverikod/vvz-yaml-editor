@@ -112,14 +112,16 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
-  may_depend_on:
-  - G-010 AbstractFormatter contract
-  - libcst >= 1.1
-  - lark (cst_query XPath parser)
   may_be_used_by:
   - G-009 editor core and buffer registry (opens .py via CSTFormatter)
   - G-011 universal search layer (iter_units via CSTFormatter)
   - G-008 public interfaces (validate_file for .py)
+  - G-015 session layer (calls render() and write_sidecar after mutation)
+  - G-014 project refactor (reference search via CSTFormatter directly, no session)
+  may_depend_on:
+  - G-010 AbstractFormatter contract
+  - libcst >= 1.1
+  - lark (cst_query XPath parser)
 public_contracts_provided:
 - CSTFormatter (implements AbstractFormatter)
 - CSTTree (document model, opaque to editor core)
