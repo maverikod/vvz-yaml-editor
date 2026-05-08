@@ -148,9 +148,9 @@ persistence_safety_policy:
       write still success=True.'
     on_failure: Restore from backup. No git commit attempted.
   git_not_available:
+    after_write: No project git commit (git not available). write still success=True.
     before_write: Create file backup.
     on_failure: Restore from backup.
-    rationale: Same behavior regardless of project git presence.
   invariant: writer.py always uses file backup as safety before result write. Editor
     git (undo/redo) is G-015's responsibility. Project git commit is performed by
     write_result after successful file write — best-effort, separate from the backup
