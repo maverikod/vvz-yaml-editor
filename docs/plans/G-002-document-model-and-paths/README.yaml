@@ -65,7 +65,8 @@ implementation_outline:
 - Create document_io package with loader, renderer, and summary modules.
 - Define document representation wrappers without exposing mutable global state.
 - Implement parse diagnostics for invalid YAML.
-- Implement summary extraction without importing reader or path_language modules.
+- Implement summary extraction without importing path_language modules or any other
+  subsystem.
 implementation_notes:
 - Public contract names in this README are subsystem-level; tactical steps own the
   concrete modules listed in their README.yaml files.
