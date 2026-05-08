@@ -1,0 +1,1 @@
+"""Verify cross-references after renumbering."""
