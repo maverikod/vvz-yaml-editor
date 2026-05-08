@@ -149,14 +149,40 @@ subsystem_independence_rules:
 - Integration tests may call multiple subsystems, but production logic must stay in
   owned interfaces paths.
 regression_requirements:
-- Test successful read operations against real fixtures.
-- Test failed read operations with invalid YAML, missing path, and ambiguous path.
-- Test dry-run write and verify no file change.
-- Test real checked write and verify result through separate read API.
-- Test validation failure leaves file unchanged.
-- Test append with dedupe=true is idempotent.
-- Test CLI commands use the same public API behavior.
-- Test wheel build and installed import.
+- connect() returns session_key and empty buffer list.
+- open(session_key, file_path, formatter=yaml) returns buffer_descriptor with readonly=False,
+  modified=False.
+- find_one(session_key, buffer_id, query) returns formatter-provided address.
+- copy(session_key, buffer_id, address) returns clipboard_item_id.
+- paste(session_key, buffer_id, address, clipboard_item_id) marks buffer modified=True
+  without writing real file.
+- validate(session_key, buffer_id) returns ValidationResult without writing file or
+  changing modified.
+- save(session_key, buffer_id) writes real file, creates one project git commit, returns
+  old_hash and new_hash.
+- verify save result via separate find_one or open+find_one on fresh session.
+- write_all(session_key, force=False) writes only modified buffers; returns written_buffers,
+  failed_buffers, skipped_buffers.
+- write_all with validation failure records buffer in failed_buffers and skips write;
+  other buffers continue.
+- write_all(session_key, force=True) writes all non-readonly buffers regardless of
+  modified flag.
+- open same file in two sessions with readwrite returns BUFFER_LOCKED on second.
+- open with formatter=text on .yaml file forces text formatter regardless of extension.
+- undo(session_key, buffer_id) restores buffer to previous state; modified reflects
+  restored state.
+- redo after undo restores forward state; redo after new mutation returns REDO_AT_END.
+- 'connect(auto_write=True): mutation immediately writes real file without explicit
+  save.'
+- 'connect(readonly=True): mutation returns BUFFER_READONLY on any buffer.'
+- disconnect(close_unsaved=False) with modified buffer returns SESSION_HAS_UNSAVED_BUFFERS.
+- disconnect(close_unsaved=True) closes session despite modified buffers.
+- reconnect(session_key) restores all buffer_descriptors without re-opening files.
+- yaml_write_checked compatibility wrapper works as mapping over open/mutate/save.
+- yaml_get compatibility wrapper works as mapping over open/find_one.
+- CLI ai-editor connect returns session_key on stdout for scripting.
+- CLI ai-editor open --session-key <key> <file> returns buffer_id.
+- Package builds as wheel; import ai_editor has no side effects after install.
 release_artifacts:
 - dist/*.whl
 - dist/*.tar.gz
