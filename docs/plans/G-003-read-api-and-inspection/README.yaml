@@ -30,14 +30,13 @@ forbidden_code_paths:
 - venv
 - site-packages
 allowed_dependencies:
+  may_be_used_by:
+  - G-010 YAMLFormatter (primary consumer — YAML mutations use path_language internally)
+  - G-007 writer (ai_editor/writer.py uses path_language for changed_path verification)
+  - G-008 interfaces_release
   may_depend_on:
   - G-001-package-contracts-and-distribution
   - G-002 document_io (at ai_editor/formatters/yaml/document_io/)
-  may_be_used_by:
-  - G-010 YAMLFormatter (primary consumer)
-  - G-005 mutation_operations
-  - G-007 transaction_writer
-  - G-008 interfaces_release
 public_contracts_provided:
 - YamlPath
 - PathToken
