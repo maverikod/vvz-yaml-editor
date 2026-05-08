@@ -167,11 +167,12 @@ stable_id_contract:
       = {id(libcst_node): node_id for node in node_map}. After mutation call _build_tree_index(previous_metadata_map,
       previous_obj_to_id).'
 sidecar_contract:
-  atomic_write: Write to .tmp file in .cst/ dir then os.replace to final path.
+  atomic_write: Write to .tmp file then os.replace to final path. Used for both session-side
+    and project-side sidecars.
   existing_mechanism: tree_sidecar.py in cst-code implements write_sidecar_atomic,
     read_sidecar_payload, parse_sidecar_file, tree_to_sidecar_payload. Adapt, do not
     rewrite.
-  format: 'Line 1: CST_TREE_V1 sha256=<source_sha256_hex> tree_sha256=<tree_body_sha256_hex>
+  format: 'Line 1: CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_body_sha256_hex>
 
     Line 2+: JSON body'
   json_body_fields:
@@ -179,37 +180,34 @@ sidecar_contract:
   - source_sha256
   - tree_sha256
   - root_node_id
-  - path_to_node_id (path_indices string -> node_id, for sidecar_matches_built_tree
-    verification)
+  - path_to_node_id
   - metadata_map (node_id -> TreeNodeMetadata.to_dict with stable_id)
   - metadata_node_order
   - parent_map
   - node_id_aliases
-  path_pattern: '{py_dir}/.cst/{py_stem}.tree'
-  purpose: Persist node identity (stable_id in metadata_map) and checksums so the
-    tree can be reloaded without re-parsing when the source has not changed.
+  path_patterns:
+    project_side: '{py_dir}/.cst/{py_stem}.tree  — written on save/save_as and when
+      auto_write=True'
+    session_side: <session_dir>/<buffer_id>.cst  — written after every mutation
+  purpose: Persist node identity (stable_id in metadata_map) and checksums. Session-side
+    sidecar tracks current in-session tree state. Project-side sidecar is the stable
+    on-disk cache.
   two_checksums:
-    source_sha256: SHA-256 of UTF-8 bytes of logical Python source code (the .py file
-      content after stripping any legacy trailing marker block). Computed as SHA-256(tree.module.code.encode('utf-8'))
-      at write time. Validated on load against fresh SHA-256 of .py file content.
-    tree_sha256: SHA-256 of the JSON body text of the sidecar file (the text representation
-      of the tree metadata). Computed as SHA-256(json_body_bytes) at write time. Validated
-      on load to detect sidecar corruption or partial write. This is the checksum
-      of the serialised tree, not of the in-memory object.
+    source_sha256: SHA-256 of UTF-8 bytes of logical Python source. Computed as SHA-256(tree.module.code.encode('utf-8')).
+    tree_sha256: SHA-256 of the JSON body text of the sidecar file.
   validation_on_load:
-  - 1. Read sidecar file. If missing or unreadable -> build from scratch.
-  - 2. Parse header. Extract source_sha256 and tree_sha256.
-  - '3. Validate tree_sha256: SHA-256(json_body_bytes) must equal tree_sha256. Mismatch
-    -> sidecar corrupt, build from scratch.'
-  - 4. Read .py file. Strip legacy trailing marker block. Compute SHA-256(content).
-    Must equal source_sha256. Mismatch -> source changed, build from scratch.
-  - 5. Load metadata_map from sidecar. Call sidecar_matches_built_tree to confirm
-    path->node_id layout. Mismatch -> build from scratch.
-  - '6. All checks pass: use sidecar metadata_map directly. Parse module from source
-    so libcst object graph is live. Skip _build_tree_index from scratch.'
-  written_at: After editor_core writes .py to disk (buffer.save / buffer.save_as).
-    CSTFormatter.write_sidecar(py_path, tree) called by save orchestration. NOT written
-    during parse.
+  - 1. Check session-side sidecar first (<session_dir>/<buffer_id>.cst). If valid
+    (both checksums pass) -> use it. Fast path.
+  - '2. If session-side missing or invalid: check project-side sidecar (.cst/<stem>.tree).
+    If valid -> use it.'
+  - '3. If neither valid: build tree from scratch via _build_tree_index. All stable_ids
+    are new UUID4.'
+  - '4. Validation: parse header, check tree_sha256 = SHA-256(json_body), check source_sha256
+    = SHA-256(file_content).'
+  - 5. Load metadata_map. Call sidecar_matches_built_tree. Mismatch -> build from
+    scratch.
+  written_at: 'Session-side: after every mutation (always). Project-side: on save/save_as
+    and when auto_write=True.'
 parse_contract:
   error_contract: libcst.ParserSyntaxError -> CSTFormatter re-raises as FORMAT_VALIDATION_FAILED
     with CST_PARSE_FAILED diagnostic. Editor core catches and falls back to text formatter
