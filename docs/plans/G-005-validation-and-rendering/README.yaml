@@ -5,10 +5,14 @@ step_name: mutation_operations
 title: In-memory mutation operations subsystem
 status: draft
 source_plan: docs/plans/create_pip_package_for_mcp.yaml
-global_intent: Own the pure in-memory YAML mutation subsystem. This block defines
-  structural edit operations over already-loaded YAML documents and returns changed
-  paths and diagnostics without reading files, validating schemas, rendering final
-  output, or writing to disk.
+global_intent: G-005 is ABSORBED into G-010 (AbstractFormatter). Mutations are formatter-internal
+  operations. AbstractFormatter defines abstract mutation methods (set, replace_block,
+  append, delete, move) that each formatter implements. After every successful mutation
+  the session layer (G-015) commits the rendered buffer to the session git branch
+  (buf/<buffer_id>). G-005 has no standalone owned_code_paths — all mutation code
+  lives inside the formatter that owns it (ai_editor/formatters/yaml/ for YAML, ai_editor/formatters/cst/
+  for CST, ai_editor/formatters/text/ for text). G-010 owns the abstract mutation
+  contract on AbstractFormatter.
 why_this_block_exists: 'Lower-level mutation tasks must understand the complete mutation
   responsibility: apply deterministic structural operations to a YamlDocument through
   path_language and report exact changes. This must stay separate from validation
