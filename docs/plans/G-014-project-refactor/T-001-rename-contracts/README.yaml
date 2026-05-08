@@ -1,0 +1,134 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-014
+parent_step_name: project_refactor
+step_id: G-014/T-001
+step_name: rename_contracts
+title: RenameTarget, RenameJobResult contracts and error codes
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-014-project-refactor/README.yaml
+parent_global_context: 'G-014 owns project-wide rename refactoring: rename a method,
+  class, or package name across all files in project_root. Always runs via mcp-proxy-adapter
+  job queue as async job. Always preceded by a git tag + commit or file backups. Any
+  failure triggers automatic full rollback. T-001 defines the typed contracts that
+  all other G-014 tactical steps depend on.
+
+  '
+intent: 'Define the typed dataclasses and error codes used throughout the G-014 subsystem:
+  RenameTarget (kind, file_path, stable_id, old_name, scope), RenameJobResult (success,
+  job_id, old_name, new_name, dry_run, changed_files, skipped_files, reference_count,
+  rollback_performed, git_tag, diagnostics), and error codes RENAME_TARGET_NOT_FOUND,
+  RENAME_INVALID_IDENTIFIER, RENAME_GIT_CHECKPOINT_FAILED, RENAME_ROLLBACK_FAILED,
+  GIT_NOT_AVAILABLE.
+
+  '
+why_this_step_exists: 'All other G-014 tactical steps (T-002 safety checkpoint, T-003
+  reference search, T-004 execution pipeline, T-005 MCP command) depend on RenameTarget
+  and RenameJobResult as their input/output types. Defining them first in an isolated
+  step prevents each later step from independently defining incompatible contract
+  types.
+
+  '
+owned_code_paths:
+- ai_editor/project_refactor/contracts.py
+- ai_editor/project_refactor/__init__.py
+- tests/project_refactor/test_contracts.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-001 contracts (ErrorCode, Diagnostic, ResultEnvelope)
+  provides_to:
+  - G-014/T-002 safety_checkpoint
+  - G-014/T-003 reference_search
+  - G-014/T-004 rename_pipeline
+  - G-014/T-005 rename_command
+public_contracts_provided:
+- 'RenameTarget — dataclass: kind (Literal[''method'', ''class'', ''package'']), file_path
+  (str, absolute), stable_id (str), old_name (str), scope (list[str] | None, default
+  None).
+
+  '
+- 'RenameJobResult — dataclass: success (bool), job_id (str), old_name (str), new_name
+  (str), dry_run (bool), changed_files (list[str]), skipped_files (list[str]), reference_count
+  (int), rollback_performed (bool), git_tag (str | None), diagnostics (list[Diagnostic]).
+
+  '
+- 'Error codes added to G-001 ErrorCode enum (or as module-level constants if ErrorCode
+  is not extendable): RENAME_TARGET_NOT_FOUND, RENAME_INVALID_IDENTIFIER, RENAME_GIT_CHECKPOINT_FAILED,
+  RENAME_ROLLBACK_FAILED, GIT_NOT_AVAILABLE.
+
+  '
+implementation_notes: 'Use Python dataclasses with type annotations. RenameJobResult
+  must be JSON-serialisable (all fields are primitives, lists of primitives, or Diagnostic
+  objects). RenameTarget.scope=None means entire project_root. Add error codes to
+  G-001 ErrorCode enum if it is an extendable Enum; otherwise define them as string
+  constants in contracts.py and re-export from __init__.py.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/project_refactor/test_contracts.py -v
+  expected:
+  - RenameTarget can be instantiated with required fields.
+  - RenameTarget.scope defaults to None.
+  - RenameJobResult is JSON-serialisable via json.dumps.
+  - RenameJobResult.skipped_files is always a list even when empty.
+  - Error code constants are importable from ai_editor.project_refactor.
+  - invariant: success=True requires rollback_performed=False.
+  - invariant: success=False requires rollback_performed=True.
+acceptance_criteria:
+- RenameTarget and RenameJobResult are dataclasses with all required fields.
+- All fields are typed.
+- RenameJobResult is always JSON-serialisable.
+- Error codes are importable from ai_editor.project_refactor.
+- No pipeline, checkpoint, or MCP logic is included in this step.
+model_assignment_spec:
+  performer: coding_agent
+  title: Define RenameTarget, RenameJobResult, and rename error codes
+  owned_paths:
+  - ai_editor/project_refactor/contracts.py
+  - ai_editor/project_refactor/__init__.py
+  - tests/project_refactor/test_contracts.py
+  forbidden_paths:
+  - ai_editor/editor_core/
+  - ai_editor/formatters/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Define RenameTarget and RenameJobResult as Python dataclasses with
+    typed fields as listed in public_contracts_provided. Add error code constants
+    (RENAME_TARGET_NOT_FOUND, RENAME_INVALID_IDENTIFIER, RENAME_GIT_CHECKPOINT_FAILED,
+    RENAME_ROLLBACK_FAILED, GIT_NOT_AVAILABLE) to G-001 ErrorCode or as string constants
+    in contracts.py. Export all from ai_editor/project_refactor/__init__.py. Write
+    tests in tests/project_refactor/test_contracts.py verifying instantiation, JSON
+    serialisability, and importability. Do not implement pipeline, checkpoint, reference
+    search, or MCP.
+
+    '
+  non_goals:
+  - Safety checkpoint (T-002)
+  - Reference search (T-003)
+  - Rename execution pipeline (T-004)
+  - MCP command class (T-005)
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
