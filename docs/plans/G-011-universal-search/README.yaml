@@ -52,13 +52,12 @@ abstract_search_contract:
   - list_units(session_key, buffer_id, scope=null) -> units
   - select(session_key, buffer_id, query, policy) -> address | addresses | error
   responsibilities:
-  - Resolve buffer state through public buffer access only.
+  - Resolve buffer state via session_key + buffer_id through G-009 public buffer access
+    contracts.
   - Ask formatter.iter_units(document, scope) for candidate units.
   - Ask formatter.match_unit(unit, query) to evaluate matches.
-  - Ask formatter.compare_units(left_unit, right_unit, options) when ranking, dedupe,
-    or equality is needed.
-  - Return formatter addresses, not line numbers or YAML paths invented by search
-    itself.
+  - Ask formatter.compare_units(left_unit, right_unit, options) for ranking or equality.
+  - Return formatter addresses suitable for BufferAddress in copy/cut/paste.
   - Enforce find_one uniqueness and typed errors.
   - Keep query policy independent from save/open/close lifecycle.
 query_model:
