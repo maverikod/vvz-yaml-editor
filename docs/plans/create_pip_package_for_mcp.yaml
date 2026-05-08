@@ -1086,10 +1086,10 @@ session_model:
     on_save: save/save_as writes the real file from the current buffer content. Does
       NOT merge or touch the main git branch of the project.
     on_close:
-    - Delete branch buf/<session_key>/<buffer_id> from the internal git repo (git
-      branch -D). No history is retained.
-    - Delete the .buf file.
-    - Release write lock on the real file.
+    - Release all write locks held by the session in files table.
+    - 'Delete the entire session directory atomically: rename to <session_key>.closing,
+      then rmtree. This removes all .buf files, session.ses, git/, and clipboard.json
+      in one operation.'
     undo:
       operation: undo(session_key, buffer_id, steps=1)
       behavior: git checkout to (HEAD~steps) on the buffer branch; reload buffer content
