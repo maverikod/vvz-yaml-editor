@@ -50,7 +50,8 @@ forbidden_paths:
 allowed_dependencies:
   consumes_from:
   - G-001 contracts (ValidationResult, OperationResult, Diagnostic)
-  - G-007 writer.py (default write method delegates here)
+  - ai_editor/writer.py (default write method delegates here; owned by ai_editor package
+    directly)
   provides_to:
   - G-010/T-002 (formatter registry)
   - G-010/T-003 (text formatter implements AbstractFormatter)
