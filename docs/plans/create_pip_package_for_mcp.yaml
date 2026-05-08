@@ -1003,10 +1003,13 @@ session_model:
       by editor operations.'
     branch_naming: buf/<session_key>/<buffer_id>
     on_open:
-    - 'If the real file is under a git repo: create branch buf/<session_key>/<buffer_id>
-      from HEAD of that repo.'
-    - 'If no git repo is found: create a bare internal git repo under <sessions_dir>/git/
-      and init the branch there with the file content as the first commit.'
+    - Initialize bare internal git repo at <sessions_dir>/git/ on first use (git init
+      --bare). This repo is shared across all sessions and buffers.
+    - Create branch buf/<session_key>/<buffer_id> in the internal repo.
+    - 'Make the initial commit: content = rendered buffer at open time. Commit message:
+      ''open: <real_file_path> [may be modified]''. The ''[may be modified]'' marker
+      signals that the file may already have unsaved changes relative to disk at the
+      moment of open — this is normal and expected.'
     on_mutation: 'After every successful mutation operation: render buffer to string
       and commit to the buffer branch. Commit message: ''<operation_name>: <brief
       params summary>''. This is the source of truth for undo/redo.'
