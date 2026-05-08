@@ -104,10 +104,10 @@ forbidden_code_paths:
 - ai_editor/editor_core/
 - ai_editor/search/
 - ai_editor/interfaces/
-- ai_editor/transaction_writer/
 - ai_editor/formatters/text/
 - ai_editor/formatters/yaml/
 - ai_editor/formatters/foreign.py
+- ai_editor/sessions/
 - .venv
 - venv
 - site-packages
