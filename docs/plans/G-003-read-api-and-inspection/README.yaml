@@ -10,9 +10,9 @@ global_intent: Own the YAML structural path language used by all higher-level re
   for paths such as commands[name=buf_diff].metadata without owning read APIs or mutation
   behavior.
 why_this_block_exists: Every lower-level model working on path syntax must understand
-  the whole path-language task without reading reader, mutation, validation, or writer
-  plans. This block defines the grammar, resolver behavior, error semantics, and integration
-  contract.
+  the whole path-language task without reading compat wrappers, mutation, validation,
+  or writer plans. This block defines the grammar, resolver behavior, error semantics,
+  and integration contract.
 owned_code_paths:
 - ai_editor/path_language/
 - tests/path_language/
