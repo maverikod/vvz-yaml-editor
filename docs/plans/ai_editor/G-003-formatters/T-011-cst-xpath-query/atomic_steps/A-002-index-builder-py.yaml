@@ -1,0 +1,76 @@
+step_id: A-002
+parent_tactical_step: T-011
+name: Create query index builder
+target_file: ai_editor/formatters/cst/query/index_builder.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-030
+- C-031
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-011. File: ai_editor/formatters/cst/query/index_builder.py. Operation: create_file.
+
+  Port cst-code cst_query/index_builder.py adapted to CSTTree (stable_id addresses).
+
+  ```python
+  """Index CSTTree nodes for XPath-like query execution."""
+  from __future__ import annotations
+
+  from dataclasses import dataclass
+  from typing import Any, Optional
+
+  import libcst as cst
+
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.node_id_markers import PersistedNodeIds, strip_persisted_node_ids
+  from ai_editor.formatters.cst.node_type_utils import get_node_kind, get_node_name, get_node_qualname
+
+
+  @dataclass(frozen=True)
+  class Match:
+      stable_id: str
+      kind: str
+      node_type: str
+      name: Optional[str]
+      qualname: Optional[str]
+      start_line: int
+      start_col: int
+      end_line: int
+      end_col: int
+      code: Optional[str] = None
+
+
+  @dataclass(frozen=True)
+  class NodeInfo:
+      node: cst.CSTNode
+      parent: Optional[cst.CSTNode]
+      depth: int
+      kind: str
+      name: Optional[str]
+      qualname: Optional[str]
+      start_line: int
+      start_col: int
+      end_line: int
+      end_col: int
+      stable_id: str
+      node_type: str
+      extra_attrs: Optional[dict[str, str]] = None
+
+
+  def parse_source_for_query(source: str) -> tuple[str, cst.Module, dict, dict, PersistedNodeIds]:
+      """Copy reference parse_source_for_query: strip markers, parse module, MetadataWrapper parents+positions."""
+
+  def build_index_from_tree(tree: CSTTree) -> list[NodeInfo]:
+      """
+      Walk tree.root_node_id recursively using metadata_map/node_map.
+      NodeInfo.stable_id = meta.stable_id; node_type = meta.type; positions from metadata fields.
+      Order: depth-first pre-order matching tree children_ids order.
+      """
+
+  Constraints: under 220 lines.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.query.index_builder
+  expected: NodeInfo, Match, build_index_from_tree, parse_source_for_query import; Match uses stable_id field not node_id.

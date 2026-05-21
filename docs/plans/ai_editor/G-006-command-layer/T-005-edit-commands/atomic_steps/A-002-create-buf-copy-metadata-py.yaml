@@ -1,0 +1,16 @@
+step_id: A-002
+parent_tactical_step: T-005
+name: Create buf_copy_metadata.py
+target_file: ai_editor/commands/buf_copy_metadata.py
+operation: create_file
+priority: 2
+depends_on: []
+concepts:
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-005. File: ai_editor/commands/buf_copy_metadata.py. Operation: create_file.\n\nMRS C-045: metadata() separate from get_schema(). Required fields per metadatastd.\n\nCreate with exact content:\n\n```python\n\"\"\"Extended metadata for buf_copy command.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any, Type\n\n\ndef get_buf_copy_metadata(cls: Type[Any]) -> dict[str, Any]:\n    \"\"\"Return AI/documentation metadata for buf_copy.\"\"\"\n    return {\n        \"name\": cls.name,\n        \"version\": cls.version,\n        \"description\": cls.descr,\n        \"category\": cls.category,\n        \"author\": cls.author,\n        \"email\": cls.email,\n        \"detailed_description\": (\n            \"Clipboard command buf_copy via api.copy.\"\n        ),\n        \"parameters\": {\n\"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"}\n    },\n        \"return_value\": {\n            \"success\": {\n                \"description\": \"Operation succeeded.\",\n                \"data\": \"{result fields from api layer}\",\n            },\n            \"error\": {\n                \"description\": \"Operation failed.\",\n                \"code\": \"ErrorCode string\",\n                \"message\": \"Human-readable message\",\n            },\n        },\n        \"usage_examples\": [\n            {\n                \"description\": \"Typical buf_copy invocation\",\n                \"command\": {},\n                \"explanation\": \"Returns success envelope with result data.\",\n            },\n        ],\n        \"error_cases\": {\n            \"OPERATION_FAILED\": {\n                \"description\": \"Underlying api call returned success=False.\",\n                \"message\": \"{message from OperationResult}\",\n                \"solution\": \"Check session_key and buffer_id; verify session is open.\",\n            },\n        },\n        \"best_practices\": [\n            \"Call init_api() before executing commands (handled by main.py startup).\",\n            \"Use dry_run=True on destructive commands to preview changes.\",\n        ],\n    }\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.buf_copy_metadata
+  expected: get_buf_copy_metadata() returns dict with name, detailed_description, error_cases.

@@ -1,0 +1,95 @@
+step_id: A-003
+parent_tactical_step: T-003
+name: Create TextFormatter pytest module
+target_file: tests/formatters/test_text_formatter.py
+operation: create_file
+priority: 1
+depends_on:
+- A-001
+- A-002
+concepts:
+- C-025
+- C-021
+- C-063
+- C-064
+prompt: 'Project: ai_editor. Tactical step: T-003 TextFormatter (C-025). File: tests/formatters/test_text_formatter.py. Operation: create_file.
+
+
+  Imports:
+
+  ```python
+
+  from __future__ import annotations
+
+
+  import pytest
+
+
+  from ai_editor.formatters.text import TextFormatter
+
+  from ai_editor.formatters.tree import Tree
+
+  ```
+
+  Tree may also be imported from ai_editor.formatters.
+
+
+  Instantiate once per test via fixture or local TextFormatter().
+
+
+  Base types inlined for assertions (do not open base.py or tree.py):
+
+  - Tree has .root TreeNode
+
+  - TreeNode: node_kind, children, start_line, end_line, stable_id, metadata
+
+  - Hook outputs in tests use empty-string stable_id until base assigns IDs
+
+
+  Required tests (function names may vary but behavior must match):
+
+
+  1. test_formatter_identity — formatter_name == "text"; registered_extensions sorted match [".cfg", ".ini", ".log", ".rst", ".toml", ".txt"].
+
+
+  2. test_linters_empty — linters() == [].
+
+
+  3. test_parse_single_paragraph_multiple_lines — input "line1\nline2\n" => one paragraph child under root, two line children, paragraph start_line 1 end_line 2.
+
+
+  4. test_parse_two_paragraphs — input "p1a\np1b\n\np2a\n" => root has two paragraph children; first paragraph two lines, second one line; blank line separator consumed between paragraphs.
+
+
+  5. test_parse_no_internal_blanks_is_one_paragraph — input "a\nb\nc\n" without blank lines => exactly one paragraph with three line children.
+
+
+  6. test_render_roundtrip_structure — raw = "hello\n\nworld\n"; root = parse(raw); out = render(Tree(root=root)); root2 = parse(out); same paragraph count and line child counts per paragraph as first parse.
+
+
+  7. test_node_from_source_single_line — node_from_source("only") => node_kind line, metadata text "only".
+
+
+  8. test_node_from_source_paragraph_block — node_from_source("x\ny\n") => node_kind paragraph with two line children in order.
+
+
+  9. test_node_from_source_first_paragraph_only — node_from_source("a\nb\n\nc\n") => node_kind paragraph with two line children ("a", "b"); content after the blank-line separator ("c") is not included.
+
+
+  10. test_node_to_source_line — build line node via node_from_source("z\n"); node_to_source returns "z\n".
+
+
+  11. test_trailing_newline_flag — parse("a\n") sets root.metadata["trailing_newline"] True; render preserves final newline; parse("a") sets flag False or absent and render has no trailing newline unless content requires it.
+
+
+  Do not test registry registration, open_tree, write pipeline, or stable_id assignment (base-owned). Do not import hooks_register.
+
+
+  Constraints: pytest style; no network; file under 350 lines; tests/formatters/ directory may already exist from other steps — only create this file.
+
+  '
+verification:
+  type: pytest
+  target: tests/formatters/test_text_formatter.py
+  expected: All tests in the module pass when run with project venv active; zero failures.
+status: draft

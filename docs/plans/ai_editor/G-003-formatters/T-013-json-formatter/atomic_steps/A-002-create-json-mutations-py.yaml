@@ -1,0 +1,110 @@
+step_id: A-002
+parent_tactical_step: T-013
+name: Create JSON document mutation helpers
+target_file: ai_editor/formatters/json/mutations.py
+operation: create_file
+priority: 1
+depends_on:
+- A-001
+concepts:
+- C-028
+- C-021
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-013 JsonFormatter (C-028). File: ai_editor/formatters/json/mutations.py. Operation: create_file.
+
+  MRS excerpts:
+  - C-028 JsonFormatter: mapping|sequence|scalar document model; structure/mutation identity owned by base class at Tree level; this module provides document-level structural-path mutations for parsed JSON (dict/list/scalars).
+  - C-021 AbstractFormatter: base owns insert/delete/move/replace_node/copy_fragment/cut_fragment/paste_fragment on Tree via stable_id.
+
+  Dependency (inline API from ai_editor/formatters/json/address.py after A-001):
+
+  ```python
+  class JsonAddressError(Exception):
+      error_code: str
+      message: str
+
+  def normalize_json_address(address: str) -> str: ...
+  def resolve_json_address(document: Any, address: str) -> Any: ...
+  def resolve_json_parent(document: Any, address: str) -> tuple[Any, str | int]: ...
+  ```
+
+  Imports to use:
+  ```python
+  from __future__ import annotations
+
+  import copy
+  import json
+  from typing import Any
+
+  from ai_editor.formatters.json.address import (
+      JsonAddressError,
+      normalize_json_address,
+      resolve_json_parent,
+  )
+  ```
+
+  Module-level clipboard (for copy/cut/paste):
+  ```python
+  _CLIPBOARD: Any | None = None
+  ```
+
+  Private helper:
+  ```python
+  def _deepcopy_document(document: Any) -> Any:
+      return copy.deepcopy(document)
+
+  def _parse_json_value(content: Any) -> Any:
+      """If content is str, json.loads it; else return content as-is (must be JSON-serializable). Raises ValueError on invalid JSON string."""
+  ```
+
+  Public functions — each returns `tuple[Any, list[str]]` where the first element is the (possibly mutated) document deep copy and the second is `changed_paths` (list of normalized address strings affected). On JsonAddressError, let it propagate.
+
+  ```python
+  def json_mutate_set(document: Any, address: str, value: Any) -> tuple[Any, list[str]]:
+      """Replace value at address with value (deep-copied). changed_paths = [normalized address]."""
+
+
+  def json_mutate_replace_block(document: Any, address: str, content: Any) -> tuple[Any, list[str]]:
+      """Replace subtree at address with parsed content (_parse_json_value). Empty address replaces entire document root. changed_paths = [normalized address or '' for root]."""
+
+
+  def json_mutate_append(document: Any, address: str, value: Any, *, dedupe: bool = False) -> tuple[Any, list[str]]:
+      """Append value to list at address, or insert key into dict at address when value is dict (merge keys). If target is list: append item. If target is dict and value is dict: update/merge keys. dedupe=True on list: skip append when an equal item already present (==). changed_paths = [normalized address]. Raises JsonAddressError(TARGET_TYPE_MISMATCH) for scalar targets."""
+
+
+  def json_mutate_delete(document: Any, address: str) -> tuple[Any, list[str]]:
+      """Remove key or list index at address. changed_paths = [normalized address]."""
+
+
+  def json_mutate_move(document: Any, source_address: str, target_address: str, position: int | str = "last") -> tuple[Any, list[str]]:
+      """Cut subtree at source_address and insert under target. target must resolve to list (append/insert) or dict (merge if moved value is dict, else error). position applies when target is list: 'first'|'last'|int index. changed_paths = sorted unique normalized addresses of source and target. Raises JsonAddressError when move would nest into itself."""
+  ```
+
+  Clipboard functions:
+  ```python
+  def json_copy_fragment(document: Any, address: str) -> tuple[Any, list[str]]:
+      """Deep-copy subtree at address into module _CLIPBOARD. Document unchanged. Return (document, [])."""
+
+
+  def json_cut_fragment(document: Any, address: str) -> tuple[Any, list[str]]:
+      """Copy to _CLIPBOARD then delete at address. Return (mutated_document, [normalized address])."""
+
+
+  def json_paste_fragment(document: Any, target_address: str, position: int | str = "last") -> tuple[Any, list[str]]:
+      """Insert _CLIPBOARD content under target_address (same rules as json_mutate_append for list; dict merge for dict target). Raises JsonAddressError with error_code 'CLIPBOARD_EMPTY' if _CLIPBOARD is None. Return (mutated_document, [normalized target_address])."""
+  ```
+
+  Mutation semantics:
+  - Always work on deep copy of input document; never mutate caller's document in place.
+  - Normalize every returned path via normalize_json_address.
+  - json_mutate_move: extract value first, delete source, then insert at target.
+  - For list paste/append with position: 'first' -> insert(0), 'last' -> append, int -> insert at index.
+
+  Module docstring: "Document-level JSON mutations by structural address for ai_editor JsonFormatter."
+
+  Constraints: file under 350 lines; no Tree/TreeNode imports; no json_validate_content; no formatter class in this file.
+verification:
+  type: import
+  target: ai_editor.formatters.json.mutations.json_mutate_set
+  expected: "json_mutate_set updates document and returns changed_paths; copy/paste round-trip preserves data; json_mutate_delete removes key and reports changed address."

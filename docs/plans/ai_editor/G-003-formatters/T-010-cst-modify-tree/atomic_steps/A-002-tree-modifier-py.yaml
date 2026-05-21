@@ -1,0 +1,60 @@
+step_id: A-002
+parent_tactical_step: T-010
+name: Create modify_tree and rollback
+target_file: ai_editor/formatters/cst/tree_modifier.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-029
+- C-030
+- C-031
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-010. File: ai_editor/formatters/cst/tree_modifier.py. Operation: create_file.
+
+  Implement CST mutation orchestration adapted from cst-code tree_modifier.py — NO global tree registry; modify_tree(tree, ops) returns CSTTree; rollback_tree_to_code(tree, source) -> CSTTree (NOT bool).
+
+  Imports:
+  ```python
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.tree_builder import _build_tree_index
+  from ai_editor.formatters.cst.tree_modifier_ops import (
+      sort_operations, _delete_node, _find_parent_for_node, _insert_node,
+      _move_node, _replace_docstring, _replace_node, _replace_node_header,
+  )
+  from ai_editor.formatters.cst.node_id_markers import strip_persisted_node_ids
+  from ai_editor.formatters.cst.node_stable_id import strip_inline_node_id_lines_from_source
+  ```
+
+  def _apply_libcst_codegen_compat() -> None:
+      """Patch SimpleStatementLine._codegen_impl to ignore extra kwargs (libcst 1.8.x). Call once at import."""
+
+  def _choose_path(operations: list[dict], tree: CSTTree) -> str:
+      """Return 'batch' when multiple replace/insert or any delete without replace_range/move AND no fine-grained Param/Name targets; else 'sequential'."""
+
+  def _apply_sequential(tree: CSTTree, operations: list[dict]) -> CSTTree:
+      """Apply each op to module; rebuild index via _build_tree_index with previous_metadata_map and previous_obj_to_id between multi-op passes."""
+
+  def _apply_batch(tree: CSTTree, operations: list[dict]) -> CSTTree:
+      """Apply sorted ops sequentially on module then single final _build_tree_index (batch without external mutable_cst dependency)."""
+
+  def modify_tree(tree: CSTTree, operations: list[dict]) -> CSTTree:
+      """
+      Validate ops (required keys per action), sort via sort_operations, choose path, apply, return same tree instance updated.
+      Raises ValueError on invalid op or compile failure after apply (compile tree.module.code).
+      """
+
+  def rollback_tree_to_code(tree: CSTTree, source: str) -> CSTTree:
+      """
+      Strip markers from source, parse module, replace tree.module, rebuild index preserving stable_ids via previous metadata, return tree.
+      """
+
+  Call _apply_libcst_codegen_compat() at module load.
+
+  Constraints: under 350 lines.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.tree_modifier
+  expected: modify_tree and rollback_tree_to_code import; rollback_tree_to_code annotated return is CSTTree not bool.

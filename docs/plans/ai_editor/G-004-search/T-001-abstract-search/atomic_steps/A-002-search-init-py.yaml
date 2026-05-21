@@ -1,0 +1,34 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Create ai_editor/search/__init__.py — export base types
+target_file: ai_editor/search/__init__.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-035
+- C-036
+status: draft
+prompt: 'Project: ai_editor. File: ai_editor/search/__init__.py. Operation: create_file.
+
+
+  Precondition: ai_editor/search/base.py exists with AbstractSearch and SearchMatch.
+
+
+  Create ai_editor/search/__init__.py with exactly:
+
+
+  ```python
+
+  """Universal search layer."""
+
+  from ai_editor.search.base import AbstractSearch, SearchMatch
+
+
+  __all__ = ["AbstractSearch", "SearchMatch"]
+
+  ```'
+verification:
+  type: import
+  target: ai_editor.search
+  expected: from ai_editor.search import AbstractSearch, SearchMatch succeeds.

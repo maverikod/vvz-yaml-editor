@@ -1,0 +1,20 @@
+step_id: A-002
+parent_tactical_step: T-006
+name: Create schemas package placeholder
+target_file: ai_editor/schemas/.gitkeep
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-026
+status: draft
+prompt: |
+  Project: ai_editor. File: ai_editor/schemas/.gitkeep. Operation: create_file.
+
+  Create directory ai_editor/schemas/ and an empty .gitkeep file (zero bytes or single newline) so JSON schema files can be added later.
+
+  Exact content: empty file (no characters) or one newline only.
+verification:
+  type: manual
+  target: ai_editor/schemas/.gitkeep
+  expected: Path exists and is a file inside ai_editor/schemas directory.

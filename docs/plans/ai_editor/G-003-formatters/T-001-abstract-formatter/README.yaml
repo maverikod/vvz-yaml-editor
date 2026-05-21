@@ -1,4 +1,12 @@
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
+- A-005
+- A-006
+- A-007
+- A-008
 cascade_note: changed — formatter paradigm cascade 2026-05-21; tactical-fix 
   Sidecar list_commands init ownership 2026-05-21
 concepts:

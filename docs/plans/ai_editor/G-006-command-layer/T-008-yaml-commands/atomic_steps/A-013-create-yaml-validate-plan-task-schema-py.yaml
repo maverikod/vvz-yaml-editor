@@ -1,0 +1,16 @@
+step_id: A-013
+parent_tactical_step: T-008
+name: Create yaml_validate_plan_task_schema.py
+target_file: ai_editor/commands/yaml_validate_plan_task_schema.py
+operation: create_file
+priority: 13
+depends_on: []
+concepts:
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-008. File: ai_editor/commands/yaml_validate_plan_task_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for yaml_validate_plan_task command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_yaml_validate_plan_task_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for yaml_validate_plan_task.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"},\n            \"file_path\": {\"type\": \"string\"},\n            \"project_id\": {\"type\": \"string\"},\n        },\n        \"required\": [\"session_key\"],\n        \"additionalProperties\": False,\n    }\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.yaml_validate_plan_task_schema
+  expected: get_yaml_validate_plan_task_schema() returns dict with type=object and additionalProperties=False.

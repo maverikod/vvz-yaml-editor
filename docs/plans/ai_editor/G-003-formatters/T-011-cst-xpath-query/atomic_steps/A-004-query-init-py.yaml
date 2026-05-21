@@ -1,0 +1,26 @@
+step_id: A-004
+parent_tactical_step: T-011
+name: Create query package init
+target_file: ai_editor/formatters/cst/query/__init__.py
+operation: create_file
+priority: 3
+depends_on:
+- A-003
+concepts:
+- C-029
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-011. File: ai_editor/formatters/cst/query/__init__.py. Operation: create_file.
+
+  ```python
+  """CST XPath-like query engine."""
+  from ai_editor.formatters.cst.query.executor import cst_list_units, query_tree
+
+  __all__ = ["cst_list_units", "query_tree"]
+  ```
+
+  Under 15 lines.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.query
+  expected: query_tree and cst_list_units exported from package.

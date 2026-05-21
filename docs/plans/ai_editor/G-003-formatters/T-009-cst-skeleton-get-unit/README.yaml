@@ -33,5 +33,9 @@ outputs:
   description: 'find_node_by_range(tree: CSTTree, start_line: int, end_line: int, prefer_exact: bool = False) -> TreeNodeMetadata | None.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
 cascade_note: changed — formatter paradigm cascade 2026-05-21

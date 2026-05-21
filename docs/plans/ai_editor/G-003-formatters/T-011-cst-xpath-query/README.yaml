@@ -37,5 +37,9 @@ outputs:
 - name: ai_editor/formatters/cst/query/__init__.py
   type: file
   description: Exports query_tree and cst_list_units.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
 cascade_note: changed — formatter paradigm cascade 2026-05-21

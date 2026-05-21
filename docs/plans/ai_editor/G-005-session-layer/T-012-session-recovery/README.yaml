@@ -37,4 +37,5 @@ outputs:
     -> None.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

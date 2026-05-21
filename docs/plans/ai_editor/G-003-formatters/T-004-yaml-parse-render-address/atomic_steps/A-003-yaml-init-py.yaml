@@ -1,0 +1,28 @@
+step_id: A-003
+parent_tactical_step: T-004
+name: Create yaml package init
+target_file: ai_editor/formatters/yaml/__init__.py
+operation: create_file
+priority: 3
+depends_on:
+- A-002
+concepts:
+- C-026
+status: draft
+prompt: 'Project: ai_editor. File: ai_editor/formatters/yaml/__init__.py. Operation: create_file.
+
+
+  ```python
+
+  """YAML formatter package."""
+
+  from ai_editor.formatters.yaml.formatter import YamlFormatter
+
+
+  __all__ = ["YamlFormatter"]
+
+  ```'
+verification:
+  type: import
+  target: ai_editor.formatters.yaml
+  expected: YamlFormatter importable from package.

@@ -1,0 +1,65 @@
+step_id: A-002
+parent_tactical_step: T-002
+name: Add catalog exports to formatters init
+target_file: ai_editor/formatters/__init__.py
+operation: modify_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-022
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-002. File: ai_editor/formatters/__init__.py. Operation: modify_file.
+
+  MRS C-022: export FormatterCommandMetadata and FormatterCommandCatalog from the formatters package public API.
+
+  Current file content after G-003/T-001 (full content — replace entire file):
+
+  ```python
+  """Public formatter base exports for ai_editor."""
+  from ai_editor.formatters.base import (
+      AbstractFormatter,
+      ComparisonResult,
+      FormatterUnit,
+      SkeletonOptions,
+  )
+
+  __all__ = [
+      "AbstractFormatter",
+      "ComparisonResult",
+      "FormatterUnit",
+      "SkeletonOptions",
+  ]
+  ```
+
+  Replace the entire file with:
+
+  ```python
+  """Public formatter base and catalog exports for ai_editor."""
+  from ai_editor.formatters.base import (
+      AbstractFormatter,
+      ComparisonResult,
+      FormatterUnit,
+      SkeletonOptions,
+  )
+  from ai_editor.formatters.catalog import (
+      FormatterCommandCatalog,
+      FormatterCommandMetadata,
+  )
+
+  __all__ = [
+      "AbstractFormatter",
+      "ComparisonResult",
+      "FormatterCommandMetadata",
+      "FormatterCommandCatalog",
+      "FormatterUnit",
+      "SkeletonOptions",
+  ]
+  ```
+
+  Constraints: only add catalog imports and exports; do not remove T-001 base exports; under 30 lines.
+verification:
+  type: import
+  target: ai_editor.formatters
+  expected: from ai_editor.formatters import FormatterCommandMetadata, FormatterCommandCatalog succeeds alongside existing T-001 exports. __all__ contains six names including both catalog types.

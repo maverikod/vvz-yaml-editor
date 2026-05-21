@@ -1,0 +1,16 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Create ai_editor/main.py
+target_file: ai_editor/main.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+  - C-049
+  - C-050
+prompt: "Project: ai_editor. Tactical step: G-007/T-001. File: ai_editor/main.py. Operation: create_file.\n\nSix-step startup: (1) SimpleConfig.load (2) AiEditorConfigValidator.validate (3) init_api from api_init (4) create_app (5) register_custom_commands_hook (6) UnifiedServerRunner.run_server. Never implement HTTP routes.\n\nCreate with exact content:\n\n```python\n\"\"\"ai_editor MCP server entry — six-step startup sequence.\"\"\"\nfrom __future__ import annotations\n\nimport logging\nimport os\nimport sys\n\nfrom mcp_proxy_adapter.core.config.simple_config import SimpleConfig\nfrom mcp_proxy_adapter.core.server_runner import UnifiedServerRunner\nfrom mcp_proxy_adapter.commands.hooks import register_custom_commands_hook\nfrom mcp_proxy_adapter.web.create_app import create_app\n\nfrom ai_editor.api_init import init_api\nfrom ai_editor.config.config_section import AiEditorConfig, CodeAnalysisServerConfig\nfrom ai_editor.config.config_validator import AiEditorConfigValidator\nfrom ai_editor.hooks_register import formatter_registry, register_ai_editor_commands\n\nlogger = logging.getLogger(__name__)\n\n\ndef main(config_path: str | None = None) -> None:\n    \"\"\"Run six-step startup: load, validate, init_api, create_app, register commands, serve.\"\"\"\n    config_path = config_path or os.environ.get(\"AI_EDITOR_CONFIG\", \"config.json\")\n\n    # (1) Load config via adapter SimpleConfig\n    model = SimpleConfig(config_path).load()\n\n    # (2) Validate before any ai_editor objects are built\n    errors = AiEditorConfigValidator().validate(model.raw)\n    if errors:\n        for err in errors:\n            logger.error(\"config validation: %s\", err)\n        sys.exit(1)\n\n    # (3) Build ai_editor singletons and run startup_sweep\n    ai_cfg = AiEditorConfig.from_config_json(model.raw)\n    ca_cfg = CodeAnalysisServerConfig.from_config_json(model.raw)\n    init_api(ai_cfg, ca_cfg, formatter_registry)\n\n    # (4) Adapter creates ASGI app (proxy registration per config auto_on_startup)\n    app = create_app(app_config=model.raw, config_path=config_path)\n\n    # (5) Register EditorCommand subclasses\n    register_custom_commands_hook(register_ai_editor_commands)\n\n    # (6) Start server (proxy unreachable still allows server start per config)\n    runner = UnifiedServerRunner()\n    runner.run_server(app, model.raw.get(\"server\", {}))\n\n\nif __name__ == \"__main__\":\n    main()```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.main
+  expected: main() performs validate before init_api and create_app.

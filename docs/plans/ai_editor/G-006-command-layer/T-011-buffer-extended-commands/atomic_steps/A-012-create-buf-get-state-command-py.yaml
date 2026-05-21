@@ -1,0 +1,19 @@
+step_id: A-012
+parent_tactical_step: T-011
+name: Create buf_get_state_command.py
+target_file: ai_editor/commands/buf_get_state_command.py
+operation: create_file
+priority: 12
+depends_on: []
+concepts:
+  - C-010
+  - C-011
+  - C-013
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-011. File: ai_editor/commands/buf_get_state_command.py. Operation: create_file.\n\nMRS C-045: extends Command from mcp_proxy_adapter.commands.base.\nvalidate_params calls super() first. async execute delegates to api.get_buffer_state only.\nNever import session layer directly.\n\napi.get_buffer_state signature (G-006/T-010 api.py):\n  synchronous; returns OperationResult or dataclass/dict.\n\nCreate with exact content:\n\n```python\n\"\"\"buf_get_state MCP command — delegates to ai_editor.api.get_buffer_state.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\nfrom mcp_proxy_adapter.commands.base import Command\n\nfrom ai_editor.commands.buf_get_state_metadata import get_buf_get_state_metadata\nfrom ai_editor.commands.buf_get_state_schema import get_buf_get_state_schema\nfrom ai_editor import api\n\n\nclass BufGetStateCommand(Command):\n    \"\"\"MCP command: buf_get_state.\"\"\"\n\n    name = \"buf_get_state\"\n    version = \"1.0.0\"\n    descr = \"Buf Get State\"\n    category = \"editor\"\n    author = \"Vasiliy Zdanovskiy\"\n    email = \"vasilyvz@gmail.com\"\n\n    @classmethod\n    def get_schema(cls) -> dict[str, Any]:\n        return get_buf_get_state_schema()\n\n    def validate_params(self, params: dict[str, Any]) -> dict[str, Any]:\n        params = super().validate_params(params)\n        return params\n\n    async def execute(self, **params: Any) -> dict[str, Any]:\n        result = api.get_buffer_state(session_key=params['session_key'], buffer_id=params['buffer_id'])\n        if hasattr(result, \"__dataclass_fields__\"):\n            from dataclasses import asdict\n            payload = asdict(result)\n            if payload.get(\"error_code\") is not None:\n                payload[\"error_code\"] = str(payload[\"error_code\"])\n            return {\"success\": payload.get(\"success\", True), \"data\": payload}\n        if isinstance(result, dict):\n            return {\"success\": True, \"data\": result}\n        return {\"success\": True, \"data\": result}\n\n    @classmethod\n    def metadata(cls) -> dict[str, Any]:\n        return get_buf_get_state_metadata(cls)\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.buf_get_state_command.BufGetStateCommand
+  expected: BufGetStateCommand imports; name=='buf_get_state'; get_schema and metadata callable.

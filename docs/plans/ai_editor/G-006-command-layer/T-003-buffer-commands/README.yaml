@@ -49,4 +49,20 @@ outputs:
 - name: file_create triplet
   type: three-file command
   description: ai_editor/commands/file_create_{command,schema,metadata}.py. name="file_create".
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
+- A-005
+- A-006
+- A-007
+- A-008
+- A-009
+- A-010
+- A-011
+- A-012
+- A-013
+- A-014
+- A-015
+- A-016

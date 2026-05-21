@@ -1,0 +1,31 @@
+step_id: A-001
+parent_tactical_step: T-011
+name: Create Lark selector parser
+target_file: ai_editor/formatters/cst/query/parser.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-029
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-011 CST XPath query (G-003). File: ai_editor/formatters/cst/query/parser.py. Operation: create_file.
+
+  Copy cst-code cst_query/parser.py and cst_query/ast.py into this single module (no separate ast.py). Include QueryParseError as:
+
+  ```python
+  class QueryParseError(ValueError):
+      """Raised when selector syntax is invalid."""
+  ```
+
+  AST dataclasses/enums in same file: Combinator, PredicateOp, Predicate, PseudoKind, Pseudo, SelectorStep, Query (same fields as reference ast.py).
+
+  Lark LALR grammar _GRAMMAR and parse_selector(selector: str) -> Query — copy as-is from reference parser.py, replacing QueryParseError import with local class and ast imports with same-module types.
+
+  Create ai_editor/formatters/cst/query/ directory. Under 320 lines if possible by omitting module docstring examples block beyond one line.
+
+  Constraints: dependency lark>=1.1.0; no imports from cst-code package.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.query.parser.parse_selector
+  expected: parse_selector('function[name="foo"]') returns Query without raising.

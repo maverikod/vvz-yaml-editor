@@ -1,0 +1,55 @@
+step_id: A-004
+parent_tactical_step: T-009
+name: Create range-based node lookup
+target_file: ai_editor/formatters/cst/tree_range_finder.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-030
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-009. File: ai_editor/formatters/cst/tree_range_finder.py. Operation: create_file.
+
+  Port cst-code cst_tree/tree_range_finder.py adapted to accept CSTTree directly (no global get_tree registry).
+
+  ```python
+  """Find CST nodes by source line range."""
+  from __future__ import annotations
+
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.tree_node_metadata import TreeNodeMetadata
+
+
+  def find_node_by_range(
+      tree: CSTTree,
+      start_line: int,
+      end_line: int,
+      prefer_exact: bool = False,
+  ) -> TreeNodeMetadata | None:
+      """
+      Find metadata for the node covering [start_line, end_line] (1-based inclusive).
+
+      Raises ValueError when start_line > end_line.
+      When prefer_exact=True, prefer exact start/end match; else smallest spanning node.
+      """
+      if start_line > end_line:
+          raise ValueError(f"Invalid range: start_line ({start_line}) > end_line ({end_line})")
+      candidates: list[TreeNodeMetadata] = []
+      for meta in tree.metadata_map.values():
+          if meta.start_line <= start_line and end_line <= meta.end_line:
+              candidates.append(meta)
+      if not candidates:
+          return None
+      if prefer_exact:
+          for c in candidates:
+              if c.start_line == start_line and c.end_line == end_line:
+                  return c
+      return min(candidates, key=lambda m: (m.end_line - m.start_line, m.start_line))
+  ```
+
+  Under 60 lines.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.tree_range_finder.find_node_by_range
+  expected: Function imports and accepts CSTTree as first parameter.

@@ -32,4 +32,11 @@ outputs:
 - name: buf_redo triplet
   type: three-file command
   description: ai_editor/commands/buf_redo_{command,schema,metadata}.py. name="buf_redo".
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
+- A-005
+- A-006
+- A-007

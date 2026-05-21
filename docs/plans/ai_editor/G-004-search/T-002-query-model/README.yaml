@@ -15,5 +15,7 @@ outputs:
   description: 'KNOWN_QUERY_KINDS frozenset (six entries: contains_text, regex, field_equals, node_type, xpath, stable_id). validate_query(query: dict) -> list[str].
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+
 cascade_note: changed — unified tree search; stable_id addresses

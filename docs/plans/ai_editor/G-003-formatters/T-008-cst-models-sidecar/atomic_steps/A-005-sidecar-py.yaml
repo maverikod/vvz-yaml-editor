@@ -1,0 +1,68 @@
+step_id: A-005
+parent_tactical_step: T-008
+name: Create CST sidecar load save verify
+target_file: ai_editor/formatters/cst/sidecar.py
+operation: create_file
+priority: 1
+depends_on:
+- A-001
+- A-002
+concepts:
+- C-032
+- C-034
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-008. File: ai_editor/formatters/cst/sidecar.py. Operation: create_file.
+
+  MRS C-032 CST Sidecar: session `<session_dir>/<buffer_id>.cst`; project `<py_dir>/.cst/<py_stem>.tree`; header `CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_body_sha256>`; JSON body serialises metadata_map {node_id: {stable_id, start_line, end_line, docstring}}; load validates both checksums; atomic write via Writer.write_result.
+
+  Writer API (inline):
+  ```python
+  # ai_editor/writer.py
+  class Writer:
+      def write_result(self, content: str | bytes, path: Path, backup_suffix: str = ".bak") -> str: ...
+  ```
+
+  Prior types (inline):
+  ```python
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.tree_node_metadata import TreeNodeMetadata, validate_docstring_dict
+  from ai_editor.formatters.cst.node_id_markers import build_marker_path, PersistedNodeIds
+  ```
+
+  Implement sidecar.py:
+
+  Constants: SIDECAR_HEADER_PREFIX = "CST_TREE_V1 sha256=", SIDECAR_FORMAT_VERSION = 1
+
+  Helpers:
+  - sha256_text(text: str) -> str
+  - session_cst_path(session_dir: Path, buffer_id: str) -> Path  # session_dir/buffer_id.cst
+  - project_cst_path(py_path: Path) -> Path  # py_path.parent/.cst/py_path.stem.tree
+
+  - flatten_path_to_node_id(metadata_map, root_node_id) -> dict[str, str]: walk children via children_ids from root using build_marker_path
+
+  - tree_to_sidecar_payload(tree: CSTTree) -> dict: keys format_version, source_sha256 (from tree.module.code), tree_sha256 (sha256 of JSON body without header), root_node_id, path_to_node_id, metadata_map (each value meta.to_sidecar_dict()), metadata_node_order (list keys), parent_map, node_id_aliases
+
+  - metadata_map_from_payload(blob, preferred_key_order=None) -> dict[str, TreeNodeMetadata]: parse via TreeNodeMetadata.from_sidecar_dict
+
+  - parse_sidecar_file(content: str) -> dict | None: first line `CST_TREE_V1 sha256=<64hex> tree_sha256=<64hex>`; rest JSON; inject source_sha256 and tree_sha256 from header into payload; return None on malformed
+
+  - load_sidecar(path: Path, logical_source: str) -> dict | None: read file, parse; return None if source sha256 != sha256_text(logical_source)
+
+  - render_sidecar_file(payload: dict) -> str: header line + json.dumps(body, sort_keys=True)
+
+  - save_sidecar(path: Path, tree: CSTTree, writer: Writer) -> None: build payload, render, writer.write_result(text, path)
+
+  - sidecar_matches_built_tree(tree: CSTTree, payload: dict) -> bool: compare flatten_path_to_node_id to payload path_to_node_id
+
+  - verify_sidecar_against_source(logical_source: str, payload: dict) -> bool: payload source_sha256 matches sha256_text(logical_source)
+
+  Module alias at bottom: verify_sidecar_against_source is the public name (already defined).
+
+  Also export: persisted_node_ids_from_payload, parent_map_from_payload, aliases_from_payload as thin dict extractors from payload keys path_to_node_id, parent_map, node_id_aliases.
+
+  Constraints: under 250 lines; no generic TREE_V1 paths.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.sidecar
+  expected: load_sidecar, save_sidecar, sidecar_matches_built_tree, verify_sidecar_against_source import; session_cst_path and project_cst_path return .cst paths.

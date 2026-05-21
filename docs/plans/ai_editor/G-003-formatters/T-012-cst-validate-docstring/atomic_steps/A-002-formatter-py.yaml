@@ -1,0 +1,73 @@
+step_id: A-002
+parent_tactical_step: T-012
+name: Create CSTFormatter integration class
+target_file: ai_editor/formatters/cst/formatter.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-029
+- C-021
+- C-030
+- C-033
+- C-034
+- C-068
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-012. File: ai_editor/formatters/cst/formatter.py. Operation: create_file.
+
+  Implement CSTFormatter(AbstractFormatter) — converter hooks + CST-specific helpers; structural orchestration delegates to imported CST modules (NOT base overrides for stable_id assignment).
+
+  Base API (inline from G-003/T-001 — do not open files):
+  ```python
+  from ai_editor.formatters.base import AbstractFormatter, FormatterUnit, ComparisonResult, Linter
+  from ai_editor.contracts.results import ValidationResult
+  from ai_editor.contracts.diagnostic import Diagnostic
+  # AbstractFormatter abstract: parse, render, node_from_source, node_to_source, linters
+  # Base owns open_tree, insert, delete, move, replace_node, mutate_batch, write, get_unit, render_skeleton, etc.
+  ```
+
+  CST modules (inline signatures):
+  ```python
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.tree_builder import create_tree_from_code, reload_tree_from_file
+  from ai_editor.formatters.cst.tree_modifier import modify_tree, rollback_tree_to_code
+  from ai_editor.formatters.cst.tree_modifier_ops import sort_operations
+  from ai_editor.formatters.cst.skeleton import build_declarative_overview, build_node_declarative_overview
+  from ai_editor.formatters.cst.sidecar import save_sidecar, project_cst_path
+  from ai_editor.formatters.cst.docstring_meta import DocstringMeta
+  from ai_editor.writer import Writer
+  ```
+
+  Class CSTFormatter(AbstractFormatter):
+  - formatter_name = "cst"
+  - registered_extensions = [".py"]
+  - Instance field `_tree: CSTTree | None = None` holds last parsed CST.
+
+  Hooks:
+  - parse(raw_content) -> TreeNode: set self._tree = create_tree_from_code("buffer.py", raw_content); return _cst_tree_to_tree_node(self._tree) where helper builds TreeNode root (node_kind="root", stable_id="", children=[]) and stores CSTTree id in root.metadata["cst_tree_id"]=tree.tree_id and keeps tree on formatter.
+  - render(tree: Tree) -> str: return self._tree.module.code if self._tree else ""
+  - node_from_source(raw_block) -> TreeNode: libcst parse single statement/def; TreeNode with stable_id="" and metadata {"source": raw_block}
+  - node_to_source(node) -> str: return str(node.metadata.get("source", ""))
+  - linters() -> list[Linter]: return [_compile_linter] where compile(tree.module.code) is checked when path provided to ValidationResult
+
+  CST integration methods (public on formatter instance):
+  - validate_document(tree: CSTTree) -> ValidationResult: compile(tree.module.code, "<cst>", "exec"); on SyntaxError emit Diagnostic with line/col/message; success empty diagnostics
+  - mutate_set / mutate_replace_block / mutate_append / mutate_delete / mutate_move: build operation dicts addressed by stable_id via tree.find_by_stable_id; call modify_tree; return updated CSTTree
+  - _sort_operations(ops, tree): delegate sort_operations
+  - _apply_operation(tree, op): modify_tree(tree, [op])
+  - to_string(fragment: CSTTree) -> str: json.dumps({meta.stable_id: meta.to_sidecar_dict() for meta in fragment.metadata_map.values()})
+  - from_string(body: str) -> CSTTree: parse JSON + create_tree_from_code placeholder (document as minimal restore of metadata only)
+  - match_unit(a, b) -> bool: a.address == b.address
+  - compare_units(a, b, options) -> ComparisonResult: ComparisonResult(equal=a.address==b.address and a.unit_kind==b.unit_kind)
+
+  def write(self, content: str, path, *, tree: CSTTree | None = None) -> None:
+      Writer().write_result(content, Path(path)); when tree is not None call save_sidecar(project_cst_path(Path(path)), tree, Writer())
+
+  Module-level docstring. Under 400 lines.
+
+verification:
+  type: import
+  target: ai_editor.formatters.cst.formatter.CSTFormatter
+  expected: CSTFormatter imports; formatter_name is cst; validate_document and linters exist.

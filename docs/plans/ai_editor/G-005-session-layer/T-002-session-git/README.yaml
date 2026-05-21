@@ -27,4 +27,5 @@ outputs:
     -> None (fault-tolerant). delete_buffer_branch(repo, buffer_id) -> None.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

@@ -1,0 +1,90 @@
+step_id: A-001
+parent_tactical_step: T-013
+name: Create JSON structural address resolver
+target_file: ai_editor/formatters/json/address.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-028
+- C-021
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-013 JsonFormatter (C-028). File: ai_editor/formatters/json/address.py. Operation: create_file.
+
+  MRS excerpts:
+  - C-028 JsonFormatter: document_model mapping|sequence|scalar tree nodes; node_kinds [mapping, sequence, scalar]; address stable_id for formatter navigation; subclass_hooks parse (stdlib json), render, node_from_source, node_to_source; linters [json_parse, jsonschema_optional]; key order = Python dict insertion order; registered_extensions [.json].
+  - C-021 AbstractFormatter: subclasses implement conversion hooks only; must not assign/read stable_id.
+
+  Purpose: structural path navigation over parsed JSON documents (dict/list/scalars). Same address grammar as YamlFormatter (T-004): dotted paths, list[index], list[field=value] filters. Used by mutations.py; formatter navigation uses stable_id via base class.
+
+  Create ai_editor/formatters/json/address.py with exactly these public symbols:
+
+  ```python
+  from __future__ import annotations
+
+  import re
+  from dataclasses import dataclass
+  from typing import Any, Literal
+
+
+  class JsonAddressError(Exception):
+      """Raised when a structural JSON address cannot be resolved."""
+
+      def __init__(self, error_code: str, message: str) -> None:
+          self.error_code = error_code
+          self.message = message
+          super().__init__(message)
+
+
+  @dataclass(frozen=True)
+  class AddressSegment:
+      kind: Literal["key", "index", "filter"]
+      value: str
+      filter_field: str | None = None
+      filter_value: str | None = None
+
+
+  _SEGMENT_RE = re.compile(
+      r"^(?P<key>[A-Za-z_][A-Za-z0-9_-]*)(?P<bracket>\[(?P<bracket_body>[^\]]*)\])?$"
+  )
+
+
+  def parse_json_address(address: str) -> list[AddressSegment]:
+      """Parse address string into segments. Empty string -> []. Raises JsonAddressError(PATH_PARSE_FAILED)."""
+
+
+  def normalize_json_address(address: str) -> str:
+      """Return canonical form: strip whitespace; reject leading/trailing dots; rejoin parsed segments. Empty -> ''. Raises JsonAddressError(PATH_PARSE_FAILED)."""
+
+
+  def resolve_json_address(document: Any, address: str) -> Any:
+      """Return value at structural address. Empty address returns document unchanged. Raises JsonAddressError(PATH_NOT_FOUND) when path missing; JsonAddressError(PATH_NOT_UNIQUE) when filter matches multiple list items; JsonAddressError(PATH_PARSE_FAILED) on invalid syntax; JsonAddressError(TARGET_TYPE_MISMATCH) when segment applied to wrong container type."""
+
+
+  def resolve_json_parent(document: Any, address: str) -> tuple[Any, str | int]:
+      """Return (parent_container, key_or_index) for the final segment. Empty address raises JsonAddressError(PATH_PARSE_FAILED). Raises same errors as resolve_json_address when parent path invalid."""
+  ```
+
+  Address grammar (identical to YamlFormatter T-004):
+  - Segment separator: `.` (dot). No empty segments.
+  - Dict key segment: `keyname` or `keyname[0]` or `keyname[field=value]` on same token.
+  - Bracket forms on list segment: `[N]` (0-based integer index) or `[field=value]` (filter items in a list of dicts where item[field] == value; compare with str() on both sides).
+  - Examples: `metadata`, `commands[0]`, `commands[name=buf_diff]`, `commands[name=buf_diff].schema.required`.
+  - Filter `[field=value]`: value may not contain `]`; field is identifier `[A-Za-z_][A-Za-z0-9_-]*`.
+  - Index `[N]`: non-negative decimal integer only.
+
+  Implementation rules:
+  - Deep-copy is NOT required for resolve_* (read-only navigation).
+  - Dict keys use exact string match.
+  - List index out of range -> PATH_NOT_FOUND.
+  - Filter matching zero items -> PATH_NOT_FOUND; more than one -> PATH_NOT_UNIQUE.
+  - Applying key segment to non-dict -> TARGET_TYPE_MISMATCH.
+  - Applying index/filter to non-list -> TARGET_TYPE_MISMATCH.
+  - Module docstring: "Structural JSON address parsing and resolution for ai_editor JsonFormatter."
+
+  Constraints: file under 200 lines; no imports from formatter or mutations; no test code; no registry side effects.
+verification:
+  type: import
+  target: ai_editor.formatters.json.address.resolve_json_address
+  expected: "resolve_json_address returns scalar for dotted path; filter syntax returns single dict; missing key raises JsonAddressError PATH_NOT_FOUND; ambiguous filter raises PATH_NOT_UNIQUE."

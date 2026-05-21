@@ -59,4 +59,5 @@ outputs:
     \ formatter,\n  document, repo) -> tuple[new_document, fragment].\npaste_from_clipboard(session_dir,\
     \ buffer_id, target_address, mode,\n  formatter, document, repo) -> tuple[new_document,\
     \ diagnostics].\n"
-atomic_steps: []
+atomic_steps:
+- A-001

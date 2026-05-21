@@ -1,0 +1,58 @@
+step_id: A-003
+parent_tactical_step: T-008
+name: Create transient stable_id read helpers
+target_file: ai_editor/formatters/cst/node_stable_id.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-031
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-008. File: ai_editor/formatters/cst/node_stable_id.py. Operation: create_file.
+
+  MRS C-031 StableId: CST transient # @node-id embedding during mutation is stripped before write/render/sidecar. Subclasses provide read/strip only — no set_stable_id, no ensure_stable_id.
+
+  Port logic (from cst-code cst_tree/node_stable_id.py, read-only subset):
+
+  ```python
+  """Transient # @node-id comment helpers for libcst re-parse."""
+  from __future__ import annotations
+
+  import re
+  from typing import Optional
+
+  import libcst as cst
+
+  _STABLE_ID_RE = re.compile(r"#\s*@node-id:\s*([0-9a-f-]{36})")
+  _INLINE_NODE_ID_LINE_RE = re.compile(r"^\s*#\s*@node-id:\s*[0-9a-fA-F-]{36}\s*$")
+  _SUPPORTED = (cst.FunctionDef, cst.ClassDef)
+
+
+  def strip_inline_node_id_lines_from_source(source: str) -> str:
+      """Remove standalone `# @node-id: <uuid>` lines; preserve trailing newline when input had one."""
+      lines = source.splitlines()
+      kept = [ln for ln in lines if not _INLINE_NODE_ID_LINE_RE.match(ln)]
+      out = "\n".join(kept)
+      if source.endswith("\n"):
+          out += "\n"
+      return out
+
+
+  def get_stable_id(node: cst.CSTNode) -> Optional[str]:
+      """Extract UUID from leading_lines comment on FunctionDef/ClassDef; else None."""
+      if not isinstance(node, _SUPPORTED):
+          return None
+      for empty_line in node.leading_lines:
+          if empty_line.comment is not None:
+              m = _STABLE_ID_RE.match(empty_line.comment.value)
+              if m:
+                  return m.group(1)
+      return None
+  ```
+
+  Do NOT define set_stable_id or ensure_stable_id. Under 60 lines.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.node_stable_id
+  expected: "get_stable_id and strip_inline_node_id_lines_from_source import; strip removes a standalone @node-id comment line with UUID."

@@ -1,0 +1,19 @@
+step_id: A-013
+parent_tactical_step: T-011
+name: Create buf_write_all_schema.py
+target_file: ai_editor/commands/buf_write_all_schema.py
+operation: create_file
+priority: 13
+depends_on: []
+concepts:
+  - C-010
+  - C-011
+  - C-013
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-011. File: ai_editor/commands/buf_write_all_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for buf_write_all command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_buf_write_all_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for buf_write_all.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"force\": {\"type\": \"boolean\", \"default\": False},\n            \"dry_run\": {\"type\": \"boolean\", \"default\": False, \"description\": \"Preview without mutating state.\"},\n        },\n        \"required\": [\"session_key\"],\n        \"additionalProperties\": False,\n    }\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.buf_write_all_schema
+  expected: get_buf_write_all_schema() returns dict with type=object and additionalProperties=False.

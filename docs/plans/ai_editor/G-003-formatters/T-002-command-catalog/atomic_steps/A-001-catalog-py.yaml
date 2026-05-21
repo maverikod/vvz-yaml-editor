@@ -1,0 +1,68 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Create formatter command catalog dataclasses
+target_file: ai_editor/formatters/catalog.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-022
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-002 FormatterCommandCatalog (G-003). File: ai_editor/formatters/catalog.py. Operation: create_file.
+
+  MRS C-022 FormatterCommandCatalog: Structured catalogue of standard and formatter-specific commands with OpenAPI-compatible input/output schemas.
+  Properties: formatter_name (str), formatter_version (str), standard_commands (list[FormatterCommandMetadata]), specific_commands (list[FormatterCommandMetadata]), openapi_schemas (dict).
+  All list and dict fields must use field(default_factory=...) — never mutable defaults.
+
+  Create ai_editor/formatters/catalog.py with exactly:
+
+  ```python
+  """Formatter command catalog datatypes (C-022)."""
+  from __future__ import annotations
+
+  from dataclasses import dataclass, field
+  from typing import Any
+
+
+  @dataclass
+  class FormatterCommandMetadata:
+      """Metadata for one formatter command exposed via list_commands.
+
+      Attributes:
+          name: Command identifier (e.g. 'insert', 'yaml_validate').
+          description: Human-readable command summary.
+          input_schema: OpenAPI-compatible JSON Schema for command input.
+          output_schema: OpenAPI-compatible JSON Schema for command output.
+      """
+
+      name: str
+      description: str
+      input_schema: dict[str, Any] = field(default_factory=dict)
+      output_schema: dict[str, Any] = field(default_factory=dict)
+
+
+  @dataclass
+  class FormatterCommandCatalog:
+      """Structured catalogue of base and format-specific commands (C-022).
+
+      Attributes:
+          formatter_name: Formatter identifier (e.g. 'yaml', 'text').
+          formatter_version: Semver or simple version string for the catalog snapshot.
+          standard_commands: Commands inherited from AbstractFormatter base.
+          specific_commands: Commands added by a concrete formatter subclass.
+          openapi_schemas: Shared or referenced OpenAPI schema definitions.
+      """
+
+      formatter_name: str
+      formatter_version: str = "1.0"
+      standard_commands: list[FormatterCommandMetadata] = field(default_factory=list)
+      specific_commands: list[FormatterCommandMetadata] = field(default_factory=list)
+      openapi_schemas: dict[str, Any] = field(default_factory=dict)
+  ```
+
+  Constraints: no imports from base.py; no AbstractFormatter references; under 60 lines; Google-style docstrings on both dataclasses.
+verification:
+  type: import
+  target: ai_editor.formatters.catalog
+  expected: FormatterCommandMetadata and FormatterCommandCatalog import successfully. Instantiating FormatterCommandCatalog(formatter_name='text') yields empty standard_commands, specific_commands, and openapi_schemas lists/dict without shared mutable defaults.

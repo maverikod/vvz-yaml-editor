@@ -17,5 +17,8 @@ outputs:
 - name: ai_editor/search/__init__.py
   type: file
   description: Exports SearchMatch and AbstractSearch.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+
 cascade_note: changed — unified tree search; stable_id addresses

@@ -20,5 +20,7 @@ outputs:
 - name: ai_editor/formatters/__init__.py
   type: file
   description: Updated to export FormatterCommandMetadata and FormatterCommandCatalog.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
 cascade_note: changed — formatter paradigm cascade 2026-05-21

@@ -37,5 +37,7 @@ outputs:
   description: "open_buffer(session_dir, session_key, project_id, file_path, ca_client,
     formatter_registry, repo, config, formatter='auto', open_as_text=False, readonly=False)
     -> dict. Returns buf_dict or error dict.\n"
-atomic_steps: []
+atomic_steps:
+- A-001
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

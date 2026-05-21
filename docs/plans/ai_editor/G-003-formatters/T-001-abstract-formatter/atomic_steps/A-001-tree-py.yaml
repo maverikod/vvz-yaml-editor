@@ -1,0 +1,67 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Create formatters tree model
+target_file: ai_editor/formatters/tree.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-063
+- C-064
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-001 AbstractFormatter base (G-003). File: ai_editor/formatters/tree.py. Operation: create_file.
+
+  MRS concepts:
+  - C-063 Tree: in-memory node tree owned by AbstractFormatter; root is TreeNode; created at open_tree; updated by base structural ops.
+  - C-064 TreeNode: stable_id (UUID str, base-assigned), node_kind, start_line (1-based inclusive), end_line, display_text, metadata dict, children list[TreeNode].
+
+  Create ai_editor/formatters/ directory if missing. Create ai_editor/formatters/tree.py with exactly:
+
+  ```python
+  """Generic in-memory tree model for all ai_editor formatters."""
+  from __future__ import annotations
+
+  from dataclasses import dataclass, field
+  from typing import Any
+
+
+  @dataclass
+  class TreeNode:
+      """Single node in a formatter Tree.
+
+      Attributes:
+          stable_id: UUID4 string assigned by AbstractFormatter base; empty before assignment.
+          node_kind: Format-defined kind string (e.g. paragraph, mapping, root).
+          start_line: 1-based inclusive start line in source coordinates.
+          end_line: 1-based inclusive end line.
+          display_text: Short label for UI/skeleton.
+          metadata: Format-specific payload; must not store stable_id for subclass use.
+          children: Ordered child nodes.
+      """
+
+      stable_id: str
+      node_kind: str
+      start_line: int
+      end_line: int
+      display_text: str
+      metadata: dict[str, Any] = field(default_factory=dict)
+      children: list[TreeNode] = field(default_factory=list)
+
+
+  @dataclass
+  class Tree:
+      """In-memory tree for one open buffer document.
+
+      Attributes:
+          root: Root TreeNode for the document.
+      """
+
+      root: TreeNode
+  ```
+
+  Constraints: no imports from base or sidecar; under 80 lines; Google-style docstrings on public classes.
+verification:
+  type: import
+  target: ai_editor.formatters.tree
+  expected: Tree and TreeNode import successfully. TreeNode has fields stable_id, node_kind, start_line, end_line, display_text, metadata, children.

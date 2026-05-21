@@ -1,0 +1,15 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Create ai_editor/commands/__init__.py
+target_file: ai_editor/commands/__init__.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+  - C-046
+prompt: "Project: ai_editor. Tactical step: T-001. File: ai_editor/commands/__init__.py. Operation: create_file.\n\nMRS C-046 HooksRegister owns command package.\n\nCreate empty package init:\n\n```python\n\"\"\"ai_editor MCP command implementations.\"\"\"\n\n__all__: list[str] = []\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands
+  expected: Package imports without error.

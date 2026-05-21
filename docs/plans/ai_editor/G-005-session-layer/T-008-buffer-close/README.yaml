@@ -40,4 +40,5 @@ outputs:
     force: bool = False) -> OperationResult.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

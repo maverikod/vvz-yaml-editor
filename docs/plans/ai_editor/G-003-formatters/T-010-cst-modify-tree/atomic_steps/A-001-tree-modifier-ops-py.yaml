@@ -1,0 +1,55 @@
+step_id: A-001
+parent_tactical_step: T-010
+name: Create CST mutation operation helpers
+target_file: ai_editor/formatters/cst/tree_modifier_ops.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-030
+- C-031
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-010 CST modify_tree (G-003). File: ai_editor/formatters/cst/tree_modifier_ops.py. Operation: create_file.
+
+  Port libcst mutation helpers from cst-code cst_tree/tree_modifier_ops*.py. Public sort_operations; private ops prefixed with underscore.
+
+  Types (inline):
+  ```python
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.tree_node_metadata import TreeNodeMetadata
+  OperationDict = dict[str, object]  # keys: action, node_id, code, parent_node_id, target_node_id, position, start_node_id, end_node_id
+  ```
+
+  def sort_operations(operations: list[OperationDict], tree: CSTTree) -> list[OperationDict]:
+      """Public. Sort DELETE/REPLACE bottom-to-top by start_line/start_col; INSERT bottom-to-top by parent position; append other actions after."""
+      # Port _sort_operations_for_batch logic using tree.metadata_map lookups on node_id / parent_node_id.
+
+  def _find_parent_for_node(tree: CSTTree, node_id: str) -> str | None:
+      """Walk parent_id chain resolving node_id_aliases; return nearest Module|IndentedBlock|ClassDef|FunctionDef ancestor node_id."""
+
+  def _insert_node(tree: CSTTree, module: cst.Module, op: OperationDict) -> cst.Module:
+      """Insert code relative to parent_node_id + position (first|last|after:<node_id>); parse snippet with cst.parse_statement or cst.parse_module fragment."""
+
+  def _delete_node(tree: CSTTree, module: cst.Module, op: OperationDict) -> cst.Module:
+      """Remove target node by node_id from module."""
+
+  def _replace_node(tree: CSTTree, module: cst.Module, op: OperationDict) -> cst.Module:
+      """Replace full node body with parsed op['code']; ClassDef/FunctionDef may delegate to _replace_node_header when op.get('header_only')."""
+
+  def _replace_node_header(tree: CSTTree, module: cst.Module, op: OperationDict) -> cst.Module:
+      """Replace signature (name/params/bases/decorators) preserving indented body."""
+
+  def _replace_docstring(tree: CSTTree, module: cst.Module, op: OperationDict) -> cst.Module:
+      """Update docstring node text; update metadata_map docstring dict via validate_docstring_dict when op includes docstring_meta dict."""
+
+  def _move_node(tree: CSTTree, module: cst.Module, op: OperationDict) -> cst.Module:
+      """Delete node and re-insert under new parent/position."""
+
+  Helper _resolve_node_id(tree, node_id) resolves aliases and stable_id -> node_id via find_by_stable_id.
+
+  Constraints: under 380 lines; libcst + ai_editor.formatters.cst only; no database imports.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.tree_modifier_ops.sort_operations
+  expected: sort_operations is importable and returns a list; _find_parent_for_node exists in module.

@@ -1,0 +1,15 @@
+step_id: A-001
+parent_tactical_step: T-009
+name: Create ai_editor/interfaces/__init__.py
+target_file: ai_editor/interfaces/__init__.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+  - C-048
+prompt: "Project: ai_editor. Tactical step: T-009. File: ai_editor/interfaces/__init__.py. Operation: create_file.\n\nMRS C-048 CLIInterface package init.\n\nCreate:\n\n```python\n\"\"\"CLI diagnostic interface.\"\"\"\n\n__all__: list[str] = [\"cli\"]\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.interfaces
+  expected: Package imports without error.

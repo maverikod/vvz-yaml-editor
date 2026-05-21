@@ -1,0 +1,16 @@
+step_id: A-007
+parent_tactical_step: T-003
+name: Create file_get_schema.py
+target_file: ai_editor/commands/file_get_schema.py
+operation: create_file
+priority: 7
+depends_on: []
+concepts:
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-003. File: ai_editor/commands/file_get_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for file_get command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_file_get_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for file_get.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"},\n        },\n        \"required\": [\"session_key\", \"buffer_id\"],\n        \"additionalProperties\": False,\n    }\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.file_get_schema
+  expected: get_file_get_schema() returns dict with type=object and additionalProperties=False.

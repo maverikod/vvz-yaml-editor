@@ -23,5 +23,8 @@ outputs:
   description: 'Search(AbstractSearch) with constructor Search(get_buffer_fn). Public methods: find, find_one, list_units. No public select().
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+
 cascade_note: changed — unified tree search; stable_id addresses

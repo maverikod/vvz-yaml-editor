@@ -22,5 +22,6 @@ outputs:
   description: 'Twelve wrapper functions. Emergency functions include alarming names and log WARNING on every call. Module docstring warns against new use.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
 cascade_note: changed — formatter paradigm cascade 2026-05-21

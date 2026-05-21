@@ -1,0 +1,93 @@
+step_id: A-001
+parent_tactical_step: T-008
+name: Create TreeNodeMetadata sidecar dataclass
+target_file: ai_editor/formatters/cst/tree_node_metadata.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-030
+- C-034
+- C-032
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-008 CST models and sidecar (G-003). File: ai_editor/formatters/cst/tree_node_metadata.py. Operation: create_file.
+
+  MRS excerpts:
+  - C-030 CSTTree: metadata_map node_id -> TreeNodeMetadata; stable_id UUID4 per node.
+  - C-034 DocstringMeta fields: summary, args, returns, attributes, docstring_body (Google-style). Stored in TreeNodeMetadata; serialised to sidecar as dict|null.
+  - C-032 Sidecar JSON body for CST: metadata_map entries {stable_id, start_line, end_line, docstring} where docstring is dict|null with C-034 keys only.
+
+  Create directory ai_editor/formatters/cst/ if missing. Create tree_node_metadata.py with:
+
+  Module docstring: "CST TreeNodeMetadata and sidecar serialisation helpers."
+
+  Imports:
+  ```python
+  from __future__ import annotations
+  from dataclasses import dataclass, field
+  from typing import Any, Mapping, Optional
+  ```
+
+  Constants:
+  ```python
+  DOCSTRING_KEYS = ("summary", "args", "returns", "attributes", "docstring_body")
+  ```
+
+  Function validate_docstring_dict(value: Any) -> Optional[dict[str, Any]]:
+  - Return None when value is None.
+  - When value is not a dict, raise ValueError("docstring must be dict or null").
+  - Allow only keys from DOCSTRING_KEYS; reject unknown keys.
+  - Coerce: summary/returns/docstring_body -> str (default ""); args/attributes -> dict[str, str] (copy string values).
+  - Return normalised dict including only non-empty fields (omit empty strings and empty dicts).
+
+  @dataclass(frozen=True)
+  class TreeNodeMetadata:
+      """Per-node CST metadata; sidecar stores stable_id/start_line/end_line/docstring subset."""
+      node_id: str
+      stable_id: str
+      type: str
+      kind: str
+      name: Optional[str] = None
+      qualname: Optional[str] = None
+      decorators: tuple[str, ...] = ()
+      start_line: int = 1
+      end_line: int = 1
+      start_col: int = 0
+      end_col: int = 0
+      children_count: int = 0
+      children_ids: tuple[str, ...] = ()
+      parent_id: Optional[str] = None
+      docstring: Optional[dict[str, Any]] = None
+
+      def to_sidecar_dict(self) -> dict[str, Any]:
+          """Serialise sidecar-facing fields only (C-032 / C-034)."""
+          out: dict[str, Any] = {
+              "stable_id": self.stable_id,
+              "start_line": self.start_line,
+              "end_line": self.end_line,
+              "docstring": self.docstring,
+          }
+          return out
+
+      @classmethod
+      def from_sidecar_dict(cls, node_id: str, data: Mapping[str, Any], *, type: str = "Module", kind: str = "module") -> TreeNodeMetadata:
+          """Rebuild runtime metadata from sidecar entry; fills missing index fields with defaults."""
+          doc_raw = data.get("docstring")
+          doc = validate_docstring_dict(doc_raw) if doc_raw is not None else None
+          stable = str(data.get("stable_id") or node_id)
+          return cls(
+              node_id=node_id,
+              stable_id=stable,
+              type=type,
+              kind=kind,
+              start_line=int(data.get("start_line", 1)),
+              end_line=int(data.get("end_line", 1)),
+              docstring=doc,
+          )
+
+  Constraints: no import of DocstringMeta (added in T-012 docstring_meta.py). File under 120 lines. Google-style docstrings on public symbols.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.tree_node_metadata
+  expected: TreeNodeMetadata imports; validate_docstring_dict accepts a dict with summary key; to_sidecar_dict returns stable_id/start_line/end_line/docstring keys only.

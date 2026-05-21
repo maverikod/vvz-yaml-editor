@@ -1,0 +1,16 @@
+step_id: A-002
+parent_tactical_step: T-010
+name: Create ai_editor/api_init.py
+target_file: ai_editor/api_init.py
+operation: create_file
+priority: 2
+depends_on:
+  - A-001
+concepts:
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-010. File: ai_editor/api_init.py. Operation: create_file.\n\nModule singletons _ca_client, _session_manager. init_api builds both and runs startup_sweep once. get_* raise RuntimeError if not initialised.\n\nCreate with exact content:\n\n```python\n\"\"\"Singleton initialisation for ai_editor api facade.\"\"\"\nfrom __future__ import annotations\n\nfrom ai_editor.config.config_section import AiEditorConfig, CodeAnalysisServerConfig\nfrom ai_editor.editor_core.ca_client import CodeAnalysisClient\nfrom ai_editor.editor_core.formatter_registry import FormatterRegistry\nfrom ai_editor.session_manager import SessionManager\nfrom ai_editor.sessions.startup_sweep import startup_sweep\n\n_ca_client: CodeAnalysisClient | None = None\n_session_manager: SessionManager | None = None\n\n\ndef init_api(\n    config: AiEditorConfig,\n    ca_config: CodeAnalysisServerConfig,\n    formatter_registry: FormatterRegistry,\n) -> None:\n    \"\"\"Build CA client and SessionManager; run startup_sweep once.\"\"\"\n    global _ca_client, _session_manager\n    _ca_client = CodeAnalysisClient.from_config(ca_config)\n    base_dir = config.sessions.base_dir\n    _session_manager = SessionManager(base_dir, _ca_client, formatter_registry)\n    startup_sweep(base_dir, _ca_client)\n\n\ndef get_ca_client() -> CodeAnalysisClient:\n    if _ca_client is None:\n        raise RuntimeError(\"init_api() must be called before using api\")\n    return _ca_client\n\n\ndef get_session_manager() -> SessionManager:\n    if _session_manager is None:\n        raise RuntimeError(\"init_api() must be called before using api\")\n    return _session_manager```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.api_init
+  expected: init_api and get_session_manager importable.

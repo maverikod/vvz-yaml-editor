@@ -35,4 +35,5 @@ outputs:
     before start. 30s SIGTERM timeout before SIGKILL. PID file managed correctly.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

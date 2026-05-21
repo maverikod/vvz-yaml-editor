@@ -1,0 +1,55 @@
+step_id: A-001
+parent_tactical_step: T-012
+name: Create DocstringMeta dataclass
+target_file: ai_editor/formatters/cst/docstring_meta.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-034
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-012 CST validate and integration (G-003). File: ai_editor/formatters/cst/docstring_meta.py. Operation: create_file.
+
+  MRS C-034 DocstringMeta: fields summary, args, returns, attributes, docstring_body; Google-style parsing; to_dict/from_dict for sidecar serialisation.
+
+  Port from cst-code models.DocstringMeta (DocstringMeta class only):
+
+  ```python
+  """Structured docstring metadata for CST nodes."""
+  from __future__ import annotations
+
+  from dataclasses import dataclass, field
+  from typing import Any
+
+
+  @dataclass(frozen=True)
+  class DocstringMeta:
+      summary: str = ""
+      args: dict[str, str] = field(default_factory=dict)
+      returns: str = ""
+      attributes: dict[str, str] = field(default_factory=dict)
+      docstring_body: str = ""
+
+      def is_empty(self) -> bool: ...
+
+      def to_dict(self) -> dict[str, Any]:
+          """Include only non-empty fields."""
+
+      @classmethod
+      def from_dict(cls, data: dict[str, Any]) -> DocstringMeta: ...
+
+      @classmethod
+      def parse_docstring(cls, raw: str) -> DocstringMeta:
+          """
+          Parse Google-style sections Args:/Returns:/Attributes:.
+          First line -> summary; if no sections, store full text in docstring_body.
+          Same algorithm as reference DocstringMeta.from_raw.
+          """
+  ```
+
+  Under 150 lines; no imports from tree_node_metadata.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.docstring_meta.DocstringMeta
+  expected: "parse_docstring, to_dict, and from_dict work; Google-style docstring with Args section yields summary and args fields."

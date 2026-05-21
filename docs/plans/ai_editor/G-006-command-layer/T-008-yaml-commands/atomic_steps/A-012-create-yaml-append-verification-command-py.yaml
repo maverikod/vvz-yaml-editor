@@ -1,0 +1,16 @@
+step_id: A-012
+parent_tactical_step: T-008
+name: Create yaml_append_verification_command.py
+target_file: ai_editor/commands/yaml_append_verification_command.py
+operation: create_file
+priority: 12
+depends_on: []
+concepts:
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-008. File: ai_editor/commands/yaml_append_verification_command.py. Operation: create_file.\n\nMRS C-045: extends Command from mcp_proxy_adapter.commands.base.\nvalidate_params calls super() first. async execute delegates to api.mutate_batch only.\nNever import session layer directly.\n\napi.mutate_batch signature (G-006/T-010 api.py):\n  synchronous; returns OperationResult or dataclass/dict.\n\nCreate with exact content:\n\n```python\n\"\"\"yaml_append_verification MCP command — delegates to ai_editor.api.mutate_batch.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\nfrom mcp_proxy_adapter.commands.base import Command\n\nfrom ai_editor.commands.yaml_append_verification_metadata import get_yaml_append_verification_metadata\nfrom ai_editor.commands.yaml_append_verification_schema import get_yaml_append_verification_schema\nfrom ai_editor import api\n\n\nclass YamlAppendVerificationCommand(Command):\n    \"\"\"MCP command: yaml_append_verification.\"\"\"\n\n    name = \"yaml_append_verification\"\n    version = \"1.0.0\"\n    descr = \"Yaml Append Verification\"\n    category = \"editor\"\n    author = \"Vasiliy Zdanovskiy\"\n    email = \"vasilyvz@gmail.com\"\n\n    @classmethod\n    def get_schema(cls) -> dict[str, Any]:\n        return get_yaml_append_verification_schema()\n\n    def validate_params(self, params: dict[str, Any]) -> dict[str, Any]:\n        params = super().validate_params(params)\n        return params\n\n    async def execute(self, **params: Any) -> dict[str, Any]:\n        result = api.mutate_batch(session_key=params['session_key'], buffer_id=params['buffer_id'], operations=[{'op': 'append', 'address': 'verification', 'value': params['item']}], dry_run=params.get('dry_run', False))\n        if hasattr(result, \"__dataclass_fields__\"):\n            from dataclasses import asdict\n            payload = asdict(result)\n            if payload.get(\"error_code\") is not None:\n                payload[\"error_code\"] = str(payload[\"error_code\"])\n            return {\"success\": payload.get(\"success\", True), \"data\": payload}\n        if isinstance(result, dict):\n            return {\"success\": True, \"data\": result}\n        return {\"success\": True, \"data\": result}\n\n    @classmethod\n    def metadata(cls) -> dict[str, Any]:\n        return get_yaml_append_verification_metadata(cls)\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.yaml_append_verification_command.YamlAppendVerificationCommand
+  expected: YamlAppendVerificationCommand imports; name=='yaml_append_verification'; get_schema and metadata callable.

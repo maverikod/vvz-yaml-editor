@@ -25,5 +25,9 @@ outputs:
   description: 'serialize_fragment(fragment, formatter) -> str and deserialize_fragment(body: str, formatter) -> fragment helpers.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

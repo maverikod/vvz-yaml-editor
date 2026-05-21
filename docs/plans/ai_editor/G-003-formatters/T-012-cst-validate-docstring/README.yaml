@@ -37,5 +37,7 @@ outputs:
   description: 'DocstringMeta frozen dataclass with parse_docstring classmethod, to_dict() and from_dict() for sidecar serialization.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
 cascade_note: changed — formatter paradigm cascade 2026-05-21

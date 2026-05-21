@@ -35,4 +35,6 @@ outputs:
 - name: ai_editor/sessions/__init__.py
   type: file
   description: Package init for sessions module.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002

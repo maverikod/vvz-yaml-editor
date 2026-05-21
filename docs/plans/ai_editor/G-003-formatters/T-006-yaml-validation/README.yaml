@@ -26,5 +26,10 @@ outputs:
 - name: ai_editor/schemas/
   type: directory
   description: Directory for JSON schema files; minimal initially.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

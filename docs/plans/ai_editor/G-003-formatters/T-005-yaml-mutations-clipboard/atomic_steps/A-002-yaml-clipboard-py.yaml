@@ -1,0 +1,16 @@
+step_id: A-002
+parent_tactical_step: T-005
+name: Create YAML clipboard helpers
+target_file: ai_editor/formatters/yaml/clipboard.py
+operation: create_file
+priority: 2
+depends_on: []
+concepts:
+- C-026
+- C-031
+status: draft
+prompt: "Project: ai_editor. T-005. File: ai_editor/formatters/yaml/clipboard.py. create_file.\n\n```python\n\"\"\"YAML fragment clipboard serialization.\"\"\"\nfrom __future__ import annotations\n\nimport json\nfrom typing import Any\n\nfrom ai_editor.formatters.yaml.formatter import YamlFormatter\n\n\ndef serialize_fragment(fragment: dict[str, Any], formatter: YamlFormatter) -> str:\n    \"\"\"Serialize fragment dict to a portable string.\"\"\"\n    _ = formatter\n    return json.dumps(fragment, sort_keys=True)\n\n\ndef deserialize_fragment(body: str, formatter: YamlFormatter) -> dict[str, Any]:\n    \"\"\"Restore fragment dict from serialize_fragment output.\"\"\"\n    _ = formatter\n    data = json.loads(body)\n    if not isinstance(data, dict):\n        raise ValueError(\"clipboard body must be a JSON object\")\n    return data\n\n```"
+verification:
+  type: import
+  target: ai_editor.formatters.yaml.clipboard
+  expected: serialize_fragment and deserialize_fragment round-trip a fragment dict.

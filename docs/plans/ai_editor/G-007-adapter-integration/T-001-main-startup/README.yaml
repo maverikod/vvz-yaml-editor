@@ -43,4 +43,5 @@ outputs:
     from ai_editor.api_init (not from ai_editor.api).
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

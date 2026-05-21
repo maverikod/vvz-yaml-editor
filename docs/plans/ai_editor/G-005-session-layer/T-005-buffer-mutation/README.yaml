@@ -28,5 +28,7 @@ outputs:
   description: 'execute_mutation(session_dir, buffer_id, formatter, document, new_document, command_name, params_summary, repo, readonly_session=False, readonly_buffer=False) -> dict.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

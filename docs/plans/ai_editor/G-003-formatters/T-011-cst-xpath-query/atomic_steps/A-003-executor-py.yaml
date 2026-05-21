@@ -1,0 +1,48 @@
+step_id: A-003
+parent_tactical_step: T-011
+name: Create query executor
+target_file: ai_editor/formatters/cst/query/executor.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+- A-002
+concepts:
+- C-029
+- C-031
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-011. File: ai_editor/formatters/cst/query/executor.py. Operation: create_file.
+
+  Port cst-code cst_query/executor.py evaluation helpers; add tree-first API.
+
+  Imports:
+  ```python
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.query.parser import parse_selector, Query, Combinator, PredicateOp, PseudoKind, SelectorStep
+  from ai_editor.formatters.cst.query.index_builder import (
+      Match, NodeInfo, build_index_from_tree, parse_source_for_query, build_index,
+  )
+  ```
+
+  Keep from reference (adapt Match -> stable_id):
+  - query_source(source, selector, include_code=False) -> list[Match]
+  - _eval_query, _apply_combinator, _apply_step, _matches_step, _matches_node_type, _matches_predicate, _get_attr, _compare
+
+  def query_tree(tree: CSTTree, selector: str, include_code: bool = False) -> list[Match]:
+      """parse_selector; nodes = build_index_from_tree(tree); evaluate; map NodeInfo.stable_id into Match."""
+
+  def cst_list_units(tree: CSTTree) -> list[dict[str, object]]:
+      """
+      Flat list for iter_units integration:
+      {stable_id, type, kind, name, qualname, start_line, end_line} for every metadata_map entry with non-empty stable_id.
+      Sorted by start_line then end_line.
+      """
+
+  When building Match from NodeInfo, set stable_id=info.stable_id (never legacy span id).
+
+  Constraints: under 320 lines.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.query.executor
+  expected: query_tree and cst_list_units import alongside query_source.

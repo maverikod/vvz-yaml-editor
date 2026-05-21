@@ -26,5 +26,7 @@ outputs:
   description: 'sort_operations (exported/public), _insert_node, _delete_node, _replace_node, _replace_node_header, _replace_docstring, _move_node, _find_parent_for_node. Adapted from cst-code.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
 cascade_note: changed — formatter paradigm cascade 2026-05-21

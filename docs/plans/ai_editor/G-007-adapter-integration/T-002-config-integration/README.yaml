@@ -27,4 +27,5 @@ inputs:
   type: ai_editor.main
   description: main.py startup sequence.
 outputs: []
-atomic_steps: []
+atomic_steps:
+- A-001

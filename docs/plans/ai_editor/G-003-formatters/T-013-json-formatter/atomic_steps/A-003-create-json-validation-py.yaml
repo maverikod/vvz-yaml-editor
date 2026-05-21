@@ -1,0 +1,116 @@
+step_id: A-003
+parent_tactical_step: T-013
+name: Create JSON validation and unit comparison
+target_file: ai_editor/formatters/json/validation.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-028
+- C-021
+- C-004
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-013 JsonFormatter (C-028). File: ai_editor/formatters/json/validation.py. Operation: create_file.
+
+  MRS excerpts:
+  - C-028 JsonFormatter: linters [json_parse, jsonschema_optional]; no comment preservation.
+  - C-021 AbstractFormatter: base owns match_unit/compare_units defaults; JsonFormatter overrides delegate here.
+
+  Contracts (inline signatures — do not open modules):
+  ```python
+  from dataclasses import dataclass, field
+  from typing import Any
+
+  @dataclass(frozen=True)
+  class Diagnostic:
+      code: str
+      message: str
+      path: str | None = None
+      details: dict[str, Any] = field(default_factory=dict)
+
+  @dataclass
+  class ValidationResult:
+      success: bool
+      diagnostics: list[Diagnostic] = field(default_factory=list)
+
+  @dataclass
+  class FormatterUnit:
+      address: str
+      unit_kind: str
+      display_text: str
+      metadata: dict[str, Any] = field(default_factory=dict)
+
+  @dataclass
+  class ComparisonResult:
+      equal: bool
+      details: dict[str, Any] = field(default_factory=dict)
+  ```
+
+  Imports to use:
+  ```python
+  from __future__ import annotations
+
+  import json
+  from typing import Any
+
+  from ai_editor.contracts.diagnostic import Diagnostic
+  from ai_editor.contracts.results import ValidationResult
+  from ai_editor.formatters.base import ComparisonResult, FormatterUnit
+  ```
+
+  Implement exactly these public functions (NO json_validate_content function):
+
+  ```python
+  def json_validate_document(
+      doc: Any,
+      schema: dict[str, Any] | None = None,
+      options: dict[str, Any] | None = None,
+  ) -> ValidationResult:
+      """
+      Validate JSON document.
+
+      - If doc is str: attempt json.loads; on JSONDecodeError return ValidationResult(success=False, diagnostics=[Diagnostic(code='JSON_PARSE_FAILED', ...)])
+      - If doc is not str: treat as already-parsed JSON value; verify json.dumps(doc) succeeds (JSON-serializable).
+      - options may contain {'require_schema': bool}. When schema is not None and jsonschema is importable, validate with jsonschema.Draft7Validator; on ImportError and require_schema True return failure SCHEMA_NOT_FOUND; on ImportError and require_schema False skip schema check.
+      - Schema validation errors produce Diagnostic(code='SCHEMA_VALIDATION_FAILED', message=..., path=json pointer or '', details={'validator': ...}).
+      - Success returns ValidationResult(success=True, diagnostics=[]).
+      """
+
+
+  def json_match_unit(unit: FormatterUnit, query: dict[str, Any]) -> bool:
+      """
+      Match FormatterUnit against query dict.
+
+      Supported query keys (all optional; all provided keys must match):
+      - contains_text: str — case-insensitive substring of unit.display_text
+      - node_type: str — must equal unit.unit_kind
+      - metadata_key: str — key must exist in unit.metadata
+      - metadata_value: Any — if metadata_key also set, unit.metadata[metadata_key] must equal this value; if only metadata_value, any metadata value must equal it
+      Return True when all provided constraints pass; False otherwise.
+      """
+
+
+  def json_compare_units(
+      unit_a: FormatterUnit,
+      unit_b: FormatterUnit,
+      options: dict[str, Any] | None = None,
+  ) -> ComparisonResult:
+      """
+      Compare two units. options may contain ignore_metadata: bool (default False).
+
+      equal when unit_kind matches and:
+      - ignore_metadata False: address, unit_kind, display_text, metadata all equal
+      - ignore_metadata True: address, unit_kind, display_text equal
+
+      details always includes keys: address_a, address_b, unit_kind_a, unit_kind_b, metadata_equal (bool).
+      """
+  ```
+
+  Module docstring: "JSON document validation and FormatterUnit matching for ai_editor JsonFormatter."
+
+  Constraints: file under 200 lines; use lazy try/import for jsonschema inside json_validate_document only; do NOT define json_validate_content; no Tree imports.
+verification:
+  type: import
+  target: ai_editor.formatters.json.validation.json_validate_document
+  expected: json_validate_document('{"a":1}') succeeds. json_validate_document('{bad') fails with JSON_PARSE_FAILED diagnostic. json_match_unit and json_compare_units import without error. json_validate_content is not an attribute of the module.

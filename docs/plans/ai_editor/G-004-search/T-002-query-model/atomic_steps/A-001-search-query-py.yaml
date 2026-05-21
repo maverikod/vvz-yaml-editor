@@ -1,0 +1,16 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Create ai_editor/search/query.py — query validation
+target_file: ai_editor/search/query.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-037
+status: draft
+prompt: "Project: ai_editor. G-004/T-002. File: ai_editor/search/query.py. Operation: create_file.\n\nMRS C-037 SearchQuery: base fields kind, value, options; text kinds contains_text, regex; yaml kinds field_equals, node_type; cst kinds xpath, stable_id.\n\nCreate ai_editor/search/query.py with exactly:\n\n```python\n\"\"\"Search query validation for universal search.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\nKNOWN_QUERY_KINDS: frozenset[str] = frozenset({\n    \"contains_text\",\n    \"regex\",\n    \"field_equals\",\n    \"node_type\",\n    \"xpath\",\n    \"stable_id\",\n})\n\n_REQUIRED_BY_KIND: dict[str, list[str]] = {\n    \"contains_text\": [\"value\"],\n    \"regex\": [\"value\"],\n    \"field_equals\": [\"field\", \"value\"],\n    \"node_type\": [\"value\"],\n    \"xpath\": [\"value\"],\n    \"stable_id\": [\"value\"],\n}\n\n\ndef validate_query(query: dict[str, Any]) -> list[str]:\n    \"\"\"Validate query shape. Return empty list when valid, else human-readable\
+  \ errors.\"\"\"\n    errors: list[str] = []\n    if not isinstance(query, dict):\n        return [\"query must be a dict\"]\n    kind = query.get(\"kind\")\n    if not kind or not isinstance(kind, str):\n        errors.append(\"query.kind is required and must be a string\")\n        return errors\n    if kind not in KNOWN_QUERY_KINDS:\n        errors.append(f\"unknown query kind: {kind}\")\n        return errors\n    for field in _REQUIRED_BY_KIND.get(kind, []):\n        if field not in query:\n            errors.append(f\"query.{field} is required for kind={kind}\")\n    if \"options\" in query and query[\"options\"] is not None and not isinstance(query[\"options\"], dict):\n        errors.append(\"query.options must be a dict when present\")\n    return errors\n```\n\nConstraints: KNOWN_QUERY_KINDS has exactly six entries; validate_query returns list[str] (empty when valid)."
+verification:
+  type: import
+  target: ai_editor.search.query
+  expected: validate_query({'kind':'contains_text','value':'x'}) == []; validate_query({'kind':'bad'}) is non-empty.

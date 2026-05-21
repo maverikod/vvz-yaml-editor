@@ -42,4 +42,5 @@ outputs:
     No CA server calls.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

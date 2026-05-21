@@ -26,4 +26,5 @@ inputs:
   type: ai_editor.config.config_section
   description: AiEditorConfig.from_config_json.
 outputs: []
-atomic_steps: []
+atomic_steps:
+- A-001

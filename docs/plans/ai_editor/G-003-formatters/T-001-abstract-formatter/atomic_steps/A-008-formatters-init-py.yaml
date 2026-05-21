@@ -1,0 +1,42 @@
+step_id: A-008
+parent_tactical_step: T-001
+name: Create formatters package init exports
+target_file: ai_editor/formatters/__init__.py
+operation: create_file
+priority: 1
+depends_on:
+- A-007
+concepts:
+- C-021
+- C-023
+- C-024
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-001. File: ai_editor/formatters/__init__.py. Operation: create_file.
+
+  T-001 is the sole owner of ai_editor/formatters/__init__.py. Export AbstractFormatter, FormatterUnit, ComparisonResult, SkeletonOptions from base only (FormatterCommandCatalog exports come in T-002).
+
+  Create ai_editor/formatters/__init__.py with exactly:
+
+  ```python
+  """Public formatter base exports for ai_editor."""
+  from ai_editor.formatters.base import (
+      AbstractFormatter,
+      ComparisonResult,
+      FormatterUnit,
+      SkeletonOptions,
+  )
+
+  __all__ = [
+      "AbstractFormatter",
+      "ComparisonResult",
+      "FormatterUnit",
+      "SkeletonOptions",
+  ]
+  ```
+
+  Constraints: no other exports; no registry side effects on import; under 25 lines.
+verification:
+  type: import
+  target: ai_editor.formatters
+  expected: from ai_editor.formatters import AbstractFormatter, FormatterUnit, ComparisonResult, SkeletonOptions succeeds. __all__ lists exactly those four names.

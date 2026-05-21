@@ -1,0 +1,81 @@
+step_id: A-006
+parent_tactical_step: T-013
+name: Wire JsonFormatter address and document mutations
+target_file: ai_editor/formatters/json/formatter.py
+operation: modify_file
+priority: 3
+depends_on:
+- A-001
+- A-002
+- A-005
+concepts:
+- C-028
+- C-021
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-013. File: ai_editor/formatters/json/formatter.py. Operation: modify_file.
+
+  Prior state: file exists after A-005 with complete JsonFormatter including A-004 converter hooks, linters, validate_document, match_unit, compare_units, diagnostics, and all private tree helpers.
+
+  Add imports:
+  ```python
+  from ai_editor.contracts.results import OperationResult
+  from ai_editor.contracts.error_codes import ErrorCode
+  from ai_editor.formatters.json.address import JsonAddressError, resolve_json_address
+  from ai_editor.formatters.json import mutations as json_mutations
+  ```
+
+  Add private helpers to JsonFormatter:
+
+  ```python
+  def _tree_to_document(self) -> Any:
+      """Return parsed JSON value from self._tree.root via _node_to_value. Raise RuntimeError if no tree."""
+
+  def _apply_document(self, document: Any) -> None:
+      """Rebuild self._tree from document using _build_root_node wrapped in Tree; call self._rebuild_index()."""
+  ```
+
+  Add public document-mutation methods (structural-path addresses, NOT stable_id — for legacy/document-level callers):
+
+  ```python
+  def resolve_address(self, address: str) -> Any:
+      """resolve_json_address(self._tree_to_document(), address). Raises JsonAddressError."""
+
+  def document_mutate_set(self, address: str, value: Any) -> tuple[list[str], OperationResult]:
+      """Call json_mutations.json_mutate_set; _apply_document; return (changed_paths, OperationResult(success=True)). On JsonAddressError return ([], OperationResult(success=False, error_code=ErrorCode.ADDRESS_NOT_FOUND, message=str(exc)))."""
+
+  def document_mutate_replace_block(self, address: str, content: Any) -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_mutate_replace_block; same error/apply pattern."""
+
+  def document_mutate_append(self, address: str, value: Any, *, dedupe: bool = False) -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_mutate_append."""
+
+  def document_mutate_delete(self, address: str) -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_mutate_delete."""
+
+  def document_mutate_move(self, source: str, target: str, position: int | str = "last") -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_mutate_move."""
+
+  def document_copy_fragment(self, address: str) -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_copy_fragment; changed_paths always []."""
+
+  def document_cut_fragment(self, address: str) -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_cut_fragment."""
+
+  def document_paste_fragment(self, target: str, position: int | str = "last") -> tuple[list[str], OperationResult]:
+      """Delegate json_mutations.json_paste_fragment. Map JsonAddressError CLIPBOARD_EMPTY to ErrorCode.CLIPBOARD_EMPTY."""
+  ```
+
+  Error mapping for JsonAddressError:
+  - error_code PATH_NOT_FOUND -> ErrorCode.ADDRESS_NOT_FOUND
+  - error_code PATH_NOT_UNIQUE -> ErrorCode.ADDRESS_AMBIGUOUS
+  - error_code PATH_PARSE_FAILED or TARGET_TYPE_MISMATCH -> ErrorCode.ADDRESS_INVALID
+  - error_code CLIPBOARD_EMPTY -> ErrorCode.CLIPBOARD_EMPTY
+
+  Replace entire file with complete merged content (preserve ALL A-004 and A-005 code plus new imports, helpers, and nine public document_* methods). File must stay at or under 400 lines.
+
+  Constraints: do NOT override base structural ops (insert/delete/move/replace_node/copy_fragment/cut_fragment/paste_fragment on stable_id); document_* methods are additive; no json_validate_content.
+verification:
+  type: import
+  target: ai_editor.formatters.json.formatter.JsonFormatter
+  expected: JsonFormatter has resolve_address and document_mutate_set methods. After open_tree('{"a":1}'), document_mutate_set('a', 2) returns changed_paths ['a'] and success OperationResult; render/export reflects updated value.

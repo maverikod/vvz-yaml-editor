@@ -27,5 +27,7 @@ outputs:
   description: 'reload_buffer(session_dir, session_key, buffer_id, ca_client, formatter_registry, repo) -> dict with view, diagnostics, optional error_code.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

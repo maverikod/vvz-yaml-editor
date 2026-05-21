@@ -59,4 +59,5 @@ outputs:
     sha2, repo) -> str.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001

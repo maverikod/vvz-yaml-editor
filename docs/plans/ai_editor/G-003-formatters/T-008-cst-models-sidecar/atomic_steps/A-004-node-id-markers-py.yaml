@@ -1,0 +1,49 @@
+step_id: A-004
+parent_tactical_step: T-008
+name: Create persisted marker strip helper
+target_file: ai_editor/formatters/cst/node_id_markers.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-031
+- C-032
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-008. File: ai_editor/formatters/cst/node_id_markers.py. Operation: create_file.
+
+  MRS: strip trailing persisted node-id blocks before parse; no append/render of markers (forbidden storing ids in source long-term).
+
+  Port from cst-code cst_tree/node_id_markers.py — strip and parse helpers ONLY (no append_persisted_node_ids, no render_marker_block):
+
+  Types:
+  ```python
+  PersistedNodeIds = dict[str, str]  # path key like "0.1.2" -> UUID4 str
+  ```
+
+  Constants: MARKERS_BEGIN = "# cst-node-ids: begin", MARKERS_END = "# cst-node-ids: end", MARKERS_VERSION_V2 = "# cst-node-ids: version=2", _V2_DATA_PREFIX = "# cst-node-ids: data="
+
+  def build_marker_path(path_indices: tuple[int, ...]) -> str:
+      return ".".join(str(i) for i in path_indices)
+
+  def strip_persisted_node_ids(source: str) -> tuple[str, PersistedNodeIds]:
+      """
+      If source ends with marker block (# cst-node-ids: begin ... end), return logical source
+      without block plus parsed path->uuid map. Supports v2 JSON data= line and legacy per-line markers.
+      If no block, return (source, {}).
+      """
+
+  Implementation notes (inline port):
+  - Scan from last non-empty line; require MARKERS_END.
+  - Walk upward for MARKERS_BEGIN.
+  - v2: line after begin is MARKERS_VERSION_V2, next line starts with _V2_DATA_PREFIX + JSON object path->uuid (validate UUID version 4).
+  - legacy: lines matching `# cst-node-id <path> <Type> <uuid>`.
+  - Logical source = lines before begin, trim trailing blank lines, add trailing newline when non-empty.
+
+  Public exports: PersistedNodeIds, build_marker_path, strip_persisted_node_ids only.
+
+  Constraints: under 200 lines; no imports from models or tree_builder.
+verification:
+  type: import
+  target: ai_editor.formatters.cst.node_id_markers
+  expected: strip_persisted_node_ids returns unchanged source and empty dict when no marker block; build_marker_path((0,1)) == "0.1".

@@ -100,4 +100,7 @@ outputs:
     is imported by commands and CLI.
 
     '
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003

@@ -41,4 +41,6 @@ outputs:
 - name: ai_editor/interfaces/__init__.py
   type: file
   description: Empty package init.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002

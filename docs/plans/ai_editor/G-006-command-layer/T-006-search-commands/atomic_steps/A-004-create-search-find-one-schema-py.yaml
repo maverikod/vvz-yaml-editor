@@ -1,0 +1,16 @@
+step_id: A-004
+parent_tactical_step: T-006
+name: Create search_find_one_schema.py
+target_file: ai_editor/commands/search_find_one_schema.py
+operation: create_file
+priority: 4
+depends_on: []
+concepts:
+  - C-045
+  - C-047
+prompt: "Project: ai_editor. Tactical step: T-006. File: ai_editor/commands/search_find_one_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for search_find_one command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_search_find_one_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for search_find_one.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"},\n            \"query\": {\"type\": \"object\", \"properties\": {\"kind\": {\"type\": \"string\"}, \"value\": {}, \"options\": {\"type\": \"object\"}}, \"required\": [\"kind\"], \"additionalProperties\": False},\n            \"scope\": {\"type\": \"string\", \"description\": \"Optional search scope.\"},\n        },\n        \"required\": [\"session_key\", \"buffer_id\", \"query\"],\n        \"additionalProperties\": False,\n    }\n```"
+status: draft
+verification:
+  type: import
+  target: ai_editor.commands.search_find_one_schema
+  expected: get_search_find_one_schema() returns dict with type=object and additionalProperties=False.

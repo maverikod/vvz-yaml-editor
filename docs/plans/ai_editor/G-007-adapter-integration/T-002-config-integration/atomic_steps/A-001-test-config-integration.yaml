@@ -1,0 +1,16 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Create tests/integration/test_config_integration.py
+target_file: tests/integration/test_config_integration.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+  - C-049
+  - C-018
+prompt: "Project: ai_editor. Tactical step: G-007/T-002. File: tests/integration/test_config_integration.py. Operation: create_file.\n\nIntegration tests only — no production code. Verify AiEditorConfig defaults, from_config_json, validator list return, and main.py validates before from_config_json.\n\nCreate with exact content:\n\n```python\n\"\"\"G-007/T-002 — AiEditorConfig integration with main.py startup.\"\"\"\nfrom __future__ import annotations\n\nimport inspect\n\nimport pytest\n\nfrom ai_editor.config.config_section import AiEditorConfig\nfrom ai_editor.config.config_validator import AiEditorConfigValidator\n\n\ndef test_ai_editor_config_importable() -> None:\n    cfg = AiEditorConfig.from_dict({})\n    assert cfg.formatter.small_file_threshold == \"50kb\"\n    assert cfg.formatter.small_file_formatter == \"text\"\n    assert cfg.sessions.base_dir == \"/tmp/ai_editor_sessions\"\n\n\ndef test_from_config_json_reads_ai_editor_section() -> None:\n    raw = {\"ai_editor\": {\"formatter\": {\"small_file_threshold\": \"2kb\"}}}\n    cfg = AiEditorConfig.from_config_json(raw)\n    assert cfg.formatter.small_file_threshold == \"2kb\"\n\n\ndef test_validator_returns_list() -> None:\n    errors = AiEditorConfigValidator().validate({})\n    assert isinstance(errors, list)\n\n\ndef test_main_validates_before_from_config_json(monkeypatch: pytest.MonkeyPatch) -> None:\n    import ai_editor.main as main_mod\n\n    src = inspect.getsource(main_mod.main)\n    v_idx = src.index(\"AiEditorConfigValidator\")\n    f_idx = src.index(\"AiEditorConfig.from_config_json\")\n    assert v_idx < f_idx, \"validator must run before from_config_json in main.py\"```"
+status: draft
+verification:
+  type: pytest
+  target: tests/integration/test_config_integration.py
+  expected: pytest passes; main source order check passes.

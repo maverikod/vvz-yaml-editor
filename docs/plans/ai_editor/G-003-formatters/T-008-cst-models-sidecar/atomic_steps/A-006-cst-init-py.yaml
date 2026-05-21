@@ -1,0 +1,66 @@
+step_id: A-006
+parent_tactical_step: T-008
+name: Create cst package init exports
+target_file: ai_editor/formatters/cst/__init__.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+- A-002
+- A-003
+- A-004
+- A-005
+concepts:
+- C-029
+- C-030
+- C-032
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-008. File: ai_editor/formatters/cst/__init__.py. Operation: create_file.
+
+  After prior AS in this TS, export public CST foundation symbols only:
+
+  ```python
+  """CST formatter support modules (models, sidecar, stable-id utilities)."""
+  from ai_editor.formatters.cst.models import CSTTree
+  from ai_editor.formatters.cst.node_id_markers import (
+      PersistedNodeIds,
+      build_marker_path,
+      strip_persisted_node_ids,
+  )
+  from ai_editor.formatters.cst.node_stable_id import (
+      get_stable_id,
+      strip_inline_node_id_lines_from_source,
+  )
+  from ai_editor.formatters.cst.sidecar import (
+      load_sidecar,
+      project_cst_path,
+      save_sidecar,
+      session_cst_path,
+      sidecar_matches_built_tree,
+      verify_sidecar_against_source,
+  )
+  from ai_editor.formatters.cst.tree_node_metadata import TreeNodeMetadata
+
+  __all__ = [
+      "CSTTree",
+      "PersistedNodeIds",
+      "TreeNodeMetadata",
+      "build_marker_path",
+      "get_stable_id",
+      "load_sidecar",
+      "project_cst_path",
+      "save_sidecar",
+      "session_cst_path",
+      "sidecar_matches_built_tree",
+      "strip_inline_node_id_lines_from_source",
+      "strip_persisted_node_ids",
+      "verify_sidecar_against_source",
+  ]
+  ```
+
+  Constraints: under 40 lines; no formatter or builder exports yet.
+verification:
+  type: import
+  target: ai_editor.formatters.cst
+  expected: Package imports CSTTree, TreeNodeMetadata, sidecar helpers, and stable-id utilities from __all__.

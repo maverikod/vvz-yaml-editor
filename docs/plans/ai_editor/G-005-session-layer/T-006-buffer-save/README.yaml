@@ -28,5 +28,7 @@ outputs:
 - name: ai_editor/sessions/buffer_save.py
   type: file
   description: "save_buffer(session_dir, buffer_id, formatter, document,\n  ca_client, repo) -> OperationResult.\nsave_as_buffer(session_dir, buffer_id, formatter, document, ca_client,\n  new_relative_path: str, overwrite: bool = False,\n  repo=None) -> OperationResult.\nAll failures return OperationResult, never raise.\n"
-atomic_steps: []
+atomic_steps:
+- A-001
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

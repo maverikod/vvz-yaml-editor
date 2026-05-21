@@ -28,5 +28,9 @@ outputs:
 - name: ai_editor/formatters/yaml/__init__.py
   type: file
   description: Exports YamlFormatter.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003
+
 cascade_note: changed — formatter paradigm cascade 2026-05-21

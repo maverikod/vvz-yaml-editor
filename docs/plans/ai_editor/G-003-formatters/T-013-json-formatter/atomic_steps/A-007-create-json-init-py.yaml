@@ -1,0 +1,33 @@
+step_id: A-007
+parent_tactical_step: T-013
+name: Create json package init export
+target_file: ai_editor/formatters/json/__init__.py
+operation: create_file
+priority: 1
+depends_on:
+- A-006
+concepts:
+- C-028
+status: draft
+prompt: |
+  Project: ai_editor. Tactical step: T-013 JsonFormatter (C-028). File: ai_editor/formatters/json/__init__.py. Operation: create_file.
+
+  MRS: C-028 JsonFormatter registered for .json extension; exported as public formatter class.
+
+  JsonFormatter class exists in ai_editor/formatters/json/formatter.py after A-006 (full AbstractFormatter implementation with converter hooks, validation overrides, and document-level mutation helpers).
+
+  Create ai_editor/formatters/json/__init__.py with exactly:
+
+  ```python
+  """JSON formatter package for ai_editor."""
+
+  from ai_editor.formatters.json.formatter import JsonFormatter
+
+  __all__ = ["JsonFormatter"]
+  ```
+
+  Constraints: only JsonFormatter in __all__; no registry registration; no re-export of address, mutations, or validation modules; no side effects on import.
+verification:
+  type: import
+  target: ai_editor.formatters.json
+  expected: JsonFormatter is importable from ai_editor.formatters.json. __all__ equals ["JsonFormatter"].
