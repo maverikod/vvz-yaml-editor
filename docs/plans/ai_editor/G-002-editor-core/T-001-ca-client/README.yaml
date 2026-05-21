@@ -32,4 +32,5 @@ outputs:
   type: file
   description: Package init for editor_core.
 atomic_steps:
+- A-002
 - A-001

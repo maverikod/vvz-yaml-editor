@@ -47,7 +47,7 @@ prompt: |
 
   - parse_sidecar_file(content: str) -> dict | None: first line `CST_TREE_V1 sha256=<64hex> tree_sha256=<64hex>`; rest JSON; inject source_sha256 and tree_sha256 from header into payload; return None on malformed
 
-  - load_sidecar(path: Path, logical_source: str) -> dict | None: read file, parse; return None if source sha256 != sha256_text(logical_source)
+  - load_sidecar(path: Path, logical_source: str) -> dict | None: loads bytes from path, parse; return None if source sha256 != sha256_text(logical_source)
 
   - render_sidecar_file(payload: dict) -> str: header line + json.dumps(body, sort_keys=True)
 

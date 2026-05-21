@@ -12,7 +12,7 @@ inputs:
   description: ErrorCode.WRITE_FAILED and ErrorCode.BACKUP_FAILED from 
     ai_editor.contracts.
 outputs:
-- name: ai_editor/writer.py
+- name: ai_editor/editor_core/writer.py
   type: file
   description: "write_buf(content: str, path: str | Path) -> None. write_result(content:
     str, path: str | Path) -> None. WriteVerificationError(Exception) raised when

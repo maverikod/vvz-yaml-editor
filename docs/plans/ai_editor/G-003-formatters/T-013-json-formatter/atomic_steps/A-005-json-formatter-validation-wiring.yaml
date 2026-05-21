@@ -12,49 +12,9 @@ concepts:
 - C-021
 - C-004
 status: draft
-prompt: |
-  Project: ai_editor. Tactical step: T-013. File: ai_editor/formatters/json/formatter.py. Operation: modify_file.
-
-  Prior state: file exists after A-004 with JsonFormatter class implementing parse, render, node_from_source, node_to_source, linters, constructor with optional schema, and all private tree helpers (_value_to_node, _node_to_value, _build_root_node, _scalar_display, _json_type, linter factories). Do NOT remove or alter any A-004 hook logic.
-
-  Add imports:
-  ```python
-  from ai_editor.formatters.base import AbstractFormatter, ComparisonResult, FormatterUnit, Linter
-  from ai_editor.formatters.json.validation import (
-      json_compare_units,
-      json_match_unit,
-      json_validate_document,
-  )
-  ```
-
-  Add these methods to JsonFormatter (override base defaults):
-
-  ```python
-  def validate_document(
-      self,
-      schema: dict[str, Any] | None = None,
-      options: dict[str, Any] | None = None,
-  ) -> ValidationResult:
-      """Validate current tree as JSON. Uses self._tree; returns ValidationResult(success=False) with diagnostic when no tree loaded. Serialize via _node_to_value(self._tree.root) then json_validate_document(data, schema or self._schema, options)."""
-
-  def match_unit(self, unit: FormatterUnit, query: dict[str, Any]) -> bool:
-      return json_match_unit(unit, query)
-
-  def compare_units(
-      self,
-      unit_a: FormatterUnit,
-      unit_b: FormatterUnit,
-      options: dict[str, Any] | None = None,
-  ) -> ComparisonResult:
-      return json_compare_units(unit_a, unit_b, options)
-
-  def diagnostics(self, tree: Tree | None = None) -> list[Diagnostic]:
-      """Run json_validate_document on active tree (tree arg or self._tree). Return ValidationResult.diagnostics list (empty when valid)."""
-  ```
-
-  Replace entire file with complete merged content (all A-004 code preserved verbatim plus new imports and four methods above). File must remain under 350 lines.
-
-  Constraints: still do NOT override structural ops, write, list_commands, normalize_address, get_unit, iter_units; no imports from address.py or mutations.py yet; no json_validate_content anywhere.
+prompt: "Project: ai_editor. Tactical step: T-013. File: ai_editor/formatters/json/formatter.py. Operation: modify_file.\n\nPrior state: file exists after lower-priority changes on this file with JsonFormatter class implementing parse, render, node_from_source, node_to_source, linters, constructor with optional schema, and all private tree helpers (_value_to_node, _node_to_value, _build_root_node, _scalar_display, _json_type, linter factories). Do NOT remove or alter any  hook logic.\n\nAdd imports:\n```python\nfrom ai_editor.formatters.base import AbstractFormatter, ComparisonResult, FormatterUnit, Linter\nfrom ai_editor.formatters.json.validation import (\n    json_compare_units,\n    json_match_unit,\n    json_validate_document,\n)\n```\n\nAdd these methods to JsonFormatter (override base defaults):\n\n```python\ndef validate_document(\n    self,\n    schema: dict[str, Any] | None = None,\n    options: dict[str, Any] | None = None,\n) -> ValidationResult:\n    \"\"\"Validate current tree\
+  \ as JSON. Uses self._tree; returns ValidationResult(success=False) with diagnostic when no tree loaded. Serialize via _node_to_value(self._tree.root) then json_validate_document(data, schema or self._schema, options).\"\"\"\n\ndef match_unit(self, unit: FormatterUnit, query: dict[str, Any]) -> bool:\n    return json_match_unit(unit, query)\n\ndef compare_units(\n    self,\n    unit_a: FormatterUnit,\n    unit_b: FormatterUnit,\n    options: dict[str, Any] | None = None,\n) -> ComparisonResult:\n    return json_compare_units(unit_a, unit_b, options)\n\ndef diagnostics(self, tree: Tree | None = None) -> list[Diagnostic]:\n    \"\"\"Run json_validate_document on active tree (tree arg or self._tree). Return ValidationResult.diagnostics list (empty when valid).\"\"\"\n```\n\nReplace entire file with complete merged content (all  code preserved verbatim plus new imports and four methods above). File must remain under 350 lines.\n\nConstraints: still do NOT override structural ops, write, list_commands,\
+  \ normalize_address, get_unit, iter_units; no imports from address.py or mutations.py yet; no json_validate_content anywhere.\n"
 verification:
   type: import
   target: ai_editor.formatters.json.formatter.JsonFormatter

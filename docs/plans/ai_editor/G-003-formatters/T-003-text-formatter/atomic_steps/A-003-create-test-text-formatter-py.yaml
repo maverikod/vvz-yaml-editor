@@ -37,7 +37,7 @@ prompt: 'Project: ai_editor. Tactical step: T-003 TextFormatter (C-025). File: t
   Instantiate once per test via fixture or local TextFormatter().
 
 
-  Base types inlined for assertions (do not open base.py or tree.py):
+  Base types inlined for assertions (Use only the inlined excerpt below, not live imports from the codebase. base.py or tree.py):
 
   - Tree has .root TreeNode
 

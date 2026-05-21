@@ -9,7 +9,7 @@ prompt: "Project: ai_editor. File: ai_editor/contracts/diagnostic.py. Operation:
   \nMRS concept C-003 (Diagnostic): Structured diagnostic message produced by validation\n\
   or error handling, carrying a code, human message, optional path, and detail dict.\n\
   Fields: code: str, message: str, path: str | None, details: dict.\n\nPrecondition:
-  ai_editor/contracts/ directory exists (created by T-002/A-001).\n\nCreate the file
+  ai_editor/contracts/ directory exists (created by descriptor contracts tactical step).\n\nCreate the file
   ai_editor/contracts/diagnostic.py with the following exact content:\n\n```python\n\
   \"\"\"Diagnostic dataclass for structured validation and error messages.\"\"\"\n\
   from __future__ import annotations\n\nfrom dataclasses import dataclass, field\n\

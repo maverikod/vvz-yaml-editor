@@ -2,7 +2,15 @@ step_id: T-013
 parent_global_step: G-003
 name: JsonFormatter — full implementation
 status: needs_review
-description: 'JsonFormatter converters only: stdlib json parse/render, node_from_source, node_to_source. linters: JSON parse + optional jsonschema. Address = stable_id.'
+description: 'JsonFormatter converters only: stdlib json parse/render, node_from_source,
+  node_to_source. linters: JSON parse + optional jsonschema. Address = stable_id.
+  VIEWER INVARIANTS: (NQ-006 option B) JsonFormatter surfaces scalar values inline
+  in mapping children — each mapping child node exposes its scalar value via attributes.value,
+  matching YamlFormatter behaviour. This completes the JSON formatter (previously
+  not implemented). (NQ-008 no-self-content-child) mapping focus returns key-children
+  only; scalar focus returns total_blocks=0 and blocks=[]. (NQ-001) JsonFormatter
+  respects AbstractFormatter.full_text_max_lines — when file is below threshold, render_skeleton
+  returns full annotated source with all stable_id markers.'
 concepts:
 - C-028
 - C-021
@@ -17,19 +25,19 @@ inputs:
 outputs:
 - name: ai_editor/formatters/json/address.py
   type: file
-  description: 'JsonAddressError(error_code, message). resolve_json_address(document, address_str) -> Any. Same address syntax as YamlFormatter. Raises JsonAddressError on PATH_NOT_FOUND/PATH_NOT_UNIQUE.
-
-    '
+  description: "JsonAddressError(error_code, message). resolve_json_address(document,
+    address_str) -> Any. Same address syntax as YamlFormatter. Raises JsonAddressError
+    on PATH_NOT_FOUND/PATH_NOT_UNIQUE.\n"
 - name: ai_editor/formatters/json/mutations.py
   type: file
-  description: 'json_mutate_set, json_mutate_replace_block, json_mutate_append, json_mutate_delete, json_mutate_move, json_copy_fragment, json_cut_fragment, json_paste_fragment. All return (document, changed_paths).
-
-    '
+  description: "json_mutate_set, json_mutate_replace_block, json_mutate_append, json_mutate_delete,
+    json_mutate_move, json_copy_fragment, json_cut_fragment, json_paste_fragment.
+    All return (document, changed_paths).\n"
 - name: ai_editor/formatters/json/validation.py
   type: file
-  description: 'json_validate_document(doc, schema, options) -> ValidationResult. json_match_unit(unit, query) -> bool. json_compare_units(unit_a, unit_b, options) -> ComparisonResult. No json_validate_content function.
-
-    '
+  description: "json_validate_document(doc, schema, options) -> ValidationResult.
+    json_match_unit(unit, query) -> bool. json_compare_units(unit_a, unit_b, options)
+    -> ComparisonResult. No json_validate_content function.\n"
 - name: ai_editor/formatters/json/formatter.py
   type: file
   description: JsonFormatter implementing all AbstractFormatter methods.

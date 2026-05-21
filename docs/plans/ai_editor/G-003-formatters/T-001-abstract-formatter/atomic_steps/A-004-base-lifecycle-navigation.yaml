@@ -16,122 +16,113 @@ concepts:
 status: draft
 prompt: |
   Project: ai_editor. File: ai_editor/formatters/base.py. Operation: modify_file.
-
-  Replace the entire file with the following complete content (includes all prior A-003 code plus new methods):
-
+  
+  MRS C-021 AbstractFormatter navigation and lifecycle hooks; C-023 FormatterUnit; C-024 SkeletonOptions;
+  C-031 StableId index; C-063/C-064 Tree/TreeNode.
+  
+  Replace the entire file with the following complete content (includes all lower-priority changes on this file plus new methods):
+  
   ```python
   """AbstractFormatter base class and formatter unit types."""
   from __future__ import annotations
-
+  
   import hashlib
-  import tempfile
   import uuid
   from abc import ABC, abstractmethod
   from dataclasses import dataclass, field
-  from pathlib import Path
   from typing import Any, Protocol
-
+  
   from ai_editor.contracts.diagnostic import Diagnostic
   from ai_editor.contracts.error_codes import ErrorCode
-  from ai_editor.contracts.results import OperationResult, ValidationResult
+  from ai_editor.contracts.results import ValidationResult
   from ai_editor.formatters.tree import Tree, TreeNode
-
-
+  
   class Linter(Protocol):
       def __call__(self, path: str) -> ValidationResult: ...
-
-
+  
   @dataclass
   class FormatterUnit:
+      """Addressable unit within the formatter Tree."""
+  
       address: str
       unit_kind: str
       display_text: str
       metadata: dict[str, Any] = field(default_factory=dict)
-
-
+  
   @dataclass
   class ComparisonResult:
+      """Result of compare_units."""
+  
       equal: bool
       details: dict[str, Any] = field(default_factory=dict)
-
-
+  
   @dataclass
   class SkeletonOptions:
+      """Configuration for render_skeleton."""
+  
       depth: int = 2
       hint_fields: list[str] = field(default_factory=list)
       collapse_threshold: int = 3
       string_preview_len: int = 60
       offset: int = 0
-
-
+  
   @dataclass
   class FormatterCommandMetadata:
+      """Minimal command metadata stub."""
+  
       name: str
       description: str
       input_schema: dict[str, Any] = field(default_factory=dict)
       output_schema: dict[str, Any] = field(default_factory=dict)
-
-
+  
   @dataclass
   class FormatterCommandCatalog:
+      """Minimal command catalog stub."""
+  
       formatter_name: str
       formatter_version: str = "1.0"
       standard_commands: list[FormatterCommandMetadata] = field(default_factory=list)
       specific_commands: list[FormatterCommandMetadata] = field(default_factory=list)
       openapi_schemas: dict[str, Any] = field(default_factory=dict)
-
-
+  
   class AbstractFormatter(ABC):
+      """Base formatter owning Tree, stable_id identity, and structural operations."""
+  
       formatter_name: str = "base"
       registered_extensions: list[str] = []
-
       def __init__(self) -> None:
           self._tree: Tree | None = None
           self._source_sha256: str = ""
           self._id_index: dict[str, TreeNode] = {}
-
       @abstractmethod
       def parse(self, raw_content: str) -> TreeNode: ...
-
       @abstractmethod
       def render(self, tree: Tree) -> str: ...
-
       @abstractmethod
       def node_from_source(self, raw_block: str) -> TreeNode: ...
-
       @abstractmethod
       def node_to_source(self, node: TreeNode) -> str: ...
-
       @abstractmethod
       def linters(self) -> list[Linter]: ...
-
       def _assign_stable_ids(self, node: TreeNode) -> None:
           if not node.stable_id:
               node.stable_id = str(uuid.uuid4())
           self._id_index[node.stable_id] = node
           for child in node.children:
               self._assign_stable_ids(child)
-
-      def _rebuild_index(self) -> None:
-          self._id_index.clear()
-          if self._tree:
-              self._assign_stable_ids(self._tree.root)
-
       def _find_node(self, stable_id: str) -> TreeNode | None:
           return self._id_index.get(stable_id)
-
       def _walk(self, node: TreeNode):
           yield node
           for ch in node.children:
               yield from self._walk(ch)
-
       def open_tree(self, raw_content: str) -> Tree:
           root = self.parse(raw_content)
+          self._id_index.clear()
           self._assign_stable_ids(root)
           self._tree = Tree(root=root)
           self._source_sha256 = hashlib.sha256(raw_content.encode("utf-8")).hexdigest()
           return self._tree
-
       def export(self, tree: Tree | None = None) -> dict[str, Any]:
           t = tree or self._tree
           if t is None:
@@ -145,41 +136,33 @@ prompt: |
                   "message": str(exc),
                   "diagnostics": [Diagnostic(code=ErrorCode.FORMATTER_RENDER_ERROR, message=str(exc))],
               }
-
       def render_skeleton(self, options: SkeletonOptions | None = None) -> str:
           opts = options or SkeletonOptions()
           if not self._tree:
               return ""
           lines: list[str] = []
-
+  
           def _render_node(node: TreeNode, depth: int) -> None:
               if depth > opts.depth:
                   return
               indent = "  " * depth
-              lines.append(f"{indent}[{node.stable_id}] {node.node_kind}: {node.display_text[:opts.string_preview_len]}")
+              preview = node.display_text[: opts.string_preview_len]
+              lines.append(f"{indent}[{node.stable_id}] {node.node_kind}: {preview}")
               if len(node.children) >= opts.collapse_threshold and depth >= opts.depth:
                   lines.append(f"{indent}  ... ({len(node.children)} children)")
                   return
               for ch in node.children:
                   _render_node(ch, depth + 1)
-
+  
           _render_node(self._tree.root, 0)
           return "\n".join(lines)
-
       def normalize_address(self, address: Any) -> str:
           return str(address)
-
       def get_unit(self, address: str) -> FormatterUnit | None:
           node = self._find_node(self.normalize_address(address))
           if not node:
               return None
-          return FormatterUnit(
-              address=node.stable_id,
-              unit_kind=node.node_kind,
-              display_text=node.display_text,
-              metadata=dict(node.metadata),
-          )
-
+          return FormatterUnit(node.stable_id, node.node_kind, node.display_text, dict(node.metadata))
       def iter_units(self) -> list[FormatterUnit]:
           if not self._tree:
               return []
@@ -188,7 +171,6 @@ prompt: |
               for n in self._walk(self._tree.root)
               if n.stable_id
           ]
-
       def match_unit(self, unit: FormatterUnit, query: dict[str, Any]) -> bool:
           text = query.get("contains_text")
           if text and text.lower() not in unit.display_text.lower():
@@ -197,16 +179,19 @@ prompt: |
           if kind and unit.unit_kind != kind:
               return False
           return True
-
-      def compare_units(self, unit_a: FormatterUnit, unit_b: FormatterUnit, options: dict[str, Any] | None = None) -> ComparisonResult:
+      def compare_units(
+          self,
+          unit_a: FormatterUnit,
+          unit_b: FormatterUnit,
+          options: dict[str, Any] | None = None,
+      ) -> ComparisonResult:
           equal = unit_a.address == unit_b.address and unit_a.unit_kind == unit_b.unit_kind
           return ComparisonResult(equal=equal, details={"a": unit_a.address, "b": unit_b.address})
-
       def diagnostics(self, tree: Tree | None = None) -> list[Diagnostic]:
           return []
   ```
-
-  Constraints: do not add insert/delete/write yet; file under 220 lines.
+  
+  Constraints: do not add insert/delete/write yet; Google one-line docstrings only; file at or under 400 lines.
 verification:
   type: static_analysis
   target: ai_editor/formatters/base.py

@@ -2,7 +2,6 @@ step_id: G-003
 name: Formatters — AbstractFormatter base, unified tree, Text/YAML/JSON/CST 
   backends
 status: frozen
-cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings; yaml/formatter a8 chain fixed"
 description: 'Defines AbstractFormatter as the base class owning the in-memory Tree,
   all structural operations, stable_id identity, Sidecar production, and WritePipeline
   orchestration. Subclasses (Text, YAML, JSON, CST) implement conversion hooks only:
@@ -152,8 +151,14 @@ executor_brief:
     header: TREE_V1 fmt=<formatter> sha256=<source> tree_sha256=<body>
   formatter_backends:
     TextFormatter: paragraph/line TreeNode kinds; converter-only
-    YamlFormatter: structural TreeNode; stable_id address
-    JsonFormatter: structural TreeNode; stable_id address
+    YamlFormatter: 'structural TreeNode; stable_id address; inline scalar surfacing
+      in mapping children (attributes.value, NQ-006); YAML heuristic start_line fallback
+      for annotated full_text (NQ-005); no-self-content-child: mapping focus returns
+      key-children only, scalar focus total_blocks=0 (NQ-008)'
+    JsonFormatter: 'structural TreeNode; stable_id address; scalar NOT surfaced inline
+      in mapping children — caller drills down (NQ-006 asymmetry vs YAML, design decision
+      pending); no-self-content-child: mapping focus returns key-children only, scalar
+      focus total_blocks=0 (NQ-008)'
     CSTFormatter: CSTTree extends Tree; Sidecar .cst paths; PythonFileHandler 
       integration
   validation_chain: formatter.validate_document -> buffer.validate -> 
@@ -161,4 +166,6 @@ executor_brief:
   display_quirks_ref: code_analysis docs/plans/ai_editor/viewer_features.yaml
 cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; 
   AbstractFormatter paradigm cascade applied and rechecked 2026-05-21; I1c 
-  source_ranges audited 2026-05-21
+  source_ranges audited 2026-05-21; viewer_features gaps 
+  NQ-001/NQ-005/NQ-006/NQ-008 reflected in executor_brief.formatter_backends 
+  2026-05-21

@@ -108,3 +108,5 @@ logs/
 .trees/
 cst-code/
 old_code/
+.cst/  
+.terminals/

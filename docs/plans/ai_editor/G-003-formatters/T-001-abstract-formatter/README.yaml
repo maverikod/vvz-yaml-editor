@@ -21,7 +21,7 @@ concepts:
 - C-068
 - C-066
 - C-067
-description: 'Implement AbstractFormatter base class (C-021) owning in-memory Tree
+description: "Implement AbstractFormatter base class (C-021) owning in-memory Tree
   (C-063) of TreeNode (C-064), stable_id assignment and integrity (C-031), all structural
   and fragment operations, navigation, generic Sidecar production (C-032), WritePipeline
   orchestration (C-068), and list_commands() returning FormatterCommandCatalog (C-022;
@@ -38,7 +38,20 @@ description: 'Implement AbstractFormatter base class (C-021) owning in-memory Tr
   JSON body serialising stable_id node map; atomic write; load validates source_sha256
   (mismatch rebuilds from source). list_commands() assembles FormatterCommandCatalog
   using FormatterCommandMetadata from catalog module. C-066 SourceOfTruth and C-067
-  AutoCreateTree are owned by G-005 session layer, not this tactical step.'
+  AutoCreateTree are owned by G-005 session layer, not this tactical step. VIEWER
+  INVARIANTS (NQ-005 / NQ-006 / NQ-008, see viewer_features.yaml): (NQ-008 no-self-content-child)
+  get_unit / render_skeleton must never produce a synthetic block that duplicates
+  the focus node body — if focus has children, return children as block_set; a scalar
+  focus with no children returns total_blocks=0 and blocks=[]. (NQ-006 resolved: option
+  B) Both YamlFormatter and JsonFormatter surface scalar values inline in mapping
+  children via attributes.value — specified in T-004 and T-013. (NQ-005 YAML heuristic
+  start_line) When tree metadata lacks start_line for a node, use heuristic key-search
+  in source: regex r'^\\s*{last_part}\\s*:' for string keys, r'^\\s*[\"\\'][last_part}[\"\
+  \\'\\]\\s*:' for quoted keys, first '- ' line for numeric last_part — specified
+  in T-004 yaml_address.py. (NQ-001 full_text_threshold) AbstractFormatter exposes
+  full_text_max_lines: int = 200; when file line count is below threshold render_skeleton
+  returns full annotated file content with all stable_id markers intact; editing via
+  markers is unchanged."
 inputs:
 - description: ValidationResult, Diagnostic importable from ai_editor.contracts.
   name: G-001 contracts

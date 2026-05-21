@@ -1,7 +1,8 @@
 step_id: G-005
 name: Session layer — infrastructure, buffer lifecycle, clipboard, recovery, and
   public API
-status: ready_for_review
+status: frozen
+cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings"
 description: 'Session infrastructure and full buffer lifecycle. SourceOfTruth rule
   applies to all formats: source file at open; tree Sidecar becomes authoritative
   once buffer.modified=True. AutoCreateTree builds tree on CA fetch and when preview

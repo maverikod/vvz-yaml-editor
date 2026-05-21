@@ -11,61 +11,10 @@ concepts:
 - C-031
 - C-032
 status: draft
-prompt: |
-  Project: ai_editor. Tactical step: T-009. File: ai_editor/formatters/cst/tree_builder.py. Operation: create_file (part 1 — index builder and public loaders; no global _trees registry).
-
-  MRS: stable_id assigned at index build — priority (1) match in previous_metadata_map by position/path, (2) get_stable_id transient comment, (3) new uuid4. MUST set meta.name, meta.qualname, meta.decorators on every indexed node.
-
-  Inline dependencies (do not open repo):
-  ```python
-  from ai_editor.formatters.cst.models import CSTTree
-  from ai_editor.formatters.cst.tree_node_metadata import TreeNodeMetadata
-  from ai_editor.formatters.cst.node_id_markers import (
-      PersistedNodeIds, build_marker_path, strip_persisted_node_ids,
-  )
-  from ai_editor.formatters.cst.node_stable_id import (
-      get_stable_id, strip_inline_node_id_lines_from_source,
-  )
-  from ai_editor.formatters.cst.node_type_utils import (
-      _get_decorator_names, get_node_kind, get_node_name, get_node_qualname,
-  )
-  from ai_editor.formatters.cst.sidecar import (
-      aliases_from_payload, load_sidecar, metadata_map_from_payload,
-      parent_map_from_payload, persisted_node_ids_from_payload,
-      project_cst_path, sidecar_matches_built_tree, verify_sidecar_against_source,
-  )
-  ```
-
-  Implement:
-
-  def _build_tree_index(
-      tree: CSTTree,
-      *,
-      previous_metadata_map: dict[str, TreeNodeMetadata] | None = None,
-      previous_obj_to_id: dict[int, str] | None = None,
-      persisted_node_ids: PersistedNodeIds | None = None,
-  ) -> None:
-  - Clear and rebuild tree.node_map, metadata_map, parent_map; preserve node_id_aliases unless previous_metadata_map is None (then clear aliases).
-  - Use MetadataWrapper(tree.module).resolve(PositionProvider, ParentNodeProvider).
-  - DFS from module with path_indices starting (0,); assign node_id from persisted_node_ids[path] else previous exact position key else new uuid4.
-  - stable_id: from previous meta for same node_id else get_stable_id(node) else node_id.
-  - Build TreeNodeMetadata with type, kind, name, qualname, decorators=_get_decorator_names for FunctionDef else (), lines/cols, children_ids, parent_id, docstring copied from previous meta when present.
-  - Set tree.root_node_id at depth 0.
-  - If previous_obj_to_id: populate node_id_aliases when object id maps to new node_id.
-
-  def load_file_to_tree(file_path: str | Path) -> CSTTree:
-  - Read utf-8, strip_persisted_node_ids + strip_inline lines, parse module, CSTTree.create(module).
-  - Try project_cst_path sidecar via load_sidecar; when valid and sidecar_matches_built_tree after index with persisted path map + previous sidecar metadata, restore aliases from payload.
-  - Else full _build_tree_index.
-  - Return tree (NO global registry).
-
-  def create_tree_from_code(source_code: str) -> CSTTree:
-  - Strip markers, parse, create, _build_tree_index, return.
-
-  def reload_tree_from_file(tree: CSTTree, file_path: str | Path) -> CSTTree:
-  - Re-read file, preserve tree_id, previous metadata as previous_metadata_map, clear aliases, re-index, return same tree object updated.
-
-  Constraints: file under 280 lines; only stdlib + libcst + ai_editor.formatters.cst imports.
+prompt: "Project: ai_editor. Tactical step: T-009. File: ai_editor/formatters/cst/tree_builder.py. Operation: create_file (part 1 — index builder and public loaders; no global _trees registry).\n\nMRS: stable_id assigned at index build — priority (1) match in previous_metadata_map by position/path, (2) get_stable_id transient comment, (3) new uuid4. MUST set meta.name, meta.qualname, meta.decorators on every indexed node.\n\nInline dependencies (Use only the inlined excerpt below, not live imports from the codebase. repo):\n```python\nfrom ai_editor.formatters.cst.models import CSTTree\nfrom ai_editor.formatters.cst.tree_node_metadata import TreeNodeMetadata\nfrom ai_editor.formatters.cst.node_id_markers import (\n    PersistedNodeIds, build_marker_path, strip_persisted_node_ids,\n)\nfrom ai_editor.formatters.cst.node_stable_id import (\n    get_stable_id, strip_inline_node_id_lines_from_source,\n)\nfrom ai_editor.formatters.cst.node_type_utils import (\n    _get_decorator_names, get_node_kind,\
+  \ get_node_name, get_node_qualname,\n)\nfrom ai_editor.formatters.cst.sidecar import (\n    aliases_from_payload, load_sidecar, metadata_map_from_payload,\n    parent_map_from_payload, persisted_node_ids_from_payload,\n    project_cst_path, sidecar_matches_built_tree, verify_sidecar_against_source,\n)\n```\n\nImplement:\n\ndef _build_tree_index(\n    tree: CSTTree,\n    *,\n    previous_metadata_map: dict[str, TreeNodeMetadata] | None = None,\n    previous_obj_to_id: dict[int, str] | None = None,\n    persisted_node_ids: PersistedNodeIds | None = None,\n) -> None:\n- Clear and rebuild tree.node_map, metadata_map, parent_map; preserve node_id_aliases unless previous_metadata_map is None (then clear aliases).\n- Use MetadataWrapper(tree.module).resolve(PositionProvider, ParentNodeProvider).\n- DFS from module with path_indices starting (0,); assign node_id from persisted_node_ids[path] else previous exact position key else new uuid4.\n- stable_id: from previous meta for same node_id else\
+  \ get_stable_id(node) else node_id.\n- Build TreeNodeMetadata with type, kind, name, qualname, decorators=_get_decorator_names for FunctionDef else (), lines/cols, children_ids, parent_id, docstring copied from previous meta when present.\n- Set tree.root_node_id at depth 0.\n- If previous_obj_to_id: populate node_id_aliases when object id maps to new node_id.\n\ndef load_file_to_tree(file_path: str | Path) -> CSTTree:\n- Read utf-8, strip_persisted_node_ids + strip_inline lines, parse module, CSTTree.create(module).\n- Try project_cst_path sidecar via load_sidecar; when valid and sidecar_matches_built_tree after index with persisted path map + previous sidecar metadata, restore aliases from payload.\n- Else full _build_tree_index.\n- Return tree (NO global registry).\n\ndef create_tree_from_code(source_code: str) -> CSTTree:\n- Strip markers, parse, create, _build_tree_index, return.\n\ndef reload_tree_from_file(tree: CSTTree, file_path: str | Path) -> CSTTree:\n- Reload source bytes from path, preserve\
+  \ tree_id, previous metadata as previous_metadata_map, clear aliases, re-index, return same tree object updated.\n\nConstraints: file under 280 lines; only stdlib + libcst + ai_editor.formatters.cst imports.\n"
 verification:
   type: import
   target: ai_editor.formatters.cst.tree_builder

@@ -1,6 +1,7 @@
 step_id: G-002
 name: Editor core — buffer contracts, CA client, config, and infrastructure
-status: ready_for_review
+status: frozen
+cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings"
 description: Defines shared buffer abstractions and editor infrastructure. 
   Buffer and Writer sit on AbstractFormatter tree ownership and WritePipeline 
   (export -> temp -> linters -> atomic rename). Zero session lifecycle logic. 

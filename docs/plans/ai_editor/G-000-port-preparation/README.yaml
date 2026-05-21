@@ -41,6 +41,9 @@ relations:
   to_concept: C-059
   type: depends_on
 source_ranges: []
+i1c_note: >
+  Empty source_ranges by design. Concepts C-058..C-061 are gs_only (spec.yaml meta);
+  port-prep work is not derived from binding HRS lines and is excluded from I1c HRS union.
 depends_on: []
 tactical_steps:
 - step_id: T-001
@@ -307,4 +310,4 @@ usage_analysis:
     issue: Imports code_analysis.core.cst_tree.tree_builder and code_analysis.commands.compose_cst_ops_flow. CST stack not ported.
     severity: low_for_G000
     action: guard_entire_module; revisit in G-003/T-008 (CSTFormatter)
-cascade_note: unchanged; I1c source_ranges audited 2026-05-21
+cascade_note: I1c gs_only empty source_ranges documented 2026-05-21

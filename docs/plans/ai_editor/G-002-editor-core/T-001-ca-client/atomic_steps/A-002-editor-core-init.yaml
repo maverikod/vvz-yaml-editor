@@ -1,0 +1,24 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Create ai_editor/editor_core/__init__.py
+target_file: ai_editor/editor_core/__init__.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-013
+status: draft
+prompt: |
+  Project: ai_editor. File: ai_editor/editor_core/__init__.py. Operation: create_file.
+
+  MRS C-013 CodeAnalysisClient lives in editor_core package.
+
+  Create the file with exactly:
+
+  ```python
+  """Editor core: CA client, buffer, writer, formatter registry."""
+  ```
+verification:
+  type: import
+  target: ai_editor.editor_core
+  expected: ai_editor.editor_core package imports without error.

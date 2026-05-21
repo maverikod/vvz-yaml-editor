@@ -2,7 +2,18 @@ step_id: T-004
 parent_global_step: G-003
 name: YamlFormatter — parse, render, address resolution
 status: needs_review
-description: 'YamlFormatter converters: parse via ruamel round-trip, render preserving comments/order, node_from_source, node_to_source. Address = stable_id. No per-format structural mutations.'
+description: "YamlFormatter converters: parse via ruamel round-trip, render preserving
+  comments/order, node_from_source, node_to_source. Address = stable_id. No per-format
+  structural mutations. VIEWER INVARIANTS: (NQ-006 option B) YamlFormatter surfaces
+  scalar values inline in mapping children — each mapping child node exposes its scalar
+  value via attributes.value without requiring a drill-down. (NQ-005) yaml_address.py
+  implements heuristic start_line fallback when PyYAML metadata lacks start_line:
+  for string keys regex r'^\\s*{last_part}\\s*:'; for quoted keys r'^\\s*[\"\\'][last_part}[\"\
+  \\'\\]\\s*:'; for numeric last_part (list index) first '- ' line in subtree. Without
+  this fallback annotated full_text mode produces incomplete line-to-pointer mapping.
+  (NQ-001) YamlFormatter respects AbstractFormatter.full_text_max_lines — when file
+  is below threshold, render_skeleton returns full annotated source with all stable_id
+  markers."
 concepts:
 - C-026
 - C-021
@@ -17,14 +28,14 @@ inputs:
 outputs:
 - name: ai_editor/formatters/yaml/address.py
   type: file
-  description: 'AddressError(Exception) with error_code(str) and message(str). resolve_address(document, address_str) -> Any: parses dotted paths, list[index], and list[field=value] filters; raises AddressError on PATH_NOT_FOUND or PATH_NOT_UNIQUE.
-
-    '
+  description: "AddressError(Exception) with error_code(str) and message(str). resolve_address(document,
+    address_str) -> Any: parses dotted paths, list[index], and list[field=value] filters;
+    raises AddressError on PATH_NOT_FOUND or PATH_NOT_UNIQUE.\n"
 - name: ai_editor/formatters/yaml/formatter.py
   type: file
-  description: 'YamlFormatter class with parse (YAML round-trip, preserve_quotes=True), render (dumps to string), normalize_address, get_unit, iter_units. Mutation and validation methods stubbed as NotImplementedError. No validate_content stub.
-
-    '
+  description: "YamlFormatter class with parse (YAML round-trip, preserve_quotes=True),
+    render (dumps to string), normalize_address, get_unit, iter_units. Mutation and
+    validation methods stubbed as NotImplementedError. No validate_content stub.\n"
 - name: ai_editor/formatters/yaml/__init__.py
   type: file
   description: Exports YamlFormatter.
@@ -32,5 +43,4 @@ atomic_steps:
 - A-001
 - A-002
 - A-003
-
 cascade_note: changed — formatter paradigm cascade 2026-05-21

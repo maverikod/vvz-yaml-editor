@@ -1,11 +1,12 @@
 concepts:
 - C-013
 - C-014
-depends_on: []
+depends_on:
+- A-002
 name: Create ai_editor/editor_core/ca_client.py — CodeAnalysisClient
 operation: create_file
 parent_tactical_step: T-001
-priority: 1
+priority: 2
 prompt: "Project: ai_editor. File: ai_editor/editor_core/ca_client.py. Operation:
   create_file.\n\nMRS concepts:\n  C-013 CodeAnalysisClient: Single gateway for all
   project file I/O via the CA\n    server API. Invariant: ai_editor never reads or

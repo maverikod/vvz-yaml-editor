@@ -17,7 +17,7 @@ inputs:
   name: package skeleton
   type: G-001/T-001 output
 outputs:
-- name: ai_editor/editor_core/registry.py
+- name: ai_editor/editor_core/formatter_registry.py
   type: file
   description: "Class FormatterRegistry with methods: register(formatter_name: str,
     extensions: list[str], formatter_class: type) -> None; get_by_extension(ext: str)

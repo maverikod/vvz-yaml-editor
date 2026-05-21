@@ -1,6 +1,7 @@
 step_id: G-004
 name: Universal search
-status: ready_for_review
+status: frozen
+cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings"
 description: Search interface over the unified formatter Tree. Calls base-class 
   iter_units, match_unit, compare_units on the in-memory tree. 
   SearchMatch.address is node stable_id for all formatters. Does not open/write 

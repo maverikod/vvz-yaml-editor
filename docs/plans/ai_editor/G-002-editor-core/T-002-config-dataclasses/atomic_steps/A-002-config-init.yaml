@@ -8,8 +8,7 @@ operation: create_file
 parent_tactical_step: T-002
 priority: 2
 prompt: "Project: ai_editor. File: ai_editor/config/__init__.py. Operation: create_file.\n\
-  \nPrecondition: ai_editor/config/config_section.py exists (created by A-001 of this
-  TS).\n\nCreate the file ai_editor/config/__init__.py with the following exact content:\n\
+  \nPrecondition: ai_editor/config/config_section.py exists (from prior priority on this file).\n\nCreate the file ai_editor/config/__init__.py with the following exact content:\n\
   \n```python\n\"\"\"Config section dataclasses for ai_editor.\"\"\"\nfrom __future__
   import annotations\n\nfrom ai_editor.config.config_section import (\n    AiEditorConfig,\n\
   \    AiEditorFormatterConfig,\n    AiEditorSessionsConfig,\n    CodeAnalysisServerAuthConfig,\n\
