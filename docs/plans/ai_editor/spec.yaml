@@ -2,7 +2,8 @@ meta:
   plan_id: ai_editor
   source_spec: docs/plans/ai_editor/source_spec.md
   standard: plan_standard_machine.yaml v1.0
-  note: "Original tz G-006 (CST) merged into G-003 (Formatters).\nOriginal tz G-008 (Session) + buffer lifecycle merged into G-005.\nFinal plan has 8 global steps G-001..G-008.\nG-008 adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\nthe cross-formatter ConversionRegistry (clipboard paste matrix).\nC-025 TextFormatter registered extensions updated: .md .markdown\nremoved (now owned by C-052 MarkdownFormatter).\n\nNON-BINDING LINES (excluded from G-step coverage):\n  - 1-16:   HTML-comment header with plan standard notes (preamble).\n  - 65-67, 100-102, 155, 176-178, 380-381, 974-975, 998-1003, 1179-1181, 1323-1325, 1399-1401, 1725-1727:\n            section dividers ('---' and blank lines between G-NNN sections).\nThese ranges are intentionally not covered by any G-step.\n"
+  note: "Original tz G-006 (CST) merged into G-003 (Formatters).\nOriginal tz G-008 (Session) + buffer lifecycle merged into G-005.\nFinal plan has 8 global steps G-001..G-008.\nG-008 adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\nthe cross-formatter ConversionRegistry (clipboard paste matrix).\nC-025 TextFormatter registered extensions updated: .md .markdown\nremoved (now owned by C-052 MarkdownFormatter).\n\nNON-BINDING LINES (excluded from G-step coverage):\n  - 1-16:   HTML-comment header with plan standard notes (preamble).\n  - 65-67, 100-102, 155, 176-178, 380-381, 974-975, 998-1003, 1179-1181, 1323-1325, 1399-1401, 1725-1727, 1819-1897 (quirks appendix; HRS marks non-binding):\n            section dividers ('---' and blank lines between G-NNN sections).\nThese ranges are intentionally not covered by any G-step.\n\nNON-BINDING (additional): blank lines and '---' dividers between ### subsections;\n  line 1817 (HTML non-binding marker before quirks appendix).\n  1819-1897:\
+    \ quirks appendix (HRS explicit non-binding).\nGS-ONLY CONCEPTS (excluded from I1c HRS line union):\n  C-058 PortedCodeBase, C-059 StandaloneAdapter, C-060 ImportRewrite, C-061 TextGroupReadiness\n  — defined in G-000 only; no binding HRS text.\n"
 concepts:
 - concept_id: C-001
   name: ResultEnvelope
@@ -18,8 +19,12 @@ concepts:
   - details: dict
   - diagnostics: list[Diagnostic]
   source_ranges:
-  - start: 74
+  - start: 68
     end: 74
+  - start: 85
+    end: 89
+  - start: 91
+    end: 99
 - concept_id: C-002
   name: ErrorCode
   definition: 'Centralised enum of all typed error codes used across every subsystem.
@@ -45,10 +50,10 @@ concepts:
     - History
   - all_values_unique: true
   source_ranges:
-  - end: 75
-    start: 75
-  - end: 1777
-    start: 1729
+  - start: 75
+    end: 75
+  - start: 1767
+    end: 1816
 - concept_id: C-003
   name: Diagnostic
   definition: 'Structured diagnostic message produced by validation or error handling,
@@ -62,8 +67,8 @@ concepts:
   - path: str | None
   - details: dict
   source_ranges:
-  - end: 76
-    start: 76
+  - start: 76
+    end: 76
 - concept_id: C-004
   name: ValidationResult
   definition: 'Result of a validation operation: success flag and list of Diagnostic items.
@@ -73,8 +78,8 @@ concepts:
   - success: bool
   - diagnostics: list[Diagnostic]
   source_ranges:
-  - end: 77
-    start: 77
+  - start: 77
+    end: 77
 - concept_id: C-005
   name: OperationResult
   definition: 'Result of a mutating operation: success flag, optional typed error code,
@@ -88,8 +93,8 @@ concepts:
   - message: str
   - diagnostics: list[Diagnostic]
   source_ranges:
-  - end: 78
-    start: 78
+  - start: 78
+    end: 78
 - concept_id: C-006
   name: WriteAllResult
   definition: 'Result of a bulk-save operation listing written, failed, and skipped
@@ -104,8 +109,8 @@ concepts:
   - skipped_buffers: list[str]
   - diagnostics: list[Diagnostic]
   source_ranges:
-  - end: 79
-    start: 79
+  - start: 79
+    end: 79
 - concept_id: C-007
   name: SessionKey
   definition: 'UUID4 string that uniquely and permanently identifies one session.
@@ -117,8 +122,8 @@ concepts:
   - type: str (UUID4)
   - reuse: never
   source_ranges:
-  - end: 80
-    start: 80
+  - start: 80
+    end: 80
 - concept_id: C-008
   name: SessionDescriptor
   definition: 'Point-in-time snapshot of session state returned by connect/status
@@ -131,8 +136,8 @@ concepts:
   - open_buffers: list[BufferDescriptor]
   - diagnostics: list[Diagnostic]
   source_ranges:
-  - end: 81
-    start: 81
+  - start: 81
+    end: 81
 - concept_id: C-009
   name: BufferDescriptor
   definition: 'Point-in-time snapshot of buffer metadata included in SessionDescriptor.
@@ -149,8 +154,8 @@ concepts:
   - readonly: bool
   - buf_file_path: str
   source_ranges:
-  - end: 82
-    start: 82
+  - start: 82
+    end: 82
 - concept_id: C-020
   name: BufferAddress
   definition: 'Opaque pair of buffer_id and formatter-specific address. Invariant:
@@ -164,10 +169,10 @@ concepts:
   - buffer_id: str
   - address: Any
   source_ranges:
-  - end: 83
-    start: 83
-  - end: 365
-    start: 358
+  - start: 83
+    end: 83
+  - start: 333
+    end: 343
 - concept_id: C-010
   name: Buffer
   definition: 'Binding of exactly one file (or unsaved content) to exactly one formatter
@@ -189,8 +194,18 @@ concepts:
   - locked: bool - file locked on CA server under session-level ca_session_id
   - buf_file_path: str
   source_ranges:
-  - end: 219
-    start: 183
+  - start: 150
+    end: 153
+  - start: 179
+    end: 200
+  - start: 202
+    end: 216
+  - start: 243
+    end: 250
+  - start: 318
+    end: 331
+  - start: 1075
+    end: 1151
 - concept_id: C-011
   name: BufferState
   definition: 'Snapshot of buffer''s current state returned by get_state, including a
@@ -206,8 +221,8 @@ concepts:
   - readonly: bool
   - relative_path: str | None
   source_ranges:
-  - end: 227
-    start: 221
+  - start: 218
+    end: 228
 - concept_id: C-012
   name: FormatterRegistry
   definition: 'Singleton registry mapping file extensions and formatter names to formatter
@@ -221,8 +236,8 @@ concepts:
   - get_by_name: get_by_name(name) -> formatter_class | None
   - list_formatters: list_formatters() -> list[str]
   source_ranges:
-  - end: 154
-    start: 229
+  - start: 230
+    end: 241
 - concept_id: C-013
   name: CodeAnalysisClient
   definition: 'Single gateway for all project file I/O via the CA server API. Invariant:
@@ -243,8 +258,10 @@ concepts:
   - restore_backup_file: (project_id, file_path, backup_uuid) -> void
   - list_file_locks: (ca_session_id, project_id) -> list; wraps session_list_file_locks (pre-check before acquiring)
   source_ranges:
-  - end: 155
-    start: 103
+  - start: 103
+    end: 148
+  - start: 150
+    end: 153
 - concept_id: C-014
   name: FileLock
   definition: 'Server-side cooperative file lock, keyed by (ca_session_id, project_id, file_id) in the
@@ -268,8 +285,8 @@ concepts:
   - readonly_buffers: no lock acquired (no session_open_file); not counted in cross-session isolation checks
   - isolation_precheck: session_list_file_locks(ca_session_id, project_id) consulted before acquire; if held by a different CA session -> BUFFER_LOCKED, no content fetched
   source_ranges:
-  - end: 345
-    start: 255
+  - start: 252
+    end: 316
 - concept_id: C-015
   name: Writer
   definition: 'Local disk write utilities with two distinct responsibilities: write_buf
@@ -284,8 +301,10 @@ concepts:
   - write_result: write_result(content, path) -> backup + atomic write + read-back
   - project_files: written only via CodeAnalysisClient.upload_file
   source_ranges:
-  - end: 374
-    start: 367
+  - start: 318
+    end: 331
+  - start: 345
+    end: 353
 - concept_id: C-016
   name: AiEditorConfig
   definition: 'Configuration section ''ai_editor'' in config.json providing formatter
@@ -298,8 +317,12 @@ concepts:
   - small_file_formatter: str
   - sessions_base_dir: str
   source_ranges:
-  - end: 387
-    start: 378
+  - start: 355
+    end: 365
+  - start: 1313
+    end: 1322
+  - start: 1326
+    end: 1363
 - concept_id: C-017
   name: CodeAnalysisServerConfig
   definition: 'Configuration section ''code_analysis_server'' in config.json for CA server
@@ -315,8 +338,12 @@ concepts:
   - auth_use_token: bool
   - auth_token_env: str | None
   source_ranges:
-  - end: 392
-    start: 389
+  - start: 365
+    end: 368
+  - start: 1313
+    end: 1322
+  - start: 1326
+    end: 1363
 - concept_id: C-018
   name: AiEditorConfigValidator
   definition: 'Validator that extends adapter BaseValidator; validates ai_editor and
@@ -329,8 +356,14 @@ concepts:
   - calls_super: SimpleConfigValidator first
   - validates: ai_editor section + code_analysis_server section
   source_ranges:
-  - end: 401
-    start: 398
+  - start: 373
+    end: 374
+  - start: 376
+    end: 378
+  - start: 1313
+    end: 1322
+  - start: 1326
+    end: 1363
 - concept_id: C-019
   name: AiEditorConfigGenerator
   definition: 'Config generator that extends adapter SimpleConfigGenerator; calls super
@@ -345,8 +378,14 @@ concepts:
   - calls_super: generates base adapter config first
   - appends: ai_editor section + code_analysis_server section
   source_ranges:
-  - end: 396
-    start: 394
+  - start: 370
+    end: 371
+  - start: 376
+    end: 378
+  - start: 1313
+    end: 1322
+  - start: 1326
+    end: 1363
 - concept_id: C-021
   name: AbstractFormatter
   definition: 'Base class for every format. Owns the in-memory Tree, all structural operations over it, stable_id identity, Sidecar production, and write orchestration. Subclasses implement conversion hooks only. Invariant: formatters must not know about sessions, session_key, buf files, git, or buffer registry.'
@@ -363,8 +402,14 @@ concepts:
   - 'list_commands: list_commands() -> FormatterCommandCatalog'
   - 'formatter_name: str'
   source_ranges:
-  - start: 386
+  - start: 382
     end: 466
+  - start: 518
+    end: 533
+  - start: 535
+    end: 552
+  - start: 554
+    end: 562
 - concept_id: C-022
   name: FormatterCommandCatalog
   definition: 'Structured catalogue of all standard and formatter-specific commands with
@@ -379,8 +424,8 @@ concepts:
   - specific_commands: list[FormatterCommandMetadata]
   - openapi_schemas: dict
   source_ranges:
-  - end: 477
-    start: 468
+  - start: 564
+    end: 579
 - concept_id: C-023
   name: FormatterUnit
   definition: Addressable unit within the formatter Tree for navigation and search. address is node stable_id (UUID). Carries unit_kind, display_text, metadata.
@@ -406,8 +451,8 @@ concepts:
   - string_preview_len: int = 60
   - offset: int = 0
   source_ranges:
-  - start: 540
-    end: 545
+  - start: 535
+    end: 552
 - concept_id: C-025
   name: TextFormatter
   definition: Converter-only subclass for plain text files. Document model is a two-level paragraph/line tree (not list[str]). Structure, navigation, mutation, and identity are owned by AbstractFormatter base.
@@ -460,8 +505,8 @@ concepts:
     - blocked
   - commands_names: unique within document
   source_ranges:
-  - end: 563
-    start: 554
+  - start: 554
+    end: 563
 - concept_id: C-028
   name: JsonFormatter
   definition: Converter-only subclass for JSON. Structure, navigation, mutation, and identity owned by base class. No comment preservation.
@@ -487,7 +532,9 @@ concepts:
   - 'registered_extensions: [.py]'
   source_ranges:
   - start: 655
-    end: 974
+    end: 659
+  - start: 786
+    end: 973
 - concept_id: C-030
   name: CSTTree
   definition: 'CST specialisation of Tree: in-memory Python CST with libcst.Module, metadata_map, node_map, and stable_id survival through mutations.'
@@ -514,8 +561,6 @@ concepts:
   - 'forbidden_for_subclass: assign, read, depend on stable_id'
   - 'cst_transient_embedding: # @node-id stripped before write/render/sidecar'
   source_ranges:
-  - start: 426
-    end: 430
   - start: 675
     end: 703
 - concept_id: C-032
@@ -531,7 +576,7 @@ concepts:
   - 'load_validation: checksum mismatch -> rebuild from source'
   - 'write: atomic via tempfile + os.replace'
   source_ranges:
-  - start: 487
+  - start: 468
     end: 501
   - start: 705
     end: 720
@@ -556,8 +601,8 @@ concepts:
     - variable
   - body_placeholder: '# Implementation hidden; request node by stable_id'
   source_ranges:
-  - end: 766
-    start: 662
+  - start: 662
+    end: 767
 - concept_id: C-034
   name: DocstringMeta
   definition: 'Structured docstring stored in TreeNodeMetadata, migrating with the node
@@ -575,8 +620,8 @@ concepts:
   - style: Google-style
   - applied: automatically on save
   source_ranges:
-  - end: 785
-    start: 768
+  - start: 768
+    end: 785
 - concept_id: C-035
   name: AbstractSearch
   definition: 'Interface for searching within a formatter''s document model. Does not open
@@ -591,8 +636,8 @@ concepts:
   - find_one: find_one(session_key, buffer_id, query, scope) -> SearchMatch | error
   - list_units: list_units(session_key, buffer_id, scope) -> list[SearchMatch]
   source_ranges:
-  - end: 891
-    start: 877
+  - start: 976
+    end: 992
 - concept_id: C-036
   name: SearchMatch
   definition: 'Single search result carrying a formatter-specific address, a text preview,
@@ -609,8 +654,10 @@ concepts:
   - metadata: dict
   - 'address_model: node stable_id for all formatters (unified tree navigation)'
   source_ranges:
-  - end: 901
-    start: 893
+  - start: 994
+    end: 997
+  - start: 1004
+    end: 1007
 - concept_id: C-037
   name: SearchQuery
   definition: 'Typed search query with kind, value, and options fields.
@@ -633,8 +680,8 @@ concepts:
     - xpath
     - stable_id
   source_ranges:
-  - end: 917
-    start: 903
+  - start: 1009
+    end: 1040
 - concept_id: C-038
   name: Session
   definition: 'Collection of open buffers sharing a session directory, session git repo,
@@ -668,10 +715,18 @@ concepts:
   - uses:
     - CASession (external; ca_session_id)
   source_ranges:
-  - end: 50
-    start: 17
-  - end: 1178
-    start: 1004
+  - start: 17
+    end: 41
+  - start: 51
+    end: 64
+  - start: 1043
+    end: 1048
+  - start: 1075
+    end: 1151
+  - start: 1196
+    end: 1208
+  - start: 1210
+    end: 1217
 - concept_id: C-039
   name: SessionDirectory
   definition: 'Root directory of a session on local disk holding all session artifacts.
@@ -688,8 +743,8 @@ concepts:
     - clipboard.json
   - lifetime: until explicit close_session or startup_sweep orphan cleanup
   source_ranges:
-  - end: 1015
-    start: 1004
+  - start: 1050
+    end: 1058
 - concept_id: C-040
   name: SessionGit
   definition: 'Non-bare git repository inside the session directory. One branch per open
@@ -706,8 +761,12 @@ concepts:
   - undo_redo: implemented via branch commits and redo_stack in ses_settings
   - deleted: with session directory on close
   source_ranges:
-  - end: 1021
-    start: 1018
+  - start: 43
+    end: 54
+  - start: 1069
+    end: 1073
+  - start: 1153
+    end: 1167
 - concept_id: C-041
   name: Clipboard
   definition: 'Session-scoped clipboard holding the last copied or cut fragment. When
@@ -725,8 +784,10 @@ concepts:
   - paste: checks formatter match; consults ConversionRegistry on mismatch
   - cross_session_paste: not supported
   source_ranges:
-  - end: 1133
-    start: 1105
+  - start: 1169
+    end: 1178
+  - start: 1182
+    end: 1194
 - concept_id: C-042
   name: SessionAttributes
   definition: 'Persistent session state stored in ses_settings.json, including
@@ -746,8 +807,8 @@ concepts:
     - redo_stack per buffer
     - ca_session_id (session-level; external CA/user session id)
   source_ranges:
-  - end: 1015
-    start: 1009
+  - start: 1060
+    end: 1067
 - concept_id: C-043
   name: BufferFile
   definition: 'Local copy of a file''s content in the session directory, written by
@@ -762,8 +823,8 @@ concepts:
   - written_by: write_buf
   - content: full source, not skeleton
   source_ranges:
-  - end: 62
-    start: 51
+  - start: 51
+    end: 64
 - concept_id: C-044
   name: StartupSweep
   definition: 'Recovery procedure on ai_editor startup that releases stale file locks for all
@@ -781,8 +842,8 @@ concepts:
   - ttl: none; no time-based deletion
   - policy: B — orphaned dirs deleted; dirs with valid ses_settings preserved
   source_ranges:
-  - end: 175
-    start: 156
+  - start: 156
+    end: 173
 - concept_id: C-045
   name: EditorCommand
   definition: 'Command unit following metadatastd.md: three-file structure
@@ -801,8 +862,12 @@ concepts:
   - validate_params: calls super() first
   - destructive_commands: include dry_run parameter
   source_ranges:
-  - end: 1226
-    start: 1181
+  - start: 1221
+    end: 1224
+  - start: 1226
+    end: 1289
+  - start: 1291
+    end: 1301
 - concept_id: C-046
   name: HooksRegister
   definition: 'Module hooks_register.py that registers all EditorCommands and all
@@ -818,8 +883,8 @@ concepts:
   - registers_conversions: all ConversionRules in ConversionRegistry
   - pattern: register_custom_commands_hook(_register)
   source_ranges:
-  - end: 1226
-    start: 1218
+  - start: 1741
+    end: 1765
 - concept_id: C-047
   name: ApiFacade
   definition: 'ai_editor/api.py providing thin synchronous wrapper functions over the
@@ -852,8 +917,8 @@ concepts:
     - validate
     - validate_file
   source_ranges:
-  - end: 1240
-    start: 1237
+  - start: 1303
+    end: 1306
 - concept_id: C-048
   name: CLI
   definition: 'Thin diagnostic wrapper ai_editor/interfaces/cli.py over ApiFacade.
@@ -875,8 +940,8 @@ concepts:
     - validate-file
   - purpose: diagnostic / development tool
   source_ranges:
-  - end: 1244
-    start: 1241
+  - start: 1308
+    end: 1311
 - concept_id: C-049
   name: StartupSequence
   definition: 'Ordered initialisation in main.py: load config, validate, build ASGI app,
@@ -893,8 +958,12 @@ concepts:
     - UnifiedServerRunner.run_server
   - no_manual_http_routes: adapter generates entire API surface
   source_ranges:
-  - end: 1292
-    start: 1283
+  - start: 1365
+    end: 1384
+  - start: 1408
+    end: 1420
+  - start: 1422
+    end: 1439
 - concept_id: C-050
   name: ProxyRegistration
   definition: 'Automatic registration of the ai_editor server instance on mcp-proxy at
@@ -909,8 +978,8 @@ concepts:
   - unreachable_proxy: server still starts; API available without proxy
   - instance_uuid: UUID4 in config.json
   source_ranges:
-  - end: 1302
-    start: 1294
+  - start: 1385
+    end: 1392
 - concept_id: C-051
   name: ServiceManager
   definition: scripts/aiedmgr console script for process lifecycle management.
@@ -926,8 +995,10 @@ concepts:
   - stop_sequence: SIGTERM wait 30s SIGKILL
   - start_validates_config: AiEditorConfigValidator called before launch
   source_ranges:
-  - end: 1315
-    start: 1303
+  - start: 1393
+    end: 1398
+  - start: 1402
+    end: 1407
 - concept_id: C-052
   name: MarkdownFormatter
   definition: 'Formatter for Markdown files (.md, .markdown) using mistune>=3.0 AST.
@@ -953,8 +1024,10 @@ concepts:
     - replace_block
     - replace_range
   source_ranges:
-  - end: 1457
-    start: 1402
+  - start: 1441
+    end: 1451
+  - start: 1453
+    end: 1511
 - concept_id: C-053
   name: MdNode
   definition: 'Document model node for MarkdownFormatter wrapping a mistune AST node
@@ -970,8 +1043,8 @@ concepts:
   - attrs: dict
   - source_pos: tuple[int,int] | None
   source_ranges:
-  - end: 1431
-    start: 1420
+  - start: 1453
+    end: 1511
 - concept_id: C-054
   name: XmlFormatter
   definition: 'Formatter for XML files (.xml, .xsd, .xsl, .xslt, .svg) using lxml>=5.0.
@@ -999,8 +1072,8 @@ concepts:
     - replace_block
   - validate_document: well-formedness always; optional XSD if schema provided
   source_ranges:
-  - end: 1508
-    start: 1460
+  - start: 1513
+    end: 1561
 - concept_id: C-055
   name: HtmlFormatter
   definition: 'Formatter for HTML files (.html, .htm, .xhtml) using beautifulsoup4>=4.12
@@ -1026,8 +1099,8 @@ concepts:
     - replace_block
   - validate_document: HTML5 structural check
   source_ranges:
-  - end: 1558
-    start: 1511
+  - start: 1563
+    end: 1611
 - concept_id: C-056
   name: ConversionRegistry
   definition: 'Registry of cross-formatter conversion rules enabling clipboard paste
@@ -1046,8 +1119,12 @@ concepts:
   - list_conversions: list_conversions() -> list[ConversionRule]
   - on_conversion_error: catch all exceptions, return CLIPBOARD_FORMAT_MISMATCH
   source_ranges:
-  - end: 1648
-    start: 1561
+  - start: 1441
+    end: 1451
+  - start: 1613
+    end: 1724
+  - start: 1728
+    end: 1739
 - concept_id: C-057
   name: ConversionRule
   definition: 'Single entry in ConversionRegistry describing how to convert a fragment
@@ -1062,8 +1139,10 @@ concepts:
   - lossy: bool
   - description: str
   source_ranges:
-  - end: 1648
-    start: 1561
+  - start: 1613
+    end: 1724
+  - start: 1728
+    end: 1739
 - concept_id: C-058
   definition: Set of files copied verbatim from code-analysis-server into ai_editor/ported/ as the starting point for Scenario B adaptation.
   name: PortedCodeBase
@@ -1072,9 +1151,8 @@ concepts:
   - 'contains file_handlers: registry, base, text, json, yaml, python'
   - contains session, format_group, errors, backup_manager
   - copied without business logic changes
-  source_ranges:
-  - end: 1816
-    start: 1776
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  source_ranges: []
 - concept_id: C-059
   definition: Set of thin shim modules replacing code-analysis-server infrastructure dependencies so PortedCodeBase runs without DB or mcp_proxy_adapter.
   name: StandaloneAdapter
@@ -1083,9 +1161,8 @@ concepts:
   - result.py replaces mcp_proxy_adapter SuccessResult/ErrorResult
   - git.py replaces code_analysis.core.git_integration.commit_after_write
   - import rewrite replaces all code_analysis.* paths
-  source_ranges:
-  - end: 1801
-    start: 1783
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  source_ranges: []
 - concept_id: C-060
   definition: Mechanical transformation of import statements in PortedCodeBase files replacing code_analysis and mcp_proxy_adapter namespaces with ai_editor namespaces.
   name: ImportRewrite
@@ -1093,18 +1170,16 @@ concepts:
   - applied to all files in ai_editor/ported/
   - no business logic changes
   - ValidationError replaced with ValueError
-  source_ranges:
-  - end: 1801
-    start: 1792
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  source_ranges: []
 - concept_id: C-061
   definition: Invariant state where ai_editor/ported/ is importable standalone and the text format group is fully functional without code-analysis-server on the Python path.
   name: TextGroupReadiness
   properties:
   - CST and tree-temp groups remain as lazy imports
   - verified by import test and text group smoke test
-  source_ranges:
-  - end: 1816
-    start: 1803
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  source_ranges: []
 - concept_id: C-062
   definition: 'External user/login session on the CA server (e.g. the chat session), identified by
 
@@ -1133,7 +1208,9 @@ concepts:
     - session_close_file (unlock)
     - session_list_file_locks (isolation pre-check)
   - shared_with: terminal sessions and other CA-server consumers
-  source_ranges: []
+  source_ranges:
+  - start: 252
+    end: 316
 - concept_id: C-063
   name: Tree
   definition: In-memory node tree owned by AbstractFormatter base; produced by open_tree/parse, consumed by render/export; one per open buffer.
@@ -1143,9 +1220,7 @@ concepts:
   - 'lifecycle: created at open_tree; updated by base structural ops'
   source_ranges:
   - start: 468
-    end: 485
-  - start: 396
-    end: 396
+    end: 501
 - concept_id: C-064
   name: TreeNode
   definition: 'Single node in the generic Tree: stable_id, node_kind, line range, display_text, metadata, children.'
@@ -1158,8 +1233,8 @@ concepts:
   - 'metadata: dict'
   - 'children: list[TreeNode]'
   source_ranges:
-  - start: 477
-    end: 484
+  - start: 468
+    end: 501
 - concept_id: C-066
   name: SourceOfTruth
   definition: 'Rule governing which artifact is authoritative: source file at open; tree file once buffer.modified is True.'
@@ -1188,8 +1263,8 @@ concepts:
   - 'on_lint_error: abort, discard temp, return content+errors'
   - 'uniform_for: all formats'
   source_ranges:
-  - start: 432
-    end: 439
+  - start: 386
+    end: 466
 relations:
 - from_concept: C-001
   to_concept: C-003

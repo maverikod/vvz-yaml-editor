@@ -33,7 +33,7 @@ relations:
   type: uses
 source_ranges:
 - start: 1441
-  end: 1739
+  end: 1765
 depends_on:
 - G-001
 - G-002
@@ -47,4 +47,4 @@ tactical_steps:
 - T-004
 - T-005
 future_plan_note: FUTURE PLAN — G-008 is planned but NOT scheduled for implementation. All tactical steps are draft with no atomic steps written. Implementation begins only after G-001..G-007 are fully done and explicitly approved in chat.
-cascade_note: changed — md/xml/html as converter-only subclasses
+cascade_note: changed — md/xml/html as converter-only subclasses; I1c source_ranges audited 2026-05-21

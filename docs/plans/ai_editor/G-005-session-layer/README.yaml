@@ -72,10 +72,6 @@ relations:
 source_ranges:
 - start: 17
   end: 64
-- start: 156
-  end: 175
-- start: 503
-  end: 516
 - start: 1043
   end: 1217
 depends_on:
@@ -96,4 +92,4 @@ tactical_steps:
 - T-011
 - T-012
 - T-013
-cascade_note: changed — source-of-truth + sidecar-for-all + auto-create
+cascade_note: changed — source-of-truth + sidecar-for-all + auto-create; I1c source_ranges audited 2026-05-21

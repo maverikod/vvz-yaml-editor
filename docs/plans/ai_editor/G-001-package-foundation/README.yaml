@@ -34,10 +34,10 @@ relations:
   to_concept: C-007
   type: consumes
 source_ranges:
-- end: 99
-  start: 68
-- end: 1777
-  start: 1728
+- start: 68
+  end: 99
+- start: 1767
+  end: 1816
 depends_on: []
 tactical_steps:
 - T-001
@@ -45,4 +45,4 @@ tactical_steps:
 - T-003
 - T-004
 - T-005
-cascade_note: unchanged
+cascade_note: unchanged; I1c source_ranges audited 2026-05-21

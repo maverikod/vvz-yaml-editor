@@ -58,10 +58,10 @@ relations:
   to_concept: C-062
   type: uses
 source_ranges:
-- end: 154
-  start: 103
-- end: 415
-  start: 179
+- start: 103
+  end: 175
+- start: 177
+  end: 379
 depends_on:
 - G-001
 tactical_steps:
@@ -73,4 +73,4 @@ tactical_steps:
 - T-006
 - T-007
 - T-009
-cascade_note: changed — recheck for base-class tree ownership + write orchestration
+cascade_note: changed — recheck for base-class tree ownership + write orchestration; I1c source_ranges audited 2026-05-21

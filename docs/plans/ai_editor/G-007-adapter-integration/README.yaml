@@ -25,8 +25,8 @@ relations:
   to_concept: C-018
   type: uses
 source_ranges:
-- end: 1398
-  start: 1326
+- start: 1365
+  end: 1439
 depends_on:
 - G-001
 - G-002
@@ -36,4 +36,4 @@ tactical_steps:
 - T-002
 - T-003
 - T-004
-cascade_note: unchanged
+cascade_note: unchanged; I1c source_ranges audited 2026-05-21

@@ -33,4 +33,4 @@ tactical_steps:
 - T-001
 - T-002
 - T-003
-cascade_note: changed — search runs over unified tree; stable_id addresses
+cascade_note: changed — search runs over unified tree; stable_id addresses; I1c source_ranges audited 2026-05-21
