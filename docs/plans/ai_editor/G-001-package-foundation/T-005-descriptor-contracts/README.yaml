@@ -1,0 +1,77 @@
+step_id: T-005
+parent_global_step: G-001
+name: Session and buffer descriptor contracts
+status: draft
+description: 'Create SessionKey type alias and three dataclasses: BufferDescriptor,
+  SessionDescriptor, BufferAddress. Final step in G-001; after this the entire contracts
+  layer is complete. BufferDescriptor is the public API contract (NOT the internal
+  buf_meta in ses_settings.json). BufferAddress.address is opaque to editor core,
+  interpreted only by the formatter.
+
+  '
+concepts:
+- C-007
+- C-008
+- C-009
+- C-020
+inputs:
+- name: diagnostic
+  type: T-003 output
+  description: Diagnostic importable from ai_editor.contracts.diagnostic.
+- name: prior_contracts
+  type: T-001..T-004 outputs
+  description: ai_editor/contracts/ package fully exists with error_codes, diagnostic,
+    results.
+outputs:
+- name: ai_editor/contracts/descriptors.py
+  type: file
+  description: SessionKey alias + BufferDescriptor, SessionDescriptor, BufferAddress
+    dataclasses.
+- name: ai_editor/contracts/__init__.py
+  type: file
+  description: Updated to export all four names. After this step __init__.py exports
+    all G-001 contracts.
+atomic_steps:
+- step_id: A-001
+  parent_tactical_step: T-005
+  name: Create descriptors.py
+  target_file: ai_editor/contracts/descriptors.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-007
+  - C-008
+  - C-009
+  - C-020
+  prompt: "Project: ai_editor. File: ai_editor/contracts/descriptors.py. Operation:\
+    \ create_file. Existing: ai_editor/contracts/diagnostic.py (Diagnostic).\n\n \
+    \ from __future__ import annotations\n  from dataclasses import dataclass, field\n\
+    \  from typing import Any\n  from ai_editor.contracts.diagnostic import Diagnostic\n\
+    \n  SessionKey = str  # UUID4 string, stable for session lifetime, never reused\n\
+    \n  @dataclass\n  class BufferDescriptor:\n      \"\"\"Public API buffer identity\
+    \ returned by connect/reconnect/session_status.\n      NOT the internal buf_meta\
+    \ dict in ses_settings.json (which adds file_type,\n      lock_mode, lock_session_id,\
+    \ saved, file_id, redo_stack).\"\"\"\n      buffer_id: str\n      session_key:\
+    \ str\n      filename: str\n      relative_path: str | None\n      formatter:\
+    \ str\n      project_id: str\n      modified: bool\n      readonly: bool\n   \
+    \   buf_file_path: str\n\n  @dataclass\n  class SessionDescriptor:\n      \"\"\
+    \"Point-in-time snapshot of session state.\"\"\"\n      session_key: str\n   \
+    \   open_buffers: list[BufferDescriptor] = field(default_factory=list)\n     \
+    \ diagnostics: list[Diagnostic] = field(default_factory=list)\n\n  @dataclass\n\
+    \  class BufferAddress:\n      \"\"\"Opaque pair of buffer_id and formatter-specific\
+    \ address.\n      address is never interpreted by editor core.\"\"\"\n      buffer_id:\
+    \ str\n      address: Any  # text: int|tuple; yaml: str path; cst: UUID4 stable_id\n\
+    \nModule docstring: \"Session and buffer descriptor contracts for ai_editor.\"\
+    \ Add to ai_editor/contracts/__init__.py:\n  from ai_editor.contracts.descriptors\
+    \ import (\n      SessionKey, BufferDescriptor, SessionDescriptor, BufferAddress\n\
+    \  )\n  # add all four to __all__\nConstraints: no frozen=True; no narrowing BufferAddress.address\
+    \ beyond Any; no extra methods.\n"
+  verification:
+    type: import
+    target: ai_editor.contracts.descriptors
+    expected: 'SessionKey, BufferDescriptor, SessionDescriptor, BufferAddress all
+      importable; BufferDescriptor has 9 required fields; SessionDescriptor.open_buffers
+      defaults to []; two SessionDescriptor instances do not share the same list
+
+      '

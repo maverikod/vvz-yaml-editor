@@ -1,0 +1,26 @@
+step_id: T-007
+parent_global_step: G-003
+name: YamlFormatter — compatibility wrappers
+status: needs_review
+description: Legacy YAML command wrappers delegating to base-class tree ops with stable_id addresses.
+concepts:
+- C-026
+- C-021
+inputs:
+- description: YamlFormatter parse/render/address resolution.
+  name: G-003/T-004 output
+  type: ai_editor.formatters.yaml
+- description: Mutation and clipboard functions.
+  name: G-003/T-005 output
+  type: ai_editor.formatters.yaml.mutations
+- description: Validation, match_unit, compare_units.
+  name: G-003/T-006 output
+  type: ai_editor.formatters.yaml.validation
+outputs:
+- name: ai_editor/formatters/yaml/compat.py
+  type: file
+  description: 'Twelve wrapper functions. Emergency functions include alarming names and log WARNING on every call. Module docstring warns against new use.
+
+    '
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

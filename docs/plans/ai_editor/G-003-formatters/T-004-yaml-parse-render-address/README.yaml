@@ -1,0 +1,32 @@
+step_id: T-004
+parent_global_step: G-003
+name: YamlFormatter — parse, render, address resolution
+status: needs_review
+description: 'YamlFormatter converters: parse via ruamel round-trip, render preserving comments/order, node_from_source, node_to_source. Address = stable_id. No per-format structural mutations.'
+concepts:
+- C-026
+- C-021
+- C-063
+inputs:
+- name: T-001 G-003 output
+  type: ai_editor.formatters.base
+  description: AbstractFormatter, FormatterUnit.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode, ValidationResult.
+outputs:
+- name: ai_editor/formatters/yaml/address.py
+  type: file
+  description: 'AddressError(Exception) with error_code(str) and message(str). resolve_address(document, address_str) -> Any: parses dotted paths, list[index], and list[field=value] filters; raises AddressError on PATH_NOT_FOUND or PATH_NOT_UNIQUE.
+
+    '
+- name: ai_editor/formatters/yaml/formatter.py
+  type: file
+  description: 'YamlFormatter class with parse (YAML round-trip, preserve_quotes=True), render (dumps to string), normalize_address, get_unit, iter_units. Mutation and validation methods stubbed as NotImplementedError. No validate_content stub.
+
+    '
+- name: ai_editor/formatters/yaml/__init__.py
+  type: file
+  description: Exports YamlFormatter.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

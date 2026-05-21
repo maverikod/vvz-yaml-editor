@@ -1,0 +1,35 @@
+step_id: T-011
+parent_global_step: G-003
+name: CSTFormatter — XPath query engine (Lark LALR)
+status: needs_review
+description: XPath query over CST tree; results return stable_id addresses for base-class ops.
+concepts:
+- C-029
+- C-037
+- C-021
+inputs:
+- description: CSTTree, TreeNodeMetadata.
+  name: G-003/T-008 output
+  type: ai_editor.formatters.cst.models
+- description: node_type_utils, skeleton.VISIBLE_KINDS.
+  name: G-003/T-009 output
+  type: ai_editor.formatters.cst
+outputs:
+- name: ai_editor/formatters/cst/query/parser.py
+  type: file
+  description: Lark LALR grammar + parse_selector(selector) -> Lark parse tree. Copied as-is.
+- name: ai_editor/formatters/cst/query/index_builder.py
+  type: file
+  description: 'build_index_from_tree(tree: CSTTree) -> list[NodeInfo]. NodeInfo and Match dataclasses. Keep parse_source_for_query for raw-source queries.
+
+    '
+- name: ai_editor/formatters/cst/query/executor.py
+  type: file
+  description: 'query_tree(tree: CSTTree, selector: str, include_code: bool = False) -> list[Match]. cst_list_units(tree: CSTTree) -> list[dict]. Keep query_source and all _eval_query helpers.
+
+    '
+- name: ai_editor/formatters/cst/query/__init__.py
+  type: file
+  description: Exports query_tree and cst_list_units.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

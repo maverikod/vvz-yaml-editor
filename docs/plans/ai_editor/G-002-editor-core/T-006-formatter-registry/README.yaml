@@ -1,0 +1,30 @@
+step_id: T-006
+parent_global_step: G-002
+name: FormatterRegistry
+status: draft
+description: 'Create FormatterRegistry: central lookup table mapping file extensions
+  and formatter names to formatter classes (not instances). Singleton-like module-
+  level instance formatter_registry used by editor core. register() stores ext->class
+  and name->class mappings; last registered extension wins. get_by_extension() normalises
+  extension (lowercase, ensure leading dot). get_by_name() looks up by formatter name
+  string. list_formatters() returns list of registered names. Formatter classes are
+  never instantiated here. G-003 formatters call registry.register() at startup via
+  hooks_register.
+
+  '
+concepts:
+- C-012
+inputs:
+- description: ai_editor/editor_core/ package must exist and be importable.
+  name: package skeleton
+  type: G-001/T-001 output
+outputs:
+- name: ai_editor/editor_core/registry.py
+  type: file
+  description: 'Class FormatterRegistry with methods: register(formatter_name: str,
+    extensions: list[str], formatter_class: type) -> None; get_by_extension(ext: str)
+    -> type | None; get_by_name(name: str) -> type | None; list_formatters() -> list[str].
+    Module-level instance: formatter_registry = FormatterRegistry().
+
+    '
+atomic_steps: []

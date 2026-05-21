@@ -1,0 +1,81 @@
+step_id: T-002
+parent_global_step: G-001
+name: ErrorCode enum
+status: draft
+description: 'Create ErrorCode(str, Enum) with all typed error codes for every subsystem.
+  Must exist before any other contract. No business logic. Single file.
+
+  '
+concepts:
+- C-002
+inputs:
+- name: package_skeleton
+  type: T-001 output
+  description: ai_editor/ package must exist and be importable.
+outputs:
+- name: ai_editor/contracts/error_codes.py
+  type: file
+  description: ErrorCode(str, Enum) with 55 members across 13 groups.
+- name: ai_editor/contracts/__init__.py
+  type: file
+  description: Created or updated to export ErrorCode.
+atomic_steps:
+- step_id: A-001
+  parent_tactical_step: T-002
+  name: Create error_codes.py
+  target_file: ai_editor/contracts/error_codes.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  concepts:
+  - C-002
+  prompt: "Project: ai_editor. File: ai_editor/contracts/error_codes.py. Operation:\
+    \ create_file. Create ai_editor/contracts/__init__.py first if it does not exist\
+    \ (empty or minimal). Then create error_codes.py:\n\n  from enum import Enum\n\
+    \n  class ErrorCode(str, Enum):\n      \"\"\"All typed error codes for ai_editor.\"\
+    \"\"\n      # Session\n      SESSION_NOT_FOUND = \"SESSION_NOT_FOUND\"\n     \
+    \ SESSION_LOCK_CONFLICT = \"SESSION_LOCK_CONFLICT\"\n      SESSION_HAS_UNSAVED_BUFFERS\
+    \ = \"SESSION_HAS_UNSAVED_BUFFERS\"\n      SESSION_READONLY = \"SESSION_READONLY\"\
+    \n      # Buffer\n      BUFFER_NOT_FOUND = \"BUFFER_NOT_FOUND\"\n      BUFFER_ALREADY_OPEN\
+    \ = \"BUFFER_ALREADY_OPEN\"\n      BUFFER_HAS_UNSAVED_CHANGES = \"BUFFER_HAS_UNSAVED_CHANGES\"\
+    \n      BUFFER_STALE = \"BUFFER_STALE\"\n      BUFFER_INVALID = \"BUFFER_INVALID\"\
+    \n      BUFFER_LOCKED = \"BUFFER_LOCKED\"\n      BUFFER_READONLY = \"BUFFER_READONLY\"\
+    \n      # File\n      FILE_HAS_UNSENT_CHANGES = \"FILE_HAS_UNSENT_CHANGES\"\n\
+    \      SESSION_HAS_UNSENT_FILES = \"SESSION_HAS_UNSENT_FILES\"\n      # Formatter\n\
+    \      FORMATTER_NOT_FOUND = \"FORMATTER_NOT_FOUND\"\n      FORMATTER_UNSUPPORTED\
+    \ = \"FORMATTER_UNSUPPORTED\"\n      FORMATTER_COMMAND_DISCOVERY_FAILED = \"FORMATTER_COMMAND_DISCOVERY_FAILED\"\
+    \n      FORMATTER_COMMAND_SCHEMA_INVALID = \"FORMATTER_COMMAND_SCHEMA_INVALID\"\
+    \n      FORMATTER_COMMAND_UNSUPPORTED = \"FORMATTER_COMMAND_UNSUPPORTED\"\n  \
+    \    FORMAT_VALIDATION_FAILED = \"FORMAT_VALIDATION_FAILED\"\n      # Foreign\
+    \ formatter (reserved)\n      FOREIGN_FORMATTER_FAILED = \"FOREIGN_FORMATTER_FAILED\"\
+    \n      FOREIGN_FORMATTER_TIMEOUT = \"FOREIGN_FORMATTER_TIMEOUT\"\n      FOREIGN_FORMATTER_CONTRACT_VIOLATION\
+    \ = \"FOREIGN_FORMATTER_CONTRACT_VIOLATION\"\n      # Address\n      PATH_PARSE_FAILED\
+    \ = \"PATH_PARSE_FAILED\"\n      PATH_NOT_FOUND = \"PATH_NOT_FOUND\"\n      PATH_NOT_UNIQUE\
+    \ = \"PATH_NOT_UNIQUE\"\n      TARGET_TYPE_MISMATCH = \"TARGET_TYPE_MISMATCH\"\
+    \n      ADDRESS_INVALID = \"ADDRESS_INVALID\"\n      ADDRESS_NOT_FOUND = \"ADDRESS_NOT_FOUND\"\
+    \n      ADDRESS_NOT_UNIQUE = \"ADDRESS_NOT_UNIQUE\"\n      # Search\n      SEARCH_QUERY_INVALID\
+    \ = \"SEARCH_QUERY_INVALID\"\n      SEARCH_NO_MATCH = \"SEARCH_NO_MATCH\"\n  \
+    \    SEARCH_NOT_UNIQUE = \"SEARCH_NOT_UNIQUE\"\n      SEARCH_SCOPE_INVALID = \"\
+    SEARCH_SCOPE_INVALID\"\n      FORMATTER_SEARCH_UNSUPPORTED = \"FORMATTER_SEARCH_UNSUPPORTED\"\
+    \n      # Clipboard\n      CLIPBOARD_EMPTY = \"CLIPBOARD_EMPTY\"\n      CLIPBOARD_ITEM_NOT_FOUND\
+    \ = \"CLIPBOARD_ITEM_NOT_FOUND\"\n      CLIPBOARD_FORMAT_MISMATCH = \"CLIPBOARD_FORMAT_MISMATCH\"\
+    \n      CLIPBOARD_SOURCE_STALE = \"CLIPBOARD_SOURCE_STALE\"\n      CLIPBOARD_INVALID_MODE\
+    \ = \"CLIPBOARD_INVALID_MODE\"\n      # YAML\n      YAML_PARSE_FAILED = \"YAML_PARSE_FAILED\"\
+    \n      SCHEMA_VALIDATION_FAILED = \"SCHEMA_VALIDATION_FAILED\"\n      SEMANTIC_VALIDATION_FAILED\
+    \ = \"SEMANTIC_VALIDATION_FAILED\"\n      RENDER_NOT_DETERMINISTIC = \"RENDER_NOT_DETERMINISTIC\"\
+    \n      CHANGED_PATH_MISMATCH = \"CHANGED_PATH_MISMATCH\"\n      # CST\n     \
+    \ CST_PARSE_FAILED = \"CST_PARSE_FAILED\"\n      # Validation\n      VALIDATION_FAILED\
+    \ = \"VALIDATION_FAILED\"\n      # Write\n      WRITE_FAILED = \"WRITE_FAILED\"\
+    \n      BACKUP_FAILED = \"BACKUP_FAILED\"\n      SAVE_TARGET_EXISTS = \"SAVE_TARGET_EXISTS\"\
+    \n      SAVE_TARGET_MISSING = \"SAVE_TARGET_MISSING\"\n      # History\n     \
+    \ UNDO_AT_BEGINNING = \"UNDO_AT_BEGINNING\"\n      REDO_AT_END = \"REDO_AT_END\"\
+    \n      HISTORY_UNAVAILABLE = \"HISTORY_UNAVAILABLE\"\n      GIT_COMMIT_FAILED\
+    \ = \"GIT_COMMIT_FAILED\"\n      GIT_NOT_AVAILABLE = \"GIT_NOT_AVAILABLE\"\n\n\
+    In ai_editor/contracts/__init__.py add:\n  from ai_editor.contracts.error_codes\
+    \ import ErrorCode\n  __all__ = [\"ErrorCode\"]\n(create __init__.py if not exists).\
+    \ Constraints: str Enum, each value == name, no other classes.\n"
+  verification:
+    type: import
+    target: ai_editor.contracts.error_codes
+    expected: ErrorCode importable; ErrorCode.SESSION_NOT_FOUND == "SESSION_NOT_FOUND";
+      55 members

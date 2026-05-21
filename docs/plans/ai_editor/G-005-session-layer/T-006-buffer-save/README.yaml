@@ -1,0 +1,32 @@
+step_id: T-006
+parent_global_step: G-005
+name: Explicit save pipeline — validate, upload to CA server, release advisory lock
+status: needs_review
+description: 'Save: validate tree, WritePipeline export+linters, upload to CA, write project-side Sidecar.'
+concepts:
+- C-010
+- C-068
+- C-032
+- C-021
+inputs:
+- description: read_session_settings, update_buffer_in_settings, remove_buffer_from_settings.
+  name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+- description: commit_buffer, delete_buffer_branch.
+  name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+- description: run_save_pipeline, run_save_as_pipeline.
+  name: G-002/T-009 output
+  type: ai_editor.editor_core.save_pipeline
+- description: CodeAnalysisClient.advisory_unlock — used by save_as_buffer to release the original advisory lock after successful upload.
+  name: G-002/T-001 output
+  type: ai_editor.editor_core.ca_client
+- description: OperationResult, ErrorCode.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: ai_editor/sessions/buffer_save.py
+  type: file
+  description: "save_buffer(session_dir, buffer_id, formatter, document,\n  ca_client, repo) -> OperationResult.\nsave_as_buffer(session_dir, buffer_id, formatter, document, ca_client,\n  new_relative_path: str, overwrite: bool = False,\n  repo=None) -> OperationResult.\nAll failures return OperationResult, never raise.\n"
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

@@ -1,0 +1,43 @@
+step_id: T-008
+parent_global_step: G-005
+name: Buffer close and session close
+status: draft
+description: 'Implement close_buffer and close_session. Destruction rules by file_type
+  and saved flag: remote+saved=False+not force -> FILE_HAS_UNSENT_CHANGES; remote+saved=False+force
+  -> advisory_unlock via lock_session_id then destroy; remote+saved=True -> lock already
+  released, destroy freely; local -> destroy freely regardless of saved. close_buffer
+  uses formatter.delete(buf_file_path) (NOT manual Path.unlink) then delete_buffer_branch,
+  conditional advisory_unlock, then remove_buffer_from_settings. close_session without
+  force: checks all buffers for modified=True (SESSION_HAS_UNSAVED_BUFFERS) and remote+saved=False
+  (SESSION_HAS_UNSENT_FILES) before destroying. With force: release all advisory locks
+  best-effort per buffer using buf_meta[''project_id''] (no global project_id parameter),
+  then shutil.rmtree unconditionally. advisory_unlock called with lock_session_id
+  (CA server lock ID), not session_key. Per-buffer project_id used in all advisory_unlock
+  calls.
+
+  '
+concepts:
+- C-038
+- C-010
+inputs:
+- description: read_session_settings, remove_buffer_from_settings.
+  name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+- description: delete_buffer_branch.
+  name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+- description: CodeAnalysisClient.advisory_unlock.
+  name: G-002/T-001 output
+  type: ai_editor.editor_core.ca_client
+- description: OperationResult, ErrorCode.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: ai_editor/sessions/buffer_close.py
+  type: file
+  description: 'close_buffer(session_dir, buffer_id, formatter, ca_client, repo, force=False)
+    -> OperationResult. close_session(session_dir: str, session_key: str, ca_client,
+    force: bool = False) -> OperationResult.
+
+    '
+atomic_steps: []

@@ -1,0 +1,25 @@
+step_id: T-002
+parent_global_step: G-008
+name: XmlFormatter — lxml, XPath addressing, XSD validation
+status: needs_review
+description: "Implement XmlFormatter using lxml>=5.0. Full AbstractFormatter contract.\n\nLibrary choice rationale (see source_spec.md G-008 Part 2):\n  lxml>=5.0: XPath 1.0+, comment nodes, namespace support, C-backed fast\n  parse, ElementTree-compatible API.\n\nDocument model: lxml.etree._Element (root element).\nComments preserved as lxml.etree._Comment nodes.\nProcessing instructions preserved as lxml.etree._ProcessingInstruction.\n\nAddress model: XPath 1.0 expression string.\n  /root/child           absolute path\n  //tag                 any descendant\n  //tag[@attr='value']  with attribute predicate\n  //tag[1]              first occurrence (XPath 1-based index)\nNon-existent -> PATH_NOT_FOUND.\nNon-unique when unique expected -> PATH_NOT_UNIQUE.\n\nrender: lxml.etree.tostring(root, pretty_print=True, encoding='unicode',\n        xml_declaration=True). Preserves attribute order and namespaces.\n\nrender_skeleton:\n  - Root element: tag + namespace + attribute count.\n  - First two\
+  \ levels: child tag + first attribute if any.\n  - Deeper: collapsed with child count.\n  - Text content: first 60 chars if no child elements.\n  - Comments shown inline as <!-- ... -->.\n\nvalidate_document:\n  Always: well-formedness via lxml.etree.fromstring.\n  Optional: XSD validation via lxml.etree.XMLSchema(schema_doc) if\n  schema parameter provided as XSD string.\n\npaste modes: set, append, insert_before, insert_after, replace_block.\n\nClipboard serialization:\n  to_string(fragment): lxml.etree.tostring(fragment, encoding='unicode').\n  from_string(body): lxml.etree.fromstring(body).\n\nRegistered extensions: .xml .xsd .xsl .xslt .svg.\n"
+concepts:
+- C-054
+inputs:
+- name: G-003/T-001 output
+  type: ai_editor.formatters.base
+  description: AbstractFormatter, FormatterUnit, SkeletonOptions.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ValidationResult, Diagnostic, ErrorCode.
+outputs:
+- name: ai_editor/formatters/xml/formatter.py
+  type: file
+  description: XmlFormatter(AbstractFormatter) with formatter_name="xml". Full contract.
+- name: ai_editor/formatters/xml/__init__.py
+  type: file
+  description: Exports XmlFormatter.
+atomic_steps: []
+future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation. atomic_steps not written. Implement only after G-001..G-007 complete and G-008 approved in chat.
+cascade_note: changed — converter-only subclass pattern

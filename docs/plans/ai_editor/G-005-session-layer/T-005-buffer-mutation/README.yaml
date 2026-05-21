@@ -1,0 +1,32 @@
+step_id: T-005
+parent_global_step: G-005
+name: Buffer mutation — mandatory write_buf and git commit after every change
+status: needs_review
+description: Every mutation via base-class tree ops. Sets modified=True (SourceOfTruth -> tree Sidecar). Writes session-side Sidecar after mutation + buf file + git commit.
+concepts:
+- C-010
+- C-038
+- C-066
+- C-032
+- C-021
+inputs:
+- name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+  description: read_session_settings, write_session_settings.
+- name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+  description: commit_buffer.
+- name: G-002/T-005 output
+  type: ai_editor.writer
+  description: write_buf.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode.
+outputs:
+- name: ai_editor/sessions/buffer_mutation.py
+  type: file
+  description: 'execute_mutation(session_dir, buffer_id, formatter, document, new_document, command_name, params_summary, repo, readonly_session=False, readonly_buffer=False) -> dict.
+
+    '
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

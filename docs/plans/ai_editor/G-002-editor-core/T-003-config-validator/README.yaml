@@ -1,0 +1,41 @@
+step_id: T-003
+parent_global_step: G-002
+name: Config validator — AiEditorConfigValidator
+status: draft
+description: 'Create AiEditorConfigValidator inheriting BaseValidator from mcp_proxy_adapter.
+  validate(model) must: (1) call SimpleConfigValidator first to run all standard adapter
+  checks; (2) validate ai_editor section: small_file_threshold via parse_threshold
+  helper (bare int, k/m suffix, 0=disabled; invalid raises ValueError), small_file_formatter
+  must be one of {text, yaml, cst}; (3) validate code_analysis_server section: protocol
+  in {https, mtls}, if mtls then ssl section required, if use_token=True then token_env
+  must be non-empty; (4) delegate all SSL file checks to SSLValidator from adapter.
+  validate() never raises; always returns list. All sections optional in config.json;
+  missing sections produce no errors.
+
+  '
+concepts:
+- C-018
+inputs:
+- name: T-002 output
+  type: ai_editor.config.config_section
+  description: AiEditorConfig and CodeAnalysisServerConfig dataclasses must be importable.
+- name: BaseValidator
+  type: mcp_proxy_adapter.core.config.validators.base_validator
+  description: BaseValidator and ValidationError from mcp_proxy_adapter.
+- name: SimpleConfigValidator
+  type: mcp_proxy_adapter.core.config.simple_config_validator
+  description: SimpleConfigValidator from mcp_proxy_adapter; called first in validate().
+- name: SSLValidator
+  type: mcp_proxy_adapter.core.config.validators.ssl_validator
+  description: SSLValidator from mcp_proxy_adapter; all SSL file checks delegated
+    here.
+outputs:
+- name: ai_editor/config/config_validator.py
+  type: file
+  description: 'AiEditorConfigValidator(config_path: str | None = None) with validate(model)
+    -> list[ValidationError]. Private helpers: _validate_ai_editor(model), _validate_code_analysis_server(model).
+    Module-level helper parse_threshold(value: str) -> int. validate() returns empty
+    list for valid config, list of ValidationError for each problem found. Never raises.
+
+    '
+atomic_steps: []

@@ -1,0 +1,28 @@
+step_id: T-003
+parent_global_step: G-008
+name: HtmlFormatter — beautifulsoup4, CSS selector addressing
+status: needs_review
+description: "Implement HtmlFormatter using beautifulsoup4>=4.12 with lxml parser.\nFull AbstractFormatter contract.\n\nLibrary choice rationale (see source_spec.md G-008 Part 3):\n  beautifulsoup4 + lxml parser: lenient HTML5 parse, CSS selectors,\n  tree manipulation, wide adoption.\n  lxml already a dependency from XmlFormatter (T-002).\n\nDocument model: bs4.BeautifulSoup object. Preserves doctype, comments,\nand script/style blocks.\n\nAddress model: CSS selector string.\n  div.container            tag + class\n  #main-content            by id\n  nav > ul > li            child combinator\n  h1, h2, h3               multiple selectors (returns list)\n  p:nth-child(2)           pseudo-class\n  [data-role=\"editor\"]     attribute selector\nNon-existent -> PATH_NOT_FOUND.\nMultiple matches when unique expected -> PATH_NOT_UNIQUE.\n\nrender: str(soup). Preserves structure.\nsoup.prettify() used for render_skeleton only (not for save).\n\nrender_skeleton:\n  - Document structure: <html>,\
+  \ <head> (title, meta count), <body> subtree.\n  - Body: first 3 levels of block elements (div, section, article, nav,\n    main, header, footer, aside).\n  - Each element: tag + id/class if present + first 60 chars of text.\n  - Script/style blocks: \"<script> # N bytes\" / \"<style> # N bytes\".\n\nvalidate_document: HTML5 structural round-trip check via BeautifulSoup.\n  Optional: check for required elements (<html>, <head>, <body>) if\n  options.require_full_document=True.\n\npaste modes: set, append, insert_before, insert_after, replace_block.\n\nClipboard serialization:\n  to_string(fragment): str(fragment) (BS4 tag to string).\n  from_string(body): BeautifulSoup(body, 'lxml').find() top element.\n\nRegistered extensions: .html .htm .xhtml.\n"
+concepts:
+- C-055
+inputs:
+- name: G-003/T-001 output
+  type: ai_editor.formatters.base
+  description: AbstractFormatter, FormatterUnit, SkeletonOptions.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ValidationResult, Diagnostic, ErrorCode.
+- name: G-008/T-002 output
+  type: ai_editor.formatters.xml
+  description: lxml already installed as dependency of XmlFormatter.
+outputs:
+- name: ai_editor/formatters/html/formatter.py
+  type: file
+  description: HtmlFormatter(AbstractFormatter) with formatter_name="html". Full contract.
+- name: ai_editor/formatters/html/__init__.py
+  type: file
+  description: Exports HtmlFormatter.
+atomic_steps: []
+future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation. atomic_steps not written. Implement only after G-001..G-007 complete and G-008 approved in chat.
+cascade_note: changed — converter-only subclass pattern

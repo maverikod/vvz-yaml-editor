@@ -1,0 +1,45 @@
+step_id: T-002
+parent_global_step: G-006
+name: Session commands — session_create, session_reconnect, session_close, session_status
+status: draft
+description: "Four session lifecycle commands in three-file structure each.\n\nsession_connect(readonly=False)\
+  \ -> SessionDescriptor.\n  Command name: session_connect (matches source_spec G-006\
+  \ command groups\n  and C-047 ApiFacade.functions 'connect'). No project_id parameter\
+  \ —\n  sessions are not bound to a project; individual buffers carry project_id.\n\
+  \  No save_always parameter. Save is always explicit.\n\nsession_reconnect(session_key)\
+  \ -> SessionDescriptor.\n\nsession_close(session_key, force=False):\n  Without force:\
+  \ checks modified=False and remote saved=True;\n  SESSION_HAS_UNSAVED_BUFFERS or\
+  \ SESSION_HAS_UNSENT_FILES on failure.\n  With force: best-effort lock release +\
+  \ rmtree.\n\nsession_status(session_key) -> SessionDescriptor (read-only).\n\nAll\
+  \ delegate to ai_editor.sessions.session_api (G-005/T-013).\nAll registered in hooks_register.\n\
+  \nNOTE: command name is session_connect, NOT session_create.\nThe ApiFacade wrapper\
+  \ function is named 'connect' (C-047).\nCLI subcommand is 'connect' (C-048).\nThese\
+  \ three names refer to the same operation at different layers.\n"
+concepts:
+- C-045
+- C-047
+inputs:
+- description: hooks_register._register() skeleton.
+  name: G-006/T-001 output
+  type: ai_editor.hooks_register
+- description: connect, reconnect, close_session_api, session_status.
+  name: G-005/T-013 output
+  type: ai_editor.sessions.session_api
+- description: SessionDescriptor.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- description: ai_editor/commands/session_connect_{command,schema,metadata}.py. name="session_connect".
+  name: session_connect triplet
+  type: three-file command
+- description: ai_editor/commands/session_reconnect_{command,schema,metadata}.py.
+    name="session_reconnect".
+  name: session_reconnect triplet
+  type: three-file command
+- description: ai_editor/commands/session_close_{command,schema,metadata}.py. name="session_close".
+  name: session_close triplet
+  type: three-file command
+- description: ai_editor/commands/session_status_{command,schema,metadata}.py. name="session_status".
+  name: session_status triplet
+  type: three-file command
+atomic_steps: []

@@ -1,0 +1,41 @@
+step_id: T-007
+parent_global_step: G-006
+name: Validation commands — validate, validate_file, formatter_commands
+status: draft
+description: 'Three validation/discovery commands in three-file structure each. buf_validate(session_key,
+  buffer_id): formatter.validate_document on in-memory document; does not write files
+  or change modified state. validate_file(session_key, file_path=None, buffer_id=None,
+  project_id=None, formatter=''auto'', schema=None): if buffer_id given: validate
+  in-memory document; if file_path given: project_id required, download with lock_mode=''none'',
+  parse() then validate_document() (validate_content does NOT exist); formatter auto-resolved
+  by extension (.yaml/.yml->yaml, .py->cst, .json->json, else->text). Never writes
+  files. Returns ValidationResult + formatter_name. formatter_commands(buffer_id=None,
+  formatter=None): returns formatter.list_commands() catalog as dict. validate_params
+  calls super() first. All three registered in hooks_register.
+
+  '
+concepts:
+- C-045
+- C-047
+inputs:
+- name: T-001 output
+  type: ai_editor.hooks_register
+  description: hooks_register._register() skeleton.
+- name: G-002 output
+  type: ai_editor.editor_core
+  description: FormatterRegistry, CodeAnalysisClient.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ValidationResult.
+outputs:
+- name: buf_validate triplet
+  type: three-file command
+  description: ai_editor/commands/buf_validate_{command,schema,metadata}.py. name="buf_validate".
+- name: validate_file triplet
+  type: three-file command
+  description: ai_editor/commands/validate_file_{command,schema,metadata}.py. name="validate_file".
+- name: formatter_commands triplet
+  type: three-file command
+  description: ai_editor/commands/formatter_commands_{command,schema,metadata}.py.
+    name="formatter_commands".
+atomic_steps: []

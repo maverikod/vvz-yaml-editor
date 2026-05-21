@@ -1,0 +1,42 @@
+step_id: T-001
+parent_global_step: G-006
+name: Command base structure and hooks_register
+status: draft
+description: 'Create the command infrastructure: hooks_register.py wiring all ai_editor
+  commands into mcp_proxy_adapter, and registering all formatters in FormatterRegistry
+  at import time. Every command follows three-file structure: <name>_command.py, <name>_schema.py,
+  <name>_metadata.py. Command class extends Command from mcp_proxy_adapter.commands.base.
+  validate_params() calls super() first without exception. Destructive commands include
+  dry_run parameter. Formatter registration order (mandatory): (1) text: .txt .log
+  .rst .ini .cfg .toml; (2) yaml: .yaml .yml; (3) json: .json; (4) cst: .py. G-008
+  formatters (markdown, xml, html) are NOT registered here — G-008 is FUTURE PLAN,
+  not scheduled for implementation in G-006. hooks_register.py calls register_custom_commands_hook(_register)
+  at module level. T-001 creates skeleton; T-002..T-011 add individual command classes
+  to _register().
+
+  '
+concepts:
+- C-046
+- C-012
+inputs:
+- name: G-003 formatters
+  type: ai_editor.formatters
+  description: TextFormatter, YamlFormatter, JsonFormatter, CSTFormatter.
+- name: G-002/T-006
+  type: ai_editor.editor_core.registry
+  description: FormatterRegistry singleton formatter_registry.
+- name: mcp_proxy_adapter
+  type: mcp_proxy_adapter.commands.hooks
+  description: register_custom_commands_hook.
+outputs:
+- name: ai_editor/hooks_register.py
+  type: file
+  description: 'Registers all four formatters at import time in correct order. _register(registry)
+    skeleton for T-002..T-011 to extend. register_custom_commands_hook(_register)
+    called at module level. register_ai_editor_commands(registry) exported.
+
+    '
+- name: ai_editor/commands/__init__.py
+  type: file
+  description: Empty package init.
+atomic_steps: []

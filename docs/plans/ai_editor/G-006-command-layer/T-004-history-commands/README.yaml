@@ -1,0 +1,35 @@
+step_id: T-004
+parent_global_step: G-006
+name: History commands — undo, redo
+status: draft
+description: 'Two history commands in three-file structure each. buf_undo(session_key,
+  buffer_id, steps=1): delegates to api.undo(); returns OperationResult; UNDO_AT_BEGINNING
+  when at first commit. buf_redo(session_key, buffer_id, steps=1): delegates to api.redo();
+  returns OperationResult; REDO_AT_END when no future commits. steps minimum=1. validate_params
+  calls super() first. api.undo / api.redo are synchronous functions; called directly,
+  no asyncio.run(). Both registered in hooks_register.
+
+  '
+concepts:
+- C-045
+- C-047
+inputs:
+- description: hooks_register._register() skeleton.
+  name: G-006/T-001 output
+  type: ai_editor.hooks_register
+- description: 'api.undo(session_key, buffer_id, steps), api.redo(session_key, buffer_id,
+    steps). NOTE: api.py (G-006/T-010) must be created before this step executes;
+    T-004 depends on T-010 in execution order.'
+  name: G-006/T-010 output
+  type: ai_editor.api
+- description: OperationResult, ErrorCode (UNDO_AT_BEGINNING, REDO_AT_END).
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: buf_undo triplet
+  type: three-file command
+  description: ai_editor/commands/buf_undo_{command,schema,metadata}.py. name="buf_undo".
+- name: buf_redo triplet
+  type: three-file command
+  description: ai_editor/commands/buf_redo_{command,schema,metadata}.py. name="buf_redo".
+atomic_steps: []

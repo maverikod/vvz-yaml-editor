@@ -1,0 +1,29 @@
+step_id: T-003
+parent_global_step: G-007
+name: AiEditorConfigGenerator integration verification
+status: draft
+description: 'Integration checkpoint verifying that AiEditorConfigGenerator produces
+  config.json with all required sections and that it passes AiEditorConfigValidator.
+  No new production files. Round-trip verification: (1) run generate(protocol, out_path,
+  **kwargs) producing config.json; (2) verify .tmp file deleted on success; (3) validate
+  generated file via AiEditorConfigValidator — expect zero errors for ai_editor section;
+  (4) parse via AiEditorConfig.from_config_json and confirm values match kwargs; (5)
+  verify that invalid kwargs (e.g. small_file_threshold=''1g'') raise ConfigGenerationError
+  and leave no .tmp file.
+
+  '
+concepts:
+- C-051
+- C-019
+inputs:
+- name: G-002/T-004 output
+  type: ai_editor.config.config_generator
+  description: AiEditorConfigGenerator, ConfigGenerationError.
+- name: G-002/T-003 output
+  type: ai_editor.config.config_validator
+  description: AiEditorConfigValidator.
+- name: G-002/T-002 output
+  type: ai_editor.config.config_section
+  description: AiEditorConfig.from_config_json.
+outputs: []
+atomic_steps: []

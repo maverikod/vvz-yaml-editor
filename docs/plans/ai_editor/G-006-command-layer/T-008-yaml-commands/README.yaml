@@ -1,0 +1,53 @@
+step_id: T-008
+parent_global_step: G-006
+name: YAML-specific commands
+status: draft
+description: 'Five YAML-specific convenience commands in three-file structure each.
+  yaml_get_command(session_key, buffer_id, command_name): find via Search.find_one({kind:
+  field_equals, field: name, value: command_name}); returns SearchMatch or SEARCH_NO_MATCH.
+  yaml_update_command(session_key, buffer_id, command_name, patch): find command by
+  name, apply mutate_set per patch field, write buf; destructive, has dry_run. yaml_get_verification(session_key,
+  buffer_id): returns verification list from document root via get_unit at address
+  "verification". yaml_append_verification(session_key, buffer_id, item, dedupe=True):
+  appends item to verification list via mutate_append; destructive, has dry_run. yaml_validate_plan_task(session_key,
+  buffer_id=None, file_path=None, project_id=None): runs plan_task_v1 semantic validation
+  via formatter.validate_document(document, options={format: plan_task_v1}); if file_path
+  given: project_id required, download with lock_mode=''none'', parse() then validate_document()
+  (validate_content does NOT exist). validate_params calls super() first. All five
+  registered in hooks_register.
+
+  '
+concepts:
+- C-045
+- C-047
+inputs:
+- name: T-001 output
+  type: ai_editor.hooks_register
+  description: hooks_register._register() skeleton.
+- name: G-004 output
+  type: ai_editor.search
+  description: Search class.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ValidationResult, OperationResult.
+outputs:
+- name: yaml_get_command triplet
+  type: three-file command
+  description: ai_editor/commands/yaml_get_command_{command,schema,metadata}.py. name="yaml_get_command".
+- name: yaml_update_command triplet
+  type: three-file command
+  description: ai_editor/commands/yaml_update_command_{command,schema,metadata}.py.
+    name="yaml_update_command". Has dry_run.
+- name: yaml_get_verification triplet
+  type: three-file command
+  description: ai_editor/commands/yaml_get_verification_{command,schema,metadata}.py.
+    name="yaml_get_verification".
+- name: yaml_append_verification triplet
+  type: three-file command
+  description: ai_editor/commands/yaml_append_verification_{command,schema,metadata}.py.
+    name="yaml_append_verification". Has dry_run.
+- name: yaml_validate_plan_task triplet
+  type: three-file command
+  description: ai_editor/commands/yaml_validate_plan_task_{command,schema,metadata}.py.
+    name="yaml_validate_plan_task".
+atomic_steps: []

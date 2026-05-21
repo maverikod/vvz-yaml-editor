@@ -1,0 +1,19 @@
+step_id: T-005
+parent_global_step: G-002
+name: writer.py — write_buf and write_result atomic write paths
+status: needs_review
+description: Writer write_result for local artifacts; project files via WritePipeline in formatter base.
+concepts:
+- C-015
+inputs:
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode.WRITE_FAILED and ErrorCode.BACKUP_FAILED from ai_editor.contracts.
+outputs:
+- name: ai_editor/writer.py
+  type: file
+  description: 'write_buf(content: str, path: str | Path) -> None. write_result(content: str, path: str | Path) -> None. WriteVerificationError(Exception) raised when read-back differs from written content. Temp file always in same directory as target. write_buf never creates .bak. write_result creates .bak only if file already exists.
+
+    '
+atomic_steps: []
+cascade_note: changed — write orchestration via base WritePipeline

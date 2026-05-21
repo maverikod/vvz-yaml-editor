@@ -1,0 +1,36 @@
+step_id: T-008
+parent_global_step: G-003
+name: CSTFormatter — CSTTree model, stable_id, TreeNodeMetadata, sidecar
+status: needs_review
+description: 'CSTTree as specialisation of generic Tree. Sidecar: CST uses .cst paths and CST_TREE_V1; generic Sidecar model applies (.tree for other formats). TreeNodeMetadata, stable_id protocol.'
+concepts:
+- C-029
+- C-030
+- C-031
+- C-032
+- C-063
+- C-034
+inputs:
+- name: G-002/T-005 output
+  type: ai_editor.writer
+  description: write_result from ai_editor.writer for atomic sidecar writes.
+outputs:
+- name: ai_editor/formatters/cst/models.py
+  type: file
+  description: CSTTree and TreeNodeMetadata dataclasses with all fields listed above.
+- name: ai_editor/formatters/cst/sidecar.py
+  type: file
+  description: 'load_sidecar, save_sidecar, sidecar_matches_built_tree functions. Module-level alias: verify_sidecar_against_source = sidecar_matches_built_tree.
+
+    '
+- name: ai_editor/formatters/cst/node_stable_id.py
+  type: file
+  description: get_stable_id and strip_inline_node_id_lines_from_source. No set_stable_id.
+- name: ai_editor/formatters/cst/node_id_markers.py
+  type: file
+  description: strip_persisted_node_ids only. No append_persisted_node_ids.
+- name: ai_editor/formatters/cst/__init__.py
+  type: file
+  description: Package init for cst formatter.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

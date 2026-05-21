@@ -1,0 +1,19 @@
+step_id: T-002
+parent_global_step: G-004
+name: Query model
+status: needs_review
+description: Define the query model used by all search operations. Search operates on formatter Tree via base iter_units/match_unit. SearchMatch.address is node stable_id for all formats.
+concepts:
+- C-037
+inputs:
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode.SEARCH_QUERY_INVALID.
+outputs:
+- name: ai_editor/search/query.py
+  type: file
+  description: 'KNOWN_QUERY_KINDS frozenset (six entries: contains_text, regex, field_equals, node_type, xpath, stable_id). validate_query(query: dict) -> list[str].
+
+    '
+atomic_steps: []
+cascade_note: changed — unified tree search; stable_id addresses

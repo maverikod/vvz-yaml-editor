@@ -1,0 +1,39 @@
+step_id: T-001
+parent_global_step: G-002
+name: Code analysis server client — download, upload, advisory lock
+status: draft
+description: 'Create CodeAnalysisClient — the single HTTP gateway for all CA server
+  calls. No other module reads or writes project files directly from disk. Implements:
+  download_file (chunked + SHA-256 verify + lock acquire), upload_file (chunked +
+  unlock_after_write), advisory_lock_batch, advisory_unlock, release_all_locks_for_session,
+  list_project_files, list_backup_versions, restore_backup_file, file_lock_status.
+  Auth: mTLS (default) or HTTPS+token (token read from env, never cached).
+
+  '
+concepts:
+- C-013
+- C-014
+inputs:
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ResultEnvelope, ErrorCode, Diagnostic importable from ai_editor.contracts.
+- name: CodeAnalysisServerConfig
+  type: G-002/T-002 output
+  description: 'CodeAnalysisServerConfig from ai_editor.config.config_section. May
+    not exist yet; use TYPE_CHECKING import if needed.
+
+    '
+outputs:
+- name: ai_editor/editor_core/ca_client.py
+  type: file
+  description: 'CodeAnalysisClient class. Constructor: CodeAnalysisClient(config:
+    CodeAnalysisServerConfig). Public methods: download_file, upload_file, list_project_files,
+    list_backup_versions, restore_backup_file, advisory_lock_batch, advisory_unlock,
+    release_all_locks_for_session, file_lock_status. download_file returns tuple(bytes,
+    file_id|None, lock_session_id|None).
+
+    '
+- name: ai_editor/editor_core/__init__.py
+  type: file
+  description: Package init for editor_core.
+atomic_steps: []

@@ -1,0 +1,45 @@
+step_id: T-013
+parent_global_step: G-005
+name: Public session API — connect, reconnect, close_session, session_status
+status: draft
+description: 'Create public session API that the command layer (G-006) calls. Four
+  operations: connect, reconnect, close_session_api, session_status. All return SessionDescriptor.
+  _settings_to_descriptor(settings: dict) helper converts ses_settings.json dict to
+  SessionDescriptor, mapping open_buffers dicts to list[BufferDescriptor] (public
+  fields only). connect(base_dir, ca_client, formatter_registry, config, readonly=False):
+  NO save_always parameter; creates session dir, inits session git, returns SessionDescriptor.
+  reconnect(base_dir, session_key, ca_client): calls reconnect_session() -> dict,
+  converts via _settings_to_descriptor; raises SESSION_NOT_FOUND if missing. close_session_api(base_dir,
+  session_key, ca_client, force=False): NO project_id parameter; close_session uses
+  per-buffer project_id. session_status(base_dir, session_key): read-only, raises
+  SESSION_NOT_FOUND if absent.
+
+  '
+concepts:
+- C-038
+- C-008
+inputs:
+- description: create_session_dir, read_session_settings.
+  name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+- description: init_session_git.
+  name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+- description: close_session.
+  name: G-005/T-008 output
+  type: ai_editor.sessions.buffer_close
+- description: reconnect_session, release_all_locks_for_session.
+  name: G-005/T-012 output
+  type: ai_editor.sessions.recovery
+- description: SessionDescriptor, BufferDescriptor, ErrorCode.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: ai_editor/sessions/session_api.py
+  type: file
+  description: connect, reconnect, close_session_api, session_status functions. _settings_to_descriptor(settings)
+    -> SessionDescriptor helper.
+- name: ai_editor/sessions/__init__.py
+  type: file
+  description: Exports connect, reconnect, close_session_api, session_status.
+atomic_steps: []

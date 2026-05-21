@@ -1,0 +1,62 @@
+step_id: T-010
+parent_global_step: G-005
+name: Clipboard — copy, cut, paste
+status: draft
+description: "Implement session clipboard: copy, cut, paste. State stored in\n<session_dir>/clipboard.json\
+  \ atomically (tempfile + os.replace).\nFormat: {formatter: str, body: str, source_revision:\
+  \ str, paste_policy: str}.\n  source_revision: SHA of buf/<buffer_id> HEAD at copy/cut\
+  \ time.\n  paste_policy: 'snapshot' (default) | 'reject_if_source_revision_changed'.\n\
+  Cross-session paste not supported.\nSerialization: formatter.to_string(fragment)\
+  \ -> str;\nformatter.from_string(body) -> fragment. No cross-formatter conversion\
+  \ in v1.\n\ncopy:\n  fragment = formatter.copy_fragment(document, address)\n  body\
+  \ = formatter.to_string(fragment)\n  source_revision = repo.head.commit.hexsha \
+  \ (current HEAD of buf/<buffer_id>)\n  write clipboard.json: {formatter, body, source_revision,\
+  \ paste_policy='snapshot'}\n  DOES NOT mutate document. DOES NOT set modified=True.\n\
+  \  DOES NOT call write_buf. DOES NOT call commit_buffer.\n  Rationale: copy does\
+  \ not change buffer content, so there is nothing to\n  commit. Creating a content-free\
+  \ commit would pollute undo history with\n  no-op steps — pressing undo after copy\
+  \ would appear to do nothing.\n\ncut:\n  new_document, fragment = formatter.cut_fragment(document,\
+  \ address)\n  WRITE-THEN-COMMIT RULE (same as T-005):\n    (1) write clipboard.json:\
+  \ {formatter, body, source_revision, paste_policy='snapshot'}\n        where body\
+  \ = formatter.to_string(fragment)\n        and source_revision = SHA of current\
+  \ HEAD before write_buf.\n    (2) write_buf(FULL SOURCE, buf_file_path)\n    (3)\
+  \ update modified=True + redo_stack=[] atomically in ses_settings.json\n    (4)\
+  \ commit_buffer(repo, buffer_id, buf_file_path,\n          message=\"clipboard:\
+  \ cut <address>\")\n  write_buf must precede commit_buffer.\n\npaste:\n  Read clipboard.json;\
+  \ CLIPBOARD_EMPTY if missing.\n  CLIPBOARD_FORMAT_MISMATCH if formatter mismatch\
+  \ -> document NOT modified.\n\n  SOURCE REVISION CHECK:\n    If paste_policy ==\
+  \ 'reject_if_source_revision_changed':\n      If current HEAD != source_revision\
+  \ -> CLIPBOARD_SOURCE_STALE. No paste.\n    If paste_policy == 'snapshot' (default):\
+  \ skip check, always proceed.\n\n  fragment = formatter.from_string(body)\n  new_document\
+  \ = formatter.paste_fragment(document, target_address, mode, fragment)\n  WRITE-THEN-COMMIT\
+  \ RULE (same as T-005):\n    (1) write_buf(FULL SOURCE, buf_file_path)\n    (2)\
+  \ update modified=True + redo_stack=[] atomically in ses_settings.json\n    (3)\
+  \ commit_buffer(repo, buffer_id, buf_file_path,\n          message=\"clipboard:\
+  \ paste <mode> <target_address>\")\n  write_buf must precede commit_buffer.\n\n\
+  write_buf receives FULL SOURCE:\n  CSTFormatter: doc.module.code. Others: formatter.render(doc).\
+  \ NOT render_skeleton.\n\nGit failure on any commit -> HISTORY_UNAVAILABLE diagnostic,\
+  \ continue.\n\nErrorCode additions: CLIPBOARD_SOURCE_STALE already present in C-002.\n"
+concepts:
+- C-041
+inputs:
+- name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+  description: read_session_settings, write_session_settings.
+- name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+  description: commit_buffer.
+- name: G-002/T-005 output
+  type: ai_editor.writer
+  description: write_buf.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode (CLIPBOARD_EMPTY, CLIPBOARD_FORMAT_MISMATCH, CLIPBOARD_SOURCE_STALE).
+outputs:
+- name: ai_editor/sessions/clipboard.py
+  type: file
+  description: "copy_to_clipboard(session_dir, buffer_id, source_address, formatter,\n\
+    \  document, repo) -> None.\ncut_to_clipboard(session_dir, buffer_id, source_address,\
+    \ formatter,\n  document, repo) -> tuple[new_document, fragment].\npaste_from_clipboard(session_dir,\
+    \ buffer_id, target_address, mode,\n  formatter, document, repo) -> tuple[new_document,\
+    \ diagnostics].\n"
+atomic_steps: []

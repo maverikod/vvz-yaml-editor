@@ -1,0 +1,31 @@
+step_id: T-007
+parent_global_step: G-005
+name: Buffer reload — re-download from CA server and reset buf file
+status: needs_review
+description: 'Reload remote buffer: re-fetch, open_tree rebuilds Tree+Sidecar, modified=False.'
+concepts:
+- C-010
+- C-067
+- C-021
+- C-032
+inputs:
+- name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+  description: read_session_settings, update_buffer_in_settings.
+- name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+  description: commit_buffer.
+- name: G-002/T-001 output
+  type: ai_editor.editor_core.ca_client
+  description: CodeAnalysisClient.download_file.
+- name: G-002/T-005 output
+  type: ai_editor.writer
+  description: write_buf.
+outputs:
+- name: ai_editor/sessions/buffer_reload.py
+  type: file
+  description: 'reload_buffer(session_dir, session_key, buffer_id, ca_client, formatter_registry, repo) -> dict with view, diagnostics, optional error_code.
+
+    '
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

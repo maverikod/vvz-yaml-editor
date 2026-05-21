@@ -1,0 +1,45 @@
+step_id: T-004
+parent_global_step: G-005
+name: Buffer new — unsaved buffer from initial content
+status: draft
+description: "Implement create_new_buffer: create an unsaved in-memory buffer from\n\
+  initial content string without any CA server interaction.\nNo advisory lock, no\
+  \ file_id.\n\nWRITE-THEN-COMMIT RULE (same rule as T-005):\n  (1) resolve formatter\
+  \ via FormatterRegistry.get_by_name.\n  (2) buffer_id=UUID4, buf_file_path=session_dir/buffer_id.\n\
+  \  (3) formatter.parse(initial_content) -> document;\n      on parse error -> BUFFER_INVALID.\n\
+  \  (4) write_buf(source_content, buf_file_path) — FULL SOURCE, never skeleton.\n\
+  \      CSTFormatter: document.module.code. Others: formatter.render(document).\n\
+  \  (5) create_buffer_branch(repo, buffer_id, buf_file_path).\n  (6) commit_buffer(repo,\
+  \ buffer_id, buf_file_path,\n        message=\"new: <display_name or untitled>\"\
+  ).\n      Git failure -> HISTORY_UNAVAILABLE diagnostic, continue.\n  (7) add_buffer_to_settings(session_dir,\
+  \ buf_dict):\n        relative_path=None, file_type='local', lock_mode='none',\n\
+  \        lock_session_id=None, modified=True, readonly=False,\n        saved=False,\
+  \ redo_stack=[].\n  (8) return {buffer_id, view: formatter.render_skeleton(document),\
+  \ diagnostics}.\n\nwrite_buf must precede commit_buffer (same rationale as T-005).\n\
+  Multiple new buffers per session allowed (no dedup when relative_path=None).\n"
+concepts:
+- C-038
+- C-010
+- C-043
+inputs:
+- name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+  description: add_buffer_to_settings.
+- name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+  description: create_buffer_branch, commit_buffer.
+- name: G-002/T-005 output
+  type: ai_editor.writer
+  description: write_buf.
+- name: G-002/T-006 output
+  type: ai_editor.editor_core.registry
+  description: FormatterRegistry.
+outputs:
+- name: ai_editor/sessions/buffer_new.py
+  type: file
+  description: 'create_new_buffer(session_dir, session_key, formatter_name, initial_content,
+    display_name, formatter_registry, repo) -> dict. Returns {buffer_id, view, diagnostics}.
+    No CA server calls.
+
+    '
+atomic_steps: []

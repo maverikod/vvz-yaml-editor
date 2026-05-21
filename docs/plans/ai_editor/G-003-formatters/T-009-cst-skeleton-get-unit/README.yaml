@@ -1,0 +1,37 @@
+step_id: T-009
+parent_global_step: G-003
+name: CSTFormatter — tree builder, node classification, skeleton, get_unit
+status: needs_review
+description: CST declarative skeleton and get_unit via base render_skeleton/get_unit on unified tree. CST-specific display rules; addresses are stable_id.
+concepts:
+- C-029
+- C-033
+- C-021
+- C-024
+inputs:
+- description: CSTTree, TreeNodeMetadata from models.py; sidecar functions from sidecar.py; strip_persisted_node_ids from node_id_markers.py; get_stable_id, strip_inline_node_id_lines_from_source from node_stable_id.py; verify_sidecar_against_source from sidecar.py.
+  name: G-003/T-008 output
+  type: ai_editor.formatters.cst
+outputs:
+- name: ai_editor/formatters/cst/node_type_utils.py
+  type: file
+  description: 'get_node_kind (decorator-aware classification), _get_decorator_names, get_node_name, get_node_qualname. Adapted from cst-code.
+
+    '
+- name: ai_editor/formatters/cst/tree_builder.py
+  type: file
+  description: '_build_tree_index(module, previous_metadata_map=None, previous_obj_to_id=None, persisted_node_ids=None) -> CSTTree. No global _trees dict. MUST set meta.name, meta.qualname, meta.decorators for every node. load_file_to_tree(file_path) -> CSTTree. create_tree_from_code(file_path, source_code) -> CSTTree. reload_tree_from_file(tree) -> CSTTree. Imports verify_sidecar_against_source from sidecar.py.
+
+    '
+- name: ai_editor/formatters/cst/skeleton.py
+  type: file
+  description: 'build_declarative_overview and build_node_declarative_overview. VISIBLE_KINDS extended with property, classmethod, staticmethod, attribute, variable.
+
+    '
+- name: ai_editor/formatters/cst/tree_range_finder.py
+  type: file
+  description: 'find_node_by_range(tree: CSTTree, start_line: int, end_line: int, prefer_exact: bool = False) -> TreeNodeMetadata | None.
+
+    '
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

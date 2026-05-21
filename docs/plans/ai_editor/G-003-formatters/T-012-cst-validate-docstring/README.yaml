@@ -1,0 +1,41 @@
+step_id: T-012
+parent_global_step: G-003
+name: CSTFormatter — validate_document, DocstringMeta, full integration
+status: needs_review
+description: CST linters and docstring validation; DocstringMeta in TreeNodeMetadata.
+concepts:
+- C-029
+- C-034
+- C-068
+inputs:
+- description: models, sidecar, node_stable_id, node_id_markers.
+  name: G-003/T-008 output
+  type: ai_editor.formatters.cst
+- description: node_type_utils, tree_builder, skeleton.
+  name: G-003/T-009 output
+  type: ai_editor.formatters.cst
+- description: tree_modifier, tree_modifier_ops.
+  name: G-003/T-010 output
+  type: ai_editor.formatters.cst
+- description: query engine.
+  name: G-003/T-011 output
+  type: ai_editor.formatters.cst.query
+- description: write_buf from ai_editor.writer.
+  name: G-002/T-005 output
+  type: ai_editor.writer
+- description: ValidationResult, Diagnostic.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: ai_editor/formatters/cst/formatter.py
+  type: file
+  description: 'CSTFormatter(AbstractFormatter) with formatter_name="cst". parse, render, write, mutate_set, mutate_replace_block, mutate_append, mutate_delete, mutate_move, _sort_operations, _apply_operation, validate_document, to_string, from_string, match_unit, compare_units.
+
+    '
+- name: ai_editor/formatters/cst/docstring_meta.py
+  type: file
+  description: 'DocstringMeta frozen dataclass with parse_docstring classmethod, to_dict() and from_dict() for sidecar serialization.
+
+    '
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

@@ -1,0 +1,46 @@
+step_id: T-001
+parent_global_step: G-007
+name: main.py startup sequence
+status: draft
+description: "Create main.py implementing the full ai_editor startup sequence (six\
+  \ steps):\n(1) model = SimpleConfig(config_path).load() via adapter's own config\
+  \ reader.\n(2) errors = AiEditorConfigValidator().validate(model.raw);\n    if any\
+  \ errors: log and sys.exit(1).\n(3) ai_cfg = AiEditorConfig.from_config_json(config_path);\n\
+  \    ca_cfg = CodeAnalysisServerConfig.from_config_json(config_path);\n    from\
+  \ ai_editor.api_init import init_api;\n    init_api(ai_cfg, ca_cfg, formatter_registry)\n\
+  \    — builds CAClient and SessionManager singletons, runs startup_sweep.\n(4) app\
+  \ = create_app(app_config=model.raw, config_path=config_path)\n    — adapter creates\
+  \ ASGI app and handles proxy registration.\n(5) register_custom_commands_hook(register_ai_editor_commands).\n\
+  (6) runner = UnifiedServerRunner(); runner.run_server(app, server_config).\n\nConfig\
+  \ path from --config arg or AI_EDITOR_CONFIG env var, default config.json.\nai_editor\
+  \ NEVER implements HTTP routes or handlers.\nProxy registration controlled by config\
+  \ (auto_on_startup), not hardcoded;\n5 retries with exponential backoff; if proxy\
+  \ unreachable server still starts.\n"
+concepts:
+- C-049
+- C-050
+inputs:
+- name: G-006/T-010 api_init.py output
+  type: ai_editor.api_init
+  description: init_api(config, ca_config, formatter_registry).
+- name: G-006/T-001 output
+  type: ai_editor.hooks_register
+  description: register_ai_editor_commands.
+- name: G-002/T-003 output
+  type: ai_editor.config.config_validator
+  description: AiEditorConfigValidator.
+- name: G-002/T-002 output
+  type: ai_editor.config.config_section
+  description: AiEditorConfig, CodeAnalysisServerConfig.
+- name: mcp_proxy_adapter
+  type: mcp_proxy_adapter
+  description: SimpleConfig, create_app, UnifiedServerRunner, register_custom_commands_hook.
+outputs:
+- name: ai_editor/main.py
+  type: file
+  description: 'Six-step startup sequence. Config validated before create_app. Commands
+    registered before server starts. main(config_path) entry function. Imports init_api
+    from ai_editor.api_init (not from ai_editor.api).
+
+    '
+atomic_steps: []

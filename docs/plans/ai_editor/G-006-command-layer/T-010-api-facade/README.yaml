@@ -1,0 +1,103 @@
+step_id: T-010
+parent_global_step: G-006
+name: api.py internal facade — SessionManager and CAClient wiring
+status: draft
+description: "Create the internal Python facade that the command layer calls.\nSplit\
+  \ into three files to satisfy CR-008 (module ≤ 400 lines) and\nseparate distinct\
+  \ responsibilities.\n\nai_editor/session_manager.py — SessionManager class:\n  Holds\
+  \ base_dir, ca_client, formatter_registry, repo_map\n  (buffer_id -> git.Repo).\
+  \ Delegates all operations to G-005 functions.\n  No singleton state here. Instantiated\
+  \ by init_api().\n  Methods (all synchronous):\n    Session: connect(readonly=False),\
+  \ reconnect(session_key),\n      close_session(session_key, force=False),\n    \
+  \  session_status(session_key).\n    Buffer: open_buffer(session_key, project_id,\
+  \ file_path, ...),\n      new_buffer(session_key, formatter_name, initial_content,\
+  \ ...),\n      close_buffer(session_key, buffer_id, force=False),\n      save_buffer(session_key,\
+  \ buffer_id),\n      save_as_buffer(session_key, buffer_id, new_relative_path, overwrite=False),\n\
+  \      reload_buffer(session_key, buffer_id),\n      get_buffer_state(session_key,\
+  \ buffer_id),\n      write_all(session_key, force=False),\n      validate_buffer(session_key,\
+  \ buffer_id),\n      validate_file(session_key, file_path, project_id, formatter='auto',\n\
+  \        schema=None),\n      mutate_batch(session_key, buffer_id, operations: list[dict]).\n\
+  \    History: undo(session_key, buffer_id, steps=1),\n      redo(session_key, buffer_id,\
+  \ steps=1).\n    Edit: copy_fragment(session_key, buffer_id, address),\n      cut_fragment(session_key,\
+  \ buffer_id, address),\n      paste_fragment(session_key, buffer_id, address, mode).\n\
+  \    Search: find(session_key, buffer_id, query, scope=None),\n      find_one(session_key,\
+  \ buffer_id, query, scope=None),\n      list_units(session_key, buffer_id, scope=None).\n\
+  \  repo_map provides the git.Repo instance per buffer to G-005 functions\n  that\
+  \ need it (save_buffer, write_all, undo, redo, clipboard).\n\n  mutate_batch implementation:\n\
+  \    (1) Load formatter and current document for the buffer.\n    (2) Call formatter.mutate_batch(document,\
+  \ operations) -> new_document.\n        This runs entirely in memory; raises on\
+  \ any invalid operation.\n    (3) On success, call execute_mutation (G-005/T-005)\
+  \ with new_document,\n        command_name='mutate_batch', params_summary=f'{len(operations)}\
+  \ ops'.\n    (4) execute_mutation handles write_buf + ses_settings + git commit.\n\
+  \    Atomicity: formatter.mutate_batch either succeeds or raises — execute_mutation\n\
+  \    is never called on partial results. If formatter.mutate_batch raises,\n   \
+  \ return OperationResult with the error; document unchanged.\n\nai_editor/api_init.py\
+  \ — singleton state and initialisation:\n  Module-level _ca_client: CodeAnalysisClient\
+  \ | None = None.\n  Module-level _session_manager: SessionManager | None = None.\n\
+  \  init_api(config: AiEditorConfig, ca_config: CodeAnalysisServerConfig,\n    formatter_registry)\
+  \ -> None:\n      builds CodeAnalysisClient from ca_config,\n      builds SessionManager(base_dir,\
+  \ ca_client, formatter_registry),\n      runs startup_sweep(base_dir, ca_client)\
+  \ once.\n  get_ca_client() -> CodeAnalysisClient: raises RuntimeError if None.\n\
+  \  get_session_manager() -> SessionManager: raises RuntimeError if None.\n\nai_editor/api.py\
+  \ — thin module-level wrapper functions:\n  Imports get_session_manager from api_init.\n\
+  \  ~21 one-liner functions, each delegating to get_session_manager().<method>.\n\
+  \  Includes: mutate_batch(session_key, buffer_id, operations) -> OperationResult.\n\
+  \  No class definitions. No singleton state. No import of G-005 directly.\n  This\
+  \ is the only file commands and CLI import.\n  No HTTP routes. No JSON-RPC. No Command\
+  \ subclasses.\n  No save_always parameter anywhere.\n\nNAME MAPPING TABLE (command\
+  \ name → api.py function → SessionManager method):\n  session_connect    → connect\
+  \          → connect\n  session_reconnect  → reconnect        → reconnect\n  session_close\
+  \      → close_session    → close_session\n  session_status     → session_status\
+  \   → session_status\n  file_open          → open_buffer      → open_buffer\n  file_close\
+  \         → close_buffer     → close_buffer\n  file_get           → get_buffer \
+  \      → get_buffer_state\n  file_send          → save_buffer      → save_buffer\n\
+  \  file_create        → new_buffer       → create_new_buffer\n  buf_new        \
+  \    → new_buffer       → new_buffer\n  buf_save_as        → save_as_buffer   →\
+  \ save_as_buffer\n  buf_reload         → reload_buffer    → reload_buffer\n  buf_get_state\
+  \      → get_state        → get_buffer_state\n  buf_write_all      → write_all \
+  \       → write_all\n  buf_validate       → validate_buffer  → validate_buffer\n\
+  \  buf_mutate_batch   → mutate_batch     → mutate_batch\n  buf_undo           →\
+  \ undo             → undo\n  buf_redo           → redo             → redo\n  buf_copy\
+  \           → copy             → copy_fragment\n  buf_cut            → cut     \
+  \         → cut_fragment\n  buf_paste          → paste            → paste_fragment\n\
+  \  find               → find             → find\n  find_one           → find_one\
+  \         → find_one\n  list_units         → list_units       → list_units\n  validate_file\
+  \      → validate_file    → validate_file\n  formatter_commands → formatter_commands\
+  \ → formatter_commands\nRationale: command names use buf_ prefix for buffer-scoped\
+  \ operations to\navoid collision in hooks_register namespace. api.py drops the prefix\
+  \ for\nbrevity. SessionManager uses domain-specific verb forms. All three layers\n\
+  refer to the same operation — this table is the canonical mapping.\n"
+concepts:
+- C-047
+inputs:
+- name: G-002 output
+  type: ai_editor.editor_core
+  description: CodeAnalysisClient, FormatterRegistry.
+- name: G-005 session layer
+  type: ai_editor.sessions
+  description: All G-005 session/buffer functions.
+- name: G-004 output
+  type: ai_editor.search
+  description: Search class.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: All result types.
+outputs:
+- name: ai_editor/session_manager.py
+  type: file
+  description: SessionManager class with all domain methods. No singleton state.
+- name: ai_editor/api_init.py
+  type: file
+  description: '_ca_client and _session_manager singletons. init_api(config, ca_config,
+    formatter_registry) -> None. get_ca_client() -> CodeAnalysisClient. get_session_manager()
+    -> SessionManager.
+
+    '
+- name: ai_editor/api.py
+  type: file
+  description: '~21 module-level one-liner wrapper functions delegating to get_session_manager().
+    Includes mutate_batch. No class definitions. No singleton state. Only this file
+    is imported by commands and CLI.
+
+    '
+atomic_steps: []

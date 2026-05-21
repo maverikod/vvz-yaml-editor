@@ -1,0 +1,62 @@
+step_id: T-009
+parent_global_step: G-005
+name: Undo and redo
+status: draft
+description: "Implement undo and redo via session git history on buffer branch plus\
+  \ explicit\nredo_stack persisted in ses_settings.json. No git reflog dependency.\n\
+  \nOPERATION ORDER — mandatory to preserve consistency on crash:\n  undo: (1) resolve\
+  \ target commit via commit.parents;\n        (0a) capture prior_hexsha = branch.commit.hexsha\
+  \ BEFORE any change;\n        (2) write_buf(content from target commit tree);\n\
+  \        (3) branch.set_commit(target_commit);\n        (4) update_buffer_in_settings\
+  \ atomically\n            (push prior_hexsha — captured in step 0a — onto redo_stack,\n\
+  \             clear nothing).\n  IMPORTANT: prior_hexsha must be saved BEFORE branch.set_commit\
+  \ is called\n  in step (3). After set_commit, branch.commit.hexsha points to target,\n\
+  \  not to the original position.\n  This order guarantees that on crash between\
+  \ steps the buf_file and branch\n  stay on the previous version, not in an intermediate\
+  \ state.\n  redo: (1) validate top hexsha via _resolve_commit(sha) — see below;\n\
+  \        (2) write_buf(content from target commit tree);\n        (3) branch.set_commit(target);\n\
+  \        (4) update_buffer_in_settings atomically (pop from redo_stack).\n\nSTALE\
+  \ SHA HANDLING — _resolve_commit(repo, sha) -> Commit | None:\n  Wraps repo.commit(sha)\
+  \ in try/except git.exc.BadName and all gitpython\n  exceptions. Returns None on\
+  \ any error. Callers treat None as\n  HISTORY_UNAVAILABLE. On redo: if top of redo_stack\
+  \ resolves to None,\n  truncate redo_stack up to and including that entry, persist,\
+  \ return\n  HISTORY_UNAVAILABLE with message explaining the commit was lost (e.g.\
+  \ git\n  gc). Do NOT silently return REDO_AT_END — message must distinguish\n  \"\
+  stack empty\" from \"sha lost\".\n\nUNDO_AT_BEGINNING: current commit has no parents.\n\
+  REDO_AT_END: redo_stack is empty (all entries valid).\nHISTORY_UNAVAILABLE: sha\
+  \ in redo_stack no longer resolvable.\n\nNew mutation clears redo_stack entirely\
+  \ (handled in T-005).\n\nbuf_history(limit=50): iter_commits(branch, max_count=limit)\
+  \ ->\n  [{sha, message, authored_date}].\n\nbuf_checkout(sha): validates sha via\
+  \ _resolve_commit; HISTORY_UNAVAILABLE if\n  None. Then checks sha is reachable:\
+  \ ancestors of current HEAD (up to\n  limit=200) UNION redo_stack entries. If not\
+  \ reachable -> HISTORY_UNAVAILABLE.\n  Reachability check is depth-bounded at 200\
+  \ commits to avoid O(N) scan on\n  deep histories. Sequence: write_buf -> branch.set_commit\
+  \ -> persist\n  ses_settings (redo_stack unchanged). Does NOT modify redo_stack.\n\
+  \nbuf_diff(sha1, sha2): both resolved via _resolve_commit; HISTORY_UNAVAILABLE\n\
+  \  if either is None. repo.git.diff(sha1, sha2) -> str.\n\nAll functions return\
+  \ OperationResult on error, never raise.\n"
+concepts:
+- C-040
+- C-042
+inputs:
+- name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+  description: read_session_settings, update_buffer_in_settings.
+- name: G-002/T-005 output
+  type: ai_editor.writer
+  description: write_buf.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: OperationResult, ErrorCode (UNDO_AT_BEGINNING, REDO_AT_END, HISTORY_UNAVAILABLE).
+outputs:
+- name: ai_editor/sessions/undo_redo.py
+  type: file
+  description: '_resolve_commit(repo, sha) -> Commit | None (wraps all gitpython exceptions).
+    undo(session_dir, buffer_id, formatter, repo, steps=1) -> OperationResult. redo(session_dir,
+    buffer_id, formatter, repo, steps=1) -> OperationResult. buf_history(session_dir,
+    buffer_id, repo, limit=50) -> list[dict]. buf_checkout(session_dir, buffer_id,
+    sha, formatter, repo) -> OperationResult. buf_diff(session_dir, buffer_id, sha1,
+    sha2, repo) -> str.
+
+    '
+atomic_steps: []

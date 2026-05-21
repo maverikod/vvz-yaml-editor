@@ -1,0 +1,30 @@
+step_id: T-006
+parent_global_step: G-003
+name: YamlFormatter — validation, match_unit, compare_units, diagnostics
+status: needs_review
+description: 'YamlFormatter linters(): YAML parse, optional jsonschema, PlanTaskV1 semantic checks. Invoked by base WritePipeline on temp file before atomic rename.'
+concepts:
+- C-026
+- C-027
+- C-068
+inputs:
+- description: YamlFormatter parse/render must exist.
+  name: G-003/T-004 output
+  type: ai_editor.formatters.yaml
+- description: Mutation functions must exist.
+  name: G-003/T-005 output
+  type: ai_editor.formatters.yaml.mutations
+- description: ValidationResult, Diagnostic, ErrorCode.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: ai_editor/formatters/yaml/validation.py
+  type: file
+  description: 'yaml_validate_document(document, schema, options) -> ValidationResult. _check_plan_task_v1(document) -> list[Diagnostic] (nine semantic checks). yaml_match_unit(unit, query) -> bool. yaml_compare_units(unit_a, unit_b, options) -> ComparisonResult. yaml_diagnostics(document) -> list[Diagnostic]. No yaml_validate_content function.
+
+    '
+- name: ai_editor/schemas/
+  type: directory
+  description: Directory for JSON schema files; minimal initially.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

@@ -1,0 +1,43 @@
+step_id: T-004
+parent_global_step: G-008
+name: ConversionRegistry — cross-formatter conversion matrix
+status: needs_review
+description: "Implement ConversionRegistry and all ConversionRule instances for the\ncross-formatter conversion matrix defined in source_spec.md G-008 Part 4.\n\nConversionRule dataclass:\n  source_formatter: str\n  target_formatter: str\n  converter: Callable[[fragment, src_instance, tgt_instance], fragment]\n  lossy: bool\n  description: str\n\nConversionRegistry:\n  register(rule: ConversionRule) -> None\n  can_convert(source_fmt: str, target_fmt: str) -> bool\n  convert(fragment, source_fmt, target_fmt, src_inst, tgt_inst) -> fragment\n  list_conversions() -> list[ConversionRule]\n  Module-level singleton: conversion_registry = ConversionRegistry()\n\nError handling: all converter exceptions caught; return\nCLIPBOARD_FORMAT_MISMATCH with details.conversion_error set.\n\nFull matrix (supported rules, v1):\n  text -> markdown: wrap as paragraph MdNode. lossy=False.\n  text -> yaml:     insert as YAML scalar. lossy=True (quoting).\n  text -> json:     insert as JSON string. lossy=False.\n\
+  \  text -> xml:      insert as text node (escape < > &). lossy=True.\n  text -> html:     wrap in <p>. lossy=False for plain text.\n  markdown -> text: mistune text renderer. lossy=True.\n  markdown -> yaml: top-level nodes as {type, content} mappings. lossy=True.\n  markdown -> xml:  mistune HTML renderer -> lxml parse. lossy=True.\n  markdown -> html: mistune HTML renderer. lossy=True.\n  yaml -> text:     ruamel.yaml dump. lossy=False.\n  yaml -> json:     yaml->dict->json.dumps. lossy=True if YAML-only types.\n  json -> text:     json.dumps(indent=2). lossy=False.\n  json -> yaml:     ruamel.yaml.load(json.dumps). lossy=False.\n  json -> markdown: fenced code block. lossy=True.\n  xml -> text:      lxml.etree.tostring(encoding='unicode'). lossy=False.\n  xml -> yaml:      {tag, attrs, children, text} mapping. lossy=True.\n  xml -> html:      lxml.html serialization. lossy=True.\n  html -> text:     soup.get_text(separator='\\n'). lossy=True.\n  html -> markdown: html2text library.\
+  \ lossy=True.\n  html -> xml:      lxml.etree.fromstring(str(fragment)). lossy=True.\n  cst -> text:      fragment.module.code. lossy=False.\n  cst -> cst:       serialize/deserialize; stable_id reassigned in target.\n\nNOT supported (CLIPBOARD_FORMAT_MISMATCH):\n  text->cst, markdown->cst, yaml->markdown, yaml->html, yaml->xml,\n  json->xml, json->html, xml->json, html->yaml, html->json,\n  html->cst, xml->cst, cst->markdown, cst->yaml, cst->json,\n  cst->xml, cst->html.\n"
+concepts:
+- C-056
+- C-057
+inputs:
+- name: G-003 formatters
+  type: ai_editor.formatters
+  description: All formatter instances needed for conversion.
+- name: G-008/T-001 output
+  type: ai_editor.formatters.markdown
+  description: MarkdownFormatter with mistune renderer.
+- name: G-008/T-002 output
+  type: ai_editor.formatters.xml
+  description: XmlFormatter with lxml.
+- name: G-008/T-003 output
+  type: ai_editor.formatters.html
+  description: HtmlFormatter with beautifulsoup4.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode (CLIPBOARD_FORMAT_MISMATCH).
+outputs:
+- name: ai_editor/formatters/conversion/registry.py
+  type: file
+  description: 'ConversionRule dataclass. ConversionRegistry class. Module-level singleton: conversion_registry = ConversionRegistry().
+
+    '
+- name: ai_editor/formatters/conversion/rules.py
+  type: file
+  description: 'All converter functions and register_all_rules(registry) function that registers every rule listed in description. Imported by hooks_register.py.
+
+    '
+- name: ai_editor/formatters/conversion/__init__.py
+  type: file
+  description: Exports ConversionRegistry, ConversionRule, conversion_registry.
+atomic_steps: []
+future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation. atomic_steps not written. Implement only after G-001..G-007 complete and G-008 approved in chat.
+cascade_note: changed — converter-only subclass pattern

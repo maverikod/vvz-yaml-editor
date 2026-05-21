@@ -1,0 +1,26 @@
+step_id: T-003
+parent_global_step: G-003
+name: TextFormatter
+status: needs_review
+description: 'TextFormatter subclass: converters only. Document model is paragraph/line tree (root -> paragraph -> line). Paragraphs split by blank lines; no blanks => one paragraph. Implement parse, render, node_from_source, node_to_source. No linters. Extensions: .txt .log .rst .ini .cfg .toml.'
+concepts:
+- C-025
+- C-021
+- C-063
+- C-064
+inputs:
+- name: T-001 G-003 output
+  type: ai_editor.formatters.base
+  description: AbstractFormatter, FormatterUnit, ComparisonResult.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ValidationResult, Diagnostic.
+outputs:
+- name: ai_editor/formatters/text/formatter.py
+  type: file
+  description: TextFormatter implementing all AbstractFormatter methods.
+- name: ai_editor/formatters/text/__init__.py
+  type: file
+  description: Exports TextFormatter.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

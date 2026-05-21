@@ -1,0 +1,30 @@
+step_id: T-002
+parent_global_step: G-007
+name: AiEditorConfig integration verification
+status: draft
+description: 'Integration checkpoint verifying that AiEditorConfig integrates correctly
+  with main.py and the adapter startup sequence. No new production files. Verification
+  contract: main.py calls AiEditorConfig.from_config_json(config_path) at step 3;
+  returned instance provides formatter.small_file_threshold, formatter.small_file_formatter,
+  sessions.base_dir; these are used by the session layer for session_base_dir and
+  buffer open small_file_threshold. Checks: (1) AiEditorConfig importable without
+  circular import; (2) from_dict({}) returns defaults (1k, text, .ai_editor_sessions);
+  (3) from_config_json reads ai_editor section correctly; (4) AiEditorConfigValidator.validate()
+  returns list; (5) validator called before from_config_json in main.py.
+
+  '
+concepts:
+- C-049
+- C-018
+inputs:
+- name: G-002/T-002 output
+  type: ai_editor.config.config_section
+  description: AiEditorConfig with from_dict and from_config_json.
+- name: G-002/T-003 output
+  type: ai_editor.config.config_validator
+  description: AiEditorConfigValidator.
+- name: T-001 output
+  type: ai_editor.main
+  description: main.py startup sequence.
+outputs: []
+atomic_steps: []

@@ -1,0 +1,40 @@
+step_id: T-013
+parent_global_step: G-003
+name: JsonFormatter — full implementation
+status: needs_review
+description: 'JsonFormatter converters only: stdlib json parse/render, node_from_source, node_to_source. linters: JSON parse + optional jsonschema. Address = stable_id.'
+concepts:
+- C-028
+- C-021
+- C-063
+inputs:
+- name: T-001 G-003 output
+  type: ai_editor.formatters.base
+  description: AbstractFormatter, FormatterUnit, ComparisonResult.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ValidationResult, Diagnostic, ErrorCode.
+outputs:
+- name: ai_editor/formatters/json/address.py
+  type: file
+  description: 'JsonAddressError(error_code, message). resolve_json_address(document, address_str) -> Any. Same address syntax as YamlFormatter. Raises JsonAddressError on PATH_NOT_FOUND/PATH_NOT_UNIQUE.
+
+    '
+- name: ai_editor/formatters/json/mutations.py
+  type: file
+  description: 'json_mutate_set, json_mutate_replace_block, json_mutate_append, json_mutate_delete, json_mutate_move, json_copy_fragment, json_cut_fragment, json_paste_fragment. All return (document, changed_paths).
+
+    '
+- name: ai_editor/formatters/json/validation.py
+  type: file
+  description: 'json_validate_document(doc, schema, options) -> ValidationResult. json_match_unit(unit, query) -> bool. json_compare_units(unit_a, unit_b, options) -> ComparisonResult. No json_validate_content function.
+
+    '
+- name: ai_editor/formatters/json/formatter.py
+  type: file
+  description: JsonFormatter implementing all AbstractFormatter methods.
+- name: ai_editor/formatters/json/__init__.py
+  type: file
+  description: Exports JsonFormatter.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

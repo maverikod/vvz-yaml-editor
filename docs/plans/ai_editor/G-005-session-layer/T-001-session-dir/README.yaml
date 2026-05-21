@@ -1,0 +1,38 @@
+step_id: T-001
+parent_global_step: G-005
+name: Session directory management and ses_settings.json
+status: draft
+description: 'Create session directory management functions and ses_settings.json
+  schema. Session directory layout: <sessions_base_dir>/<session_key>/ses_settings.json,
+  git/, <buffer_id>.<ext>, clipboard.json. ses_settings.json fields: session_key (UUID4),
+  created_at (ISO-8601), readonly (bool default False), open_buffers (list of buf_dict).
+  buf_dict fields: buffer_id, relative_path (str|null — null for local buffers), file_type
+  (remote|local), lock_mode (full|none), lock_session_id (str|null), file_id (str|null),
+  modified (bool), saved (bool), readonly (bool), formatter, buf_file_path, project_id,
+  filename, redo_stack (list[str] default []). NOTE: no file_path field — use relative_path
+  exclusively. No session_key field inside buf_dict — session_key is on the ses_settings
+  root level, not repeated per buffer. No save_always field. All writes atomic via
+  tempfile + os.replace. Six functions: create_session_dir, read_session_settings,
+  write_session_settings, add_buffer_to_settings, remove_buffer_from_settings, update_buffer_in_settings.
+
+  '
+concepts:
+- C-039
+- C-042
+inputs:
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: BufferDescriptor from ai_editor.contracts.
+outputs:
+- name: ai_editor/sessions/session_dir.py
+  type: file
+  description: 'create_session_dir(base_dir, session_key, readonly) -> Path. read_session_settings(session_dir)
+    -> dict. write_session_settings(session_dir, settings) -> None (atomic). add_buffer_to_settings(session_dir,
+    buf_dict) -> None. remove_buffer_from_settings(session_dir, buffer_id) -> None.
+    update_buffer_in_settings(session_dir, buffer_id, updates) -> None.
+
+    '
+- name: ai_editor/sessions/__init__.py
+  type: file
+  description: Package init for sessions module.
+atomic_steps: []

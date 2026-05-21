@@ -1,0 +1,41 @@
+step_id: T-005
+parent_global_step: G-006
+name: Edit commands — copy, cut, paste
+status: draft
+description: 'Three clipboard commands in three-file structure each. buf_copy(session_key,
+  source: {buffer_id, address}): delegates to copy_to_clipboard; does NOT mutate document;
+  returns success=True. buf_cut(session_key, source: {buffer_id, address}): delegates
+  to cut_to_clipboard; mutates document; returns new document view. Destructive -
+  has dry_run (dry_run=True returns what would be cut without mutating). buf_paste(session_key,
+  target: {buffer_id, address}, mode): delegates to paste_from_clipboard; mode enum
+  covers all formatter paste modes (set, replace_block, append, insert_before, insert_after,
+  insert, replace_range, prepend, replace, delete); returns new document view or CLIPBOARD_FORMAT_MISMATCH.
+  Destructive - has dry_run (dry_run=True returns what would be pasted without mutating).
+  BufferAddress in schema: {buffer_id: str, address: any}. validate_params calls super()
+  first. All three registered in hooks_register.
+
+  '
+concepts:
+- C-045
+- C-047
+inputs:
+- description: hooks_register._register() skeleton.
+  name: G-006/T-001 output
+  type: ai_editor.hooks_register
+- description: copy_to_clipboard, cut_to_clipboard, paste_from_clipboard.
+  name: G-005/T-010 output
+  type: ai_editor.sessions.clipboard
+- description: ErrorCode (CLIPBOARD_FORMAT_MISMATCH, CLIPBOARD_EMPTY).
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: buf_copy triplet
+  type: three-file command
+  description: ai_editor/commands/buf_copy_{command,schema,metadata}.py. name="buf_copy".
+- name: buf_cut triplet
+  type: three-file command
+  description: ai_editor/commands/buf_cut_{command,schema,metadata}.py. name="buf_cut".
+- name: buf_paste triplet
+  type: three-file command
+  description: ai_editor/commands/buf_paste_{command,schema,metadata}.py. name="buf_paste".
+atomic_steps: []

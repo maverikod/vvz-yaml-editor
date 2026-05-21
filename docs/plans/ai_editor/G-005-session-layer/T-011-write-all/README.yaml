@@ -1,0 +1,43 @@
+step_id: T-011
+parent_global_step: G-005
+name: write_all
+status: draft
+description: "Implement write_all: save all eligible open buffers to CA server.\n\
+  Advisory locks NOT released (unlock_after_write=False). Buffers remain\nopen and\
+  \ locked after write_all.\n\nFor each open buffer where readonly=False:\n  - if\
+  \ force=False and modified=False: skip.\n  - if relative_path=None: skip (unsaved\
+  \ local buffer, no CA path).\n  - validate via formatter.validate_document(document);\n\
+  \    failure -> add to failed_buffers, continue.\n  - upload via ca_client.upload_file(project_id,\
+  \ relative_path, content,\n    commit_message, unlock_after_write=False).\n    Upload\
+  \ content = FULL SOURCE BYTES:\n      CSTFormatter: document.module.code. Others:\
+  \ formatter.render(document).\n      NOT render_skeleton.\n  - On upload success:\n\
+  \      WRITE-THEN-COMMIT RULE: upload is the \"write\". Now commit:\n      commit_buffer(repo,\
+  \ buffer_id, buf_file_path,\n        message=\"write_all: <filename>\").\n     \
+  \ Git failure -> HISTORY_UNAVAILABLE diagnostic added to buffer result,\n      do\
+  \ NOT fail the upload or add buffer to failed_buffers.\n      Then update_buffer_in_settings:\
+  \ modified=False.\n  - On upload failure: add to failed_buffers, continue.\n\nWriteAllResult:\
+  \ success=True only if failed_buffers is empty.\nSession stays open on partial failure.\n\
+  \nformatter_map = {buffer_id: (formatter, document, repo)} injected by caller.\n\
+  repo per buffer is needed for per-buffer commit_buffer calls.\n"
+concepts:
+- C-038
+- C-010
+inputs:
+- name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+  description: read_session_settings, write_session_settings.
+- name: G-005/T-002 output
+  type: ai_editor.sessions.session_git
+  description: commit_buffer.
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: WriteAllResult, Diagnostic, ErrorCode.
+outputs:
+- name: ai_editor/sessions/write_all.py
+  type: file
+  description: 'write_all(session_dir, ca_client, formatter_map, force=False) -> WriteAllResult.
+    formatter_map: {buffer_id: (formatter, document, repo)}. unlock_after_write=False
+    mandatory.
+
+    '
+atomic_steps: []

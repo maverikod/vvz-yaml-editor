@@ -1,0 +1,39 @@
+step_id: T-002
+parent_global_step: G-002
+name: Config dataclasses — AiEditorConfig and CodeAnalysisServerConfig
+status: draft
+description: 'Create typed dataclass models for the ai_editor and code_analysis_server
+  sections of config.json. Five dataclasses in one module: AiEditorFormatterConfig,
+  AiEditorSessionsConfig, AiEditorConfig, CodeAnalysisServerAuthConfig, CodeAnalysisServerConfig.
+  Each exposes from_dict() and from_config_json() class methods. No validation logic.
+  No config file reading beyond from_config_json. No HTTP or DB logic. SSLConfig imported
+  from mcp_proxy_adapter. Consumed by config validator (T-003), generator (T-004),
+  and CA client (T-001).
+
+  '
+concepts:
+- C-016
+- C-017
+inputs:
+- description: ai_editor/ package must exist and be importable.
+  name: package_skeleton
+  type: T-001 G-001 output
+- description: SSLConfig dataclass from mcp_proxy_adapter; used as ssl field type
+    in CodeAnalysisServerConfig.
+  name: SSLConfig
+  type: mcp_proxy_adapter.core.config.simple_config
+outputs:
+- name: ai_editor/config/config_section.py
+  type: file
+  description: 'Five dataclasses: AiEditorFormatterConfig (small_file_threshold: str,
+    small_file_formatter: str), AiEditorSessionsConfig (base_dir: str), AiEditorConfig
+    (formatter, sessions; from_dict, from_config_json), CodeAnalysisServerAuthConfig
+    (use_token: bool, token_env: str|None), CodeAnalysisServerConfig (host, port,
+    protocol, servername, check_hostname, ssl: SSLConfig|None, auth; from_dict, from_config_json).
+    from_dict must never raise on missing keys; use .get() with defaults.
+
+    '
+- name: ai_editor/config/__init__.py
+  type: file
+  description: Exports all five config dataclasses.
+atomic_steps: []

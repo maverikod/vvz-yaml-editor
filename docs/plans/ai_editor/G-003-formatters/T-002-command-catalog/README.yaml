@@ -1,0 +1,24 @@
+step_id: T-002
+parent_global_step: G-003
+name: FormatterCommandCatalog and FormatterCommandMetadata
+status: needs_review
+description: FormatterCommandCatalog listing base-class and format-specific commands.
+concepts:
+- C-022
+- C-021
+inputs:
+- description: Diagnostic importable from ai_editor.contracts.
+  name: G-001 contracts
+  type: ai_editor.contracts
+- description: AbstractFormatter must exist.
+  name: G-003/T-001 output
+  type: ai_editor.formatters.base
+outputs:
+- name: ai_editor/formatters/catalog.py
+  type: file
+  description: FormatterCommandMetadata and FormatterCommandCatalog dataclasses. All list/dict fields use field(default_factory=...).
+- name: ai_editor/formatters/__init__.py
+  type: file
+  description: Updated to export FormatterCommandMetadata and FormatterCommandCatalog.
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21

@@ -1,0 +1,38 @@
+step_id: T-004
+parent_global_step: G-007
+name: aiedmgr service manager script
+status: draft
+description: 'Create scripts/aiedmgr Python script with five subcommands: start: (1)
+  SimpleConfig(config).load() -> model; (2) AiEditorConfigValidator .validate(model.raw)
+  — CRITICAL: takes model.raw not empty dict; abort on errors; (3) subprocess.Popen
+  launching ai_editor.main with log redirect; (4) write PID file; (5) wait 2s and
+  check process still running. stop: read PID, SIGTERM, wait up to 30s, SIGKILL if
+  still running, remove PID. status: read PID, os.kill(pid, 0) to check liveness.
+  restart: stop then start. generate-config: AiEditorConfigGenerator.generate(protocol,
+  out_path); ConfigGenerationError -> print errors, exit 1. PID file default: ai_editor.pid.
+  Log file: logs/ai_editor.log. Config from --config arg or AI_EDITOR_CONFIG env var.
+
+  '
+concepts:
+- C-051
+- C-018
+- C-019
+inputs:
+- name: G-007/T-001 output
+  type: ai_editor.main
+  description: main.py entry point launched as subprocess.
+- name: G-002/T-003 output
+  type: ai_editor.config.config_validator
+  description: AiEditorConfigValidator.validate(model.raw).
+- name: G-002/T-004 output
+  type: ai_editor.config.config_generator
+  description: AiEditorConfigGenerator, ConfigGenerationError.
+outputs:
+- name: scripts/aiedmgr
+  type: file
+  description: 'Python script with main() and five subcommands: start, stop, status,
+    restart, generate-config. Config validated via SimpleConfig.load() + AiEditorConfigValidator.validate(model.raw)
+    before start. 30s SIGTERM timeout before SIGKILL. PID file managed correctly.
+
+    '
+atomic_steps: []

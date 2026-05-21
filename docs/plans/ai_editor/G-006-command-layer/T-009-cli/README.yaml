@@ -1,0 +1,44 @@
+step_id: T-009
+parent_global_step: G-006
+name: CLI interface
+status: draft
+description: "Create the CLI diagnostic wrapper over api.py. Console script entry\
+  \ point:\nai-editor = ai_editor.interfaces.cli:main (declared in pyproject.toml\n\
+  G-001/T-001). argparse-based.\n\nTen subcommands: connect (--readonly only, no --save-always),\n\
+  disconnect (--session-key, --force),\nopen (--session-key, --project-id required,\
+  \ --file-path, --formatter),\nfind (--session-key, --buffer-id, --query),\ncopy\
+  \ (--session-key, --buffer-id, --address),\npaste (--session-key, --buffer-id, --address,\
+  \ --mode),\nsave (--session-key, --buffer-id),\nundo / redo (--session-key, --buffer-id,\
+  \ --steps default 1),\nvalidate-file (--file-path, --project-id).\n\nNOTE: canonical\
+  \ session identifier is session_key (UUID4). CLI flag is\n--session-key, NEVER --session-id.\
+  \ This matches the invariant from source_spec.\n\nConfig from --config arg or AI_EDITOR_CONFIG\
+  \ env var.\nOutputs JSON to stdout on success. Errors to stderr, exit code 1.\n\n\
+  Import pattern:\n  from ai_editor.api_init import init_api   # initialisation\n\
+  \  from ai_editor.api import connect, open_buffer, ...  # domain wrappers\nCLI imports\
+  \ ONLY api_init and api — never session layer directly.\n\napi.py functions are\
+  \ SYNCHRONOUS; call directly, no asyncio.run().\ninit_api() called once before any\
+  \ api.py function.\nNo save_always parameter anywhere in CLI.\n"
+concepts:
+- C-048
+inputs:
+- name: G-006/T-010 api.py output
+  type: ai_editor.api
+  description: All synchronous domain wrapper functions.
+- name: G-006/T-010 api_init.py output
+  type: ai_editor.api_init
+  description: init_api(config, ca_config, formatter_registry).
+- name: G-002/T-002 output
+  type: ai_editor.config.config_section
+  description: AiEditorConfig, CodeAnalysisServerConfig.
+outputs:
+- name: ai_editor/interfaces/cli.py
+  type: file
+  description: 'main() entry point. argparse with ten subcommands. Reads config, calls
+    init_api() from api_init, dispatches to api.py wrapper functions. No asyncio.run().
+    No save_always.
+
+    '
+- name: ai_editor/interfaces/__init__.py
+  type: file
+  description: Empty package init.
+atomic_steps: []

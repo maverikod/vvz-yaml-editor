@@ -1,0 +1,40 @@
+step_id: T-012
+parent_global_step: G-005
+name: Session recovery after restart and stale lock cleanup
+status: draft
+description: 'Implement session recovery after ai_editor process restart. Sessions
+  survive restarts; directories never auto-deleted. startup_sweep(base_dir, ca_client):
+  iterates all session directories, reads ses_settings.json, releases stale advisory
+  locks for buffers where lock_mode=''full'', saved=False, not readonly, lock_session_id
+  set. Calls ca_client.advisory_unlock(lock_session_id, project_id, file_path, allow_foreign_session=True).
+  First arg is lock_session_id (CA server ID), NOT ai_editor session_key. allow_foreign_session=True
+  because original process is dead. Errors logged, never raised. Directories never
+  touched. reconnect_session(base_dir, session_key) -> dict: reads ses_settings.json;
+  raises ValueError(SESSION_NOT_FOUND) if directory absent. release_all_locks_for_session(ca_client,
+  buffers, allow_foreign_session=False): helper for close_session and startup; releases
+  per-buffer locks best-effort.
+
+  '
+concepts:
+- C-038
+- C-039
+- C-044
+inputs:
+- description: read_session_settings.
+  name: G-005/T-001 output
+  type: ai_editor.sessions.session_dir
+- description: CodeAnalysisClient.advisory_unlock.
+  name: G-002/T-001 output
+  type: ai_editor.editor_core.ca_client
+- description: ErrorCode (SESSION_NOT_FOUND).
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: ai_editor/sessions/recovery.py
+  type: file
+  description: 'startup_sweep(base_dir, ca_client) -> None. reconnect_session(base_dir,
+    session_key) -> dict. release_all_locks_for_session(ca_client, buffers, allow_foreign_session=False)
+    -> None.
+
+    '
+atomic_steps: []

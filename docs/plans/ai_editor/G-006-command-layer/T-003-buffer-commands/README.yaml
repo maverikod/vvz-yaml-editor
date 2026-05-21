@@ -1,0 +1,52 @@
+step_id: T-003
+parent_global_step: G-006
+name: File commands — file_open, file_close, file_get, file_send, file_create
+status: draft
+description: 'Five file lifecycle commands in three-file structure each. file_open(session_key,
+  project_id(required), file_path, formatter=''auto'', open_as_text=False, readonly=False):
+  downloads from CA server with advisory lock (lock_mode=''full'' unless readonly);
+  sets file_type=''remote'', saved=False; returns {buffer_id, document_view, formatter_name,
+  status, file_type}. Delegates to open_buffer (NOT api.py directly). file_close(session_key,
+  buffer_id, force=False): takes buffer_id (NOT file_path — buffer_id is the canonical
+  identifier per AbstractBuffer contract). remote+unsaved -> FILE_HAS_UNSENT_CHANGES
+  without force; delegates to close_buffer. Destructive (force=True discards changes
+  and releases lock) - has dry_run. file_get(session_key, buffer_id): reads from local
+  buf file (no server call); returns {content, relative_path, file_type, modified}.
+  file_send(session_key, buffer_id): uploads to CA server with unlock_after_write=False
+  (lock stays, buffer stays open); local->remote on success; delegates to save_buffer.
+  Destructive (uploads to CA server) - has dry_run. file_create(session_key, formatter=''auto'',
+  content='''', display_name=None): creates local buffer (file_type=''local'', lock_mode=''none'',
+  saved=False, relative_path=None); delegates to create_new_buffer (NOT open_buffer).
+  Returns buffer_id. All five registered in hooks_register.
+
+  '
+concepts:
+- C-045
+- C-047
+inputs:
+- description: hooks_register._register() skeleton.
+  name: G-006/T-001 output
+  type: ai_editor.hooks_register
+- description: open_buffer, close_buffer, save_buffer, create_new_buffer, read_session_settings.
+  name: G-005 session layer
+  type: ai_editor.sessions
+- description: OperationResult, ErrorCode.
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: file_open triplet
+  type: three-file command
+  description: ai_editor/commands/file_open_{command,schema,metadata}.py. name="file_open".
+- name: file_close triplet
+  type: three-file command
+  description: ai_editor/commands/file_close_{command,schema,metadata}.py. name="file_close".
+- name: file_get triplet
+  type: three-file command
+  description: ai_editor/commands/file_get_{command,schema,metadata}.py. name="file_get".
+- name: file_send triplet
+  type: three-file command
+  description: ai_editor/commands/file_send_{command,schema,metadata}.py. name="file_send".
+- name: file_create triplet
+  type: three-file command
+  description: ai_editor/commands/file_create_{command,schema,metadata}.py. name="file_create".
+atomic_steps: []

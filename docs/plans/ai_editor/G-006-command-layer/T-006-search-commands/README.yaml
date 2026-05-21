@@ -1,0 +1,40 @@
+step_id: T-006
+parent_global_step: G-006
+name: Search commands — find, find_one, list_units
+status: draft
+description: 'Three search commands in three-file structure each. search_find(session_key,
+  buffer_id, query: {kind, value, options}, scope=None): delegates to Search.find();
+  returns list of SearchMatch as dicts. validate_params uses validate_query from G-004;
+  hard errors on missing kind. search_find_one(session_key, buffer_id, query, scope=None):
+  delegates to Search.find_one(); returns single SearchMatch or SEARCH_NO_MATCH /
+  SEARCH_NOT_UNIQUE. search_list_units(session_key, buffer_id, scope=None): delegates
+  to Search.list_units(); returns all units as list. Query schema: {kind: str (required),
+  value: any, options: object}. validate_params calls super() first. All three registered
+  in hooks_register.
+
+  '
+concepts:
+- C-045
+- C-047
+inputs:
+- description: hooks_register._register() skeleton.
+  name: G-006/T-001 output
+  type: ai_editor.hooks_register
+- description: Search class, validate_query.
+  name: G-004 output
+  type: ai_editor.search
+- description: ErrorCode (SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE, SEARCH_QUERY_INVALID).
+  name: G-001 contracts
+  type: ai_editor.contracts
+outputs:
+- name: search_find triplet
+  type: three-file command
+  description: ai_editor/commands/search_find_{command,schema,metadata}.py. name="search_find".
+- name: search_find_one triplet
+  type: three-file command
+  description: ai_editor/commands/search_find_one_{command,schema,metadata}.py. name="search_find_one".
+- name: search_list_units triplet
+  type: three-file command
+  description: ai_editor/commands/search_list_units_{command,schema,metadata}.py.
+    name="search_list_units".
+atomic_steps: []

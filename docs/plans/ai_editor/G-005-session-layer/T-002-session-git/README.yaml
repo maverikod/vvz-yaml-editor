@@ -1,0 +1,30 @@
+step_id: T-002
+parent_global_step: G-005
+name: Session git — initialization and commit helpers
+status: draft
+description: 'Create session git helper functions. Each session has a dedicated non-bare
+  git repository at <session_dir>/git/ with one branch per open buffer. Non-bare repo
+  required (bare=False) so repo.index.add() works with external buf file paths. Initial
+  empty commit created in init so HEAD exists before any branch creation. Branch naming:
+  buf/<buffer_id>. commit_buffer is fault-tolerant: never raises on gitpython errors,
+  logs HISTORY_UNAVAILABLE warning only. commit_buffer saves repo.index.commit() return
+  value and uses it to set branch pointer explicitly. Five functions: init_session_git,
+  get_repo, create_buffer_branch, commit_buffer, delete_buffer_branch.
+
+  '
+concepts:
+- C-040
+inputs:
+- name: G-001 contracts
+  type: ai_editor.contracts
+  description: ErrorCode (HISTORY_UNAVAILABLE, GIT_COMMIT_FAILED).
+outputs:
+- name: ai_editor/sessions/session_git.py
+  type: file
+  description: 'init_session_git(session_dir: Path) -> git.Repo (non-bare, initial
+    commit). get_repo(session_dir: Path) -> git.Repo. create_buffer_branch(repo, buffer_id,
+    buf_file_path) -> None. commit_buffer(repo, buffer_id, buf_file_path, message)
+    -> None (fault-tolerant). delete_buffer_branch(repo, buffer_id) -> None.
+
+    '
+atomic_steps: []
