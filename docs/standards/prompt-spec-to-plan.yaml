@@ -1,0 +1,179 @@
+meta:
+  version: '1.0'
+  prompt_id: spec-to-plan
+  description: 'Three-phase iterative process. Translate a tech spec into a machine-readable
+    plan file and a set of global step README files, then iterate until no omissions
+    or errors remain, then confirm the final structure on disk.
+
+    '
+  standard: docs/standards/prompt-plan-rules.yaml
+  inputs:
+    spec_file: path to the source tech spec (markdown)
+    plan_name: slug for the plan directory (kebab-case)
+    project_id: code analysis server project UUID
+phase_1:
+  name: read_inputs
+  description: Read all required files before producing any output.
+  steps:
+  - action: read_file
+    target: docs/standards/prompt-plan-rules.yaml
+    reason: 'Must know the exact required fields, constraints, sufficiency rules,
+      naming conventions and layout before writing anything.
+
+      '
+  - action: read_file_in_blocks
+    target: <spec_file>
+    block_size: 400_lines
+    reason: 'Read the entire tech spec without skipping any section. Every block must
+      be processed before moving to phase 2.
+
+      '
+phase_2:
+  name: analyse_and_decompose
+  description: 'Analyse the full tech spec and produce the decomposition. Do not write
+    any files in this phase.
+
+    '
+  steps:
+  - action: identify_global_steps
+    rules:
+      each_global_step_covers_one_subsystem_or_concept: true
+      max_global_steps: 10
+      no_cross_references_between_global_steps: true
+      out_of_scope_sections_must_be_explicitly_excluded: true
+    output: list of proposed global steps with name and owned paths
+  - action: verify_coverage
+    description: 'For every section and subsection of the tech spec confirm it is
+      assigned to exactly one global step. Record any unassigned sections as omissions.
+
+      '
+  - action: split_spec_content
+    rules:
+      plan_file_receives: concepts, architecture, principles only
+      plan_file_must_not_contain: implementation details or step references
+      global_step_receives: all implementation details for its subsystem
+      sufficiency_check: 'plan_file + global_step must be self-sufficient without
+        reading any other file
+
+        '
+phase_3:
+  name: write_files
+  description: Write all plan files to disk.
+  order: parallel_allowed
+  files:
+  - file: docs/plans/<plan_name>/plan.yaml
+    format: yaml
+    required_fields:
+    - plan_id
+    - name
+    - description
+    - spec_file
+    - status
+    - global_steps
+    notes:
+      description: architecture and principles only, no implementation details
+      spec_file: path to the source tech spec
+      global_steps: list of objects with step_id, name, dir, status
+  - file: docs/plans/<plan_name>/G-NNN-<slug>/README.yaml
+    format: yaml
+    repeat: once_per_global_step
+    required_fields:
+    - step_id
+    - name
+    - status
+    - owns
+    - description
+    - tactical_steps
+    constraints:
+      description_must_cover_all_spec_content_for_this_subsystem: true
+      no_references_to_other_global_steps: true
+      tactical_steps_are_title_stubs_only: true
+    notes:
+      owns: list of paths this step owns exclusively
+      description: full implementation details for this subsystem
+      tactical_steps: list of objects with step_id and name only
+phase_4:
+  name: iterative_verification
+  description: 'Repeat until zero omissions found. Each iteration is one full cycle.
+
+    '
+  loop:
+    condition: omissions_found_gt_0
+    max_iterations: 10
+    iteration_steps:
+    - action: read_all_written_files
+      description: 'Read every written file in full from disk. plan.yaml and all G-NNN/README.yaml.
+        Never rely on memory of what was written.
+
+        '
+    - action: read_spec_in_blocks
+      target: <spec_file>
+      block_size: 400_lines
+      description: 'Re-read the full tech spec block by block. For each block cross-reference
+        against the written G-step files.
+
+        '
+    - action: find_omissions
+      checks:
+        every_spec_section_covered_by_exactly_one_g_step: true
+        every_out_of_scope_section_explicitly_excluded: true
+        no_implementation_detail_in_plan_file: true
+        each_g_step_self_sufficient_with_plan_file: true
+        required_fields_present_in_every_file: true
+        no_cross_references_between_g_steps: true
+      output: list of omissions with location (spec_section, g_step, field)
+    - action: fix_omissions
+      rules:
+        fix_all_omissions_before_next_iteration: true
+        write_only_changed_files: true
+        write_files_in_parallel_where_possible: true
+      description: 'For each omission update the corresponding G-step README.yaml
+        or plan.yaml. Do not regenerate files that are already correct.
+
+        '
+  exit_condition: 'Exit the loop when find_omissions returns an empty list. Perform
+    one final read of all files from disk to confirm before exiting.
+
+    '
+phase_5:
+  name: final_verification
+  description: 'One final pass after the loop exits. Read all files from disk and
+    confirm the complete structure matches the standard in docs/standards/prompt-plan-rules.yaml.
+
+    '
+  checks:
+    layout_matches_standard: true
+    all_required_fields_present: true
+    global_step_count_lte_10: true
+    spec_file_reference_valid: true
+    all_owns_paths_are_unique_across_steps: true
+    no_omissions: true
+  output:
+    on_success: report list of created files and global step names
+    on_failure: list remaining problems and re-enter phase_4
+invariants:
+  always_read_before_write: 'Never write a file without first reading the standard
+    and the full source spec.
+
+    '
+  always_read_written_files_before_verification: 'Never verify from memory. Always
+    re-read from disk.
+
+    '
+  no_partial_coverage: 'Every section of the spec must be assigned to a global step.
+    Nothing may be silently dropped.
+
+    '
+  no_silent_merging: 'If two spec sections seem related but belong to different subsystems
+    keep them in separate global steps.
+
+    '
+  sufficiency_is_non_negotiable: 'plan_file + G-step README must be fully sufficient
+    to understand the global step without reading any other file.
+
+    '
+  tactical_steps_are_stubs_at_this_phase: 'Tactical steps are title-only stubs at
+    the end of each G-step. Full tactical step detail is produced in a separate prompt
+    phase.
+
+    '

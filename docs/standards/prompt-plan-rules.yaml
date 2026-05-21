@@ -1,0 +1,162 @@
+meta:
+  version: '1.0'
+  description: 'Standard for structuring technical specifications and plans used in
+    AI-assisted development. Defines the hierarchy, content requirements, and constraints
+    for each level of the plan tree.
+
+    '
+layout:
+  root: docs/plans/<plan_name>/
+  spec_file: docs/plans/<plan_name>/tech_spec.md
+  global_step: docs/plans/<plan_name>/G-NNN-<step_name>/README.yaml
+  tactical_step: docs/plans/<plan_name>/G-NNN-<step_name>/T-NNN-<step_name>/README.yaml
+  atomic_steps: 'defined inline inside tactical step README.yaml under key: atomic_steps'
+structure:
+  levels:
+  - level: 1
+    name: plan_file
+    file: docs/plans/<plan_name>/tech_spec.md
+    format: markdown
+    role: 'Describes concepts, architecture, and principles. Does NOT list implementation
+      details — those belong to global steps. Must be self-sufficient as a conceptual
+      reference.
+
+      '
+    constraints:
+    - concepts_and_architecture_only: true
+    - no_implementation_details: true
+    - no_references_to_steps: true
+  - level: 2
+    name: global_step
+    file: G-NNN-<step_name>/README.yaml
+    format: yaml
+    role: 'Describes one major subsystem, concept, or base object. Together with the
+      plan file, must be fully sufficient to understand and describe the scope of
+      the global step.
+
+      '
+    constraints:
+    - max_count: 10
+    - self_sufficient_with_plan_file: true
+    - no_cross_references_to_other_global_steps: true
+    - covers_one_subsystem_or_concept: true
+    required_fields:
+    - step_id
+    - name
+    - description
+    - owns
+    - status
+    - tactical_steps
+  - level: 3
+    name: tactical_step
+    file: G-NNN-<step_name>/T-NNN-<step_name>/README.yaml
+    format: yaml
+    role: 'Subordinate to its global step. Together with the global step and the plan
+      file, must fully describe the task so that it can be decomposed into atomic
+      steps without additional context.
+
+      '
+    constraints:
+    - self_sufficient_with_global_step_and_plan_file: true
+    - no_assumptions_allowed: true
+    - covers_one_coherent_unit_of_work: true
+    required_fields:
+    - step_id
+    - parent_global_step
+    - name
+    - description
+    - inputs
+    - outputs
+    - status
+    - atomic_steps
+  - level: 4
+    name: atomic_step
+    format: yaml
+    role: 'A prompt for a model of the qwen2.5-coder-32b-instruct level (4k context).
+      Must be fully isolated — the model works only as a coder, makes zero assumptions,
+      and requires no external context beyond what is explicitly provided in the prompt.
+
+      '
+    constraints:
+    - max_one_code_file_per_step: true
+    - multiple_atomic_steps_per_file_allowed: true
+    - context_fits_in_4k_tokens: true
+    - fully_isolated: true
+    - model_role: coder_only
+    - no_assumptions: true
+    - prompt_must_include_all_context: true
+    required_fields:
+    - step_id
+    - parent_tactical_step
+    - name
+    - target_file
+    - operation
+    - prompt
+    - verification
+    - status
+sufficiency_rules:
+- context:
+  - plan_file
+  - global_step
+  sufficient_for: describe_global_step
+  description: 'plan_file + global_step README must be enough to fully understand
+    what the global step covers, without reading any other files.
+
+    '
+- context:
+  - plan_file
+  - global_step
+  - tactical_step
+  sufficient_for: decompose_into_atomic_steps
+  description: 'plan_file + global_step README + tactical_step README must be enough
+    to fully decompose the tactical step into atomic steps, without reading any other
+    files.
+
+    '
+- context:
+  - atomic_step.prompt
+  sufficient_for: implement_atomic_step
+  description: 'The atomic step prompt alone must be enough for a coder model to implement
+    the step correctly. No external lookups, no assumptions.
+
+    '
+status_values:
+- draft
+- ready_for_review
+- ready_for_implementation
+- in_progress
+- done
+- blocked
+naming:
+  step_id_format:
+    global: G-NNN
+    tactical: T-NNN
+    atomic: A-NNN
+  directory_name_format: <step_id>-<slug>
+  slug_style: kebab-case
+atomic_step_prompt_rules:
+  model_target: qwen2.5-coder-32b-instruct or equivalent (4k context)
+  prompt_must_contain:
+  - exact_target_file_path
+  - operation_type
+  - full_existing_file_content_if_modifying
+  - all_imports_and_types_used
+  - exact_function_or_class_signature
+  - docstring_requirements
+  - typing_requirements
+  - all_constraints_explicit
+  prompt_must_not_contain:
+  - references_to_other_steps
+  - instructions_to_read_other_files
+  - open_ended_design_decisions
+  - phrases_like_implement_as_appropriate
+  - phrases_like_add_necessary_imports
+  model_behavior:
+  - output_code_only: true
+  - no_explanations_unless_asked: true
+  - no_design_decisions: true
+  - follow_prompt_exactly: true
+  size_constraint:
+    max_output_tokens: 3500
+    prompt_overhead_budget_tokens: 500
+    total_context: 4000
