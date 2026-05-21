@@ -47,4 +47,22 @@ tactical_steps:
 - T-004
 - T-005
 future_plan_note: FUTURE PLAN — G-008 is planned but NOT scheduled for implementation. All tactical steps are draft with no atomic steps written. Implementation begins only after G-001..G-007 are fully done and explicitly approved in chat.
-cascade_note: changed — md/xml/html as converter-only subclasses; I1c source_ranges audited 2026-05-21
+executor_brief:
+  owns_paths:
+  - ai_editor/formatters/markdown/
+  - ai_editor/formatters/xml/
+  - ai_editor/formatters/html/
+  - ai_editor/formatters/conversion/
+  - tests/formatters/markdown/, xml/, html/, conversion/
+  converter_only_subclasses:
+    MarkdownFormatter: extends AbstractFormatter; mistune AST -> TreeNode via parse/node_from_source; .md/.markdown extensions (replaces TextFormatter for those)
+    XmlFormatter: extends AbstractFormatter; lxml element tree -> TreeNode; XPath query kinds map to stable_id search via base class
+    HtmlFormatter: extends AbstractFormatter; beautifulsoup/lxml HTML tree -> TreeNode
+    structural_ops: owned entirely by AbstractFormatter base; subclasses never assign stable_id or perform insert/delete/move
+  legacy_hrs_address_note: HRS Part 1/2/3 legacy address models (node index, xpath string, CSS selector) are implementation hints for parse/render only; runtime addresses are stable_id via unified Tree
+  conversion_registry:
+    owner: ConversionRegistry (C-056) owns ConversionMatrix (C-057)
+    purpose: cross-format clipboard paste — from_string/to_string between formatter TreeNode fragments
+    uses: AbstractFormatter (C-021) instances registered in matrix
+  future_plan: not scheduled until G-001..G-007 complete and explicitly approved
+cascade_note: changed — md/xml/html as converter-only subclasses; I1c source_ranges audited 2026-05-21; cycle_2 triple-autonomy 2026-05-21
