@@ -1,0 +1,158 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-002
+parent_step_name: editor_core_buffer_registry
+step_id: G-002/T-003
+step_name: file_backed_buffer_lifecycle
+title: Concrete buffer lifecycle - open, new, close, reload, file edit lock, formatter
+  fallback
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-002-editor-core-buffer-registry/README.yaml
+parent_global_context: 'G-002 owns the format-independent editor core: AbstractBuffer,
+  BufferRegistry, buffer lifecycle, formatter fallback policy, file edit lock, save/validate
+  pipeline, copy/cut/paste orchestration, and config integration. T-003 provides the
+  concrete implementation of open/new/close/reload and all the pre-open logic (file
+  edit lock, formatter selection, fallback policy). It does NOT implement save/save_as
+  or copy/cut/paste.
+
+  '
+intent: 'Implement the concrete buffer lifecycle operations: open (file-backed), new
+  (unsaved), close, and reload. Implement file edit lock acquire/release logic using
+  files.editing_pid and files.session_key columns. Implement formatter selection precedence:
+  open_as_text=True > small_file_threshold > parse_error_fallback > structural auto-detect.
+  Track buffer fields: filename, relative_path, formatter, modified, readonly, buffer_status.
+
+  '
+why_this_step_exists: 'open/new/close/reload are conceptually separate from save/validate
+  (T-004) and copy/cut/paste (T-005). The file edit lock and formatter fallback policy
+  belong here because they gate the open() operation before any save or mutation can
+  occur. Isolating this step means T-004 and T-005 can be implemented and tested without
+  re-implementing the lock and fallback logic.
+
+  '
+owned_code_paths:
+- ai_editor/editor_core/buffer.py
+- ai_editor/editor_core/file_edit_lock.py
+- tests/editor_core/test_buffer_open_close.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/save_pipeline.py
+- ai_editor/editor_core/copy_cut_paste.py
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-002/T-001 AiEditorConfig (parse_threshold for small_file_threshold)
+  - G-002/T-002 AbstractBuffer, BufferRegistry, BufferState, BufferStatus
+  - G-003 AbstractFormatter (formatter.parse, formatter.render; called via registry)
+  - G-001 contracts (ErrorCode.BUFFER_LOCKED, BUFFER_NOT_FOUND, FORMAT_VALIDATION_FAILED)
+  - code_analysis.core.database.file_edit_lock (editing_lock_holder_is_alive, try_acquire_file_edit_lock,
+    release_file_edit_lock)
+  provides_to:
+  - G-002/T-004 (save pipeline uses buffer.py buffer instances)
+  - G-002/T-005 (copy/cut/paste uses buffer state and formatter)
+  - G-002/T-006 (write_all iterates over open buffers)
+  - G-008 session layer (calls open/new/close/reload)
+public_contracts_provided:
+- 'ConcreteBuffer — implements AbstractBuffer. Fields: buffer_id, session_key, filename,
+  relative_path, formatter (AbstractFormatter instance), modified, readonly, buffer_status,
+  original_hash, current_hash, revision, document (in-memory parsed representation).
+  Stores original formatter name for fallback diagnostics.
+
+  '
+- 'FileEditLock — wrapper around code_analysis.core.database.file_edit_lock: try_acquire(session_key,
+  file_path) -> bool; release(session_key, file_path); is_locked_by_other(file_path,
+  session_key) -> bool.
+
+  '
+implementation_notes: "Formatter selection precedence for open(formatter=auto, open_as_text=False):\n\
+  \  1. open_as_text=True -> text formatter, no threshold, no fallback.\n  2. len(raw_content)\
+  \ < threshold -> text formatter, buffer_status=small_file.\n  3. formatter.parse\
+  \ raises -> fallback text formatter, buffer_status=format_fallback,\n     emit FORMAT_VALIDATION_FAILED\
+  \ diagnostic (non-fatal).\n  4. else -> structural formatter auto-detected by extension.\n\
+  open(formatter=explicit): no threshold, no fallback; FORMAT_VALIDATION_FAILED on\
+  \ parse error.\nfile_edit_lock.py adapts code_analysis/core/database/file_edit_lock.py:\n\
+  \  - try_acquire_file_edit_lock: SELECT editing_pid; if alive -> BUFFER_LOCKED;\n\
+  \    if stale -> clear then UPDATE. 0 rows -> BUFFER_LOCKED.\n  - release_file_edit_lock:\
+  \ UPDATE SET editing_pid=NULL, session_key=NULL in finally.\n  - Must use os.getpid()\
+  \ for pid and session_key for session column.\n\nnew() creates unsaved buffer: relative_path=None,\
+  \ modified=False, file_path=None. close() calls release_file_edit_lock in finally\
+  \ block guaranteed. reload() re-reads file from disk; applies same formatter selection\
+  \ as open(). modified is set by G-002/T-004 (save resets it) and by G-002/T-005\
+  \ (mutation sets it); T-003 only sets it at open (always False) and reload (reset\
+  \ to False).\n"
+verification:
+  commands:
+  - python -m pytest tests/editor_core/test_buffer_open_close.py -v
+  expected:
+  - open(session_key, file_path) acquires editing_pid + session_key in files table.
+  - Opening same file twice in same session returns existing buffer_id (no duplicate).
+  - Opening same file readwrite in two sessions returns BUFFER_LOCKED on second.
+  - open with open_as_text=True always uses text formatter regardless of file size.
+  - open with formatter=auto and small file uses text formatter, buffer_status=small_file.
+  - open with formatter=auto and parse error uses text fallback, buffer_status=format_fallback.
+  - open with formatter=explicit and parse error returns FORMAT_VALIDATION_FAILED
+    without opening.
+  - new() creates buffer with relative_path=None and modified=False.
+  - close() releases editing_pid lock in finally block even when exception raised.
+  - reload() re-reads file and resets modified=False.
+  - Stale lock (dead pid) is cleared atomically and re-acquired.
+acceptance_criteria:
+- open acquires file edit lock before parse; returns BUFFER_LOCKED if live lock held.
+- Formatter selection follows open_as_text > threshold > parse fallback > auto precedence.
+- new() creates unsaved buffer with file_path=null and modified=False.
+- close() releases lock in finally block; guaranteed even on exception.
+- reload() re-applies formatter selection and resets modified.
+- ConcreteBuffer stores original_hash, current_hash, revision, document fields.
+- 'Buffer fields include: filename, relative_path, formatter, modified, readonly,
+  buffer_status.'
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement concrete buffer lifecycle and file edit lock
+  owned_paths:
+  - ai_editor/editor_core/buffer.py
+  - ai_editor/editor_core/file_edit_lock.py
+  - tests/editor_core/test_buffer_open_close.py
+  forbidden_paths:
+  - ai_editor/editor_core/save_pipeline.py
+  - ai_editor/editor_core/copy_cut_paste.py
+  - ai_editor/formatters/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement ConcreteBuffer in buffer.py implementing AbstractBuffer
+    from T-002. Implement file_edit_lock.py adapting code_analysis/core/database/file_edit_lock.py:
+    try_acquire_file_edit_lock(session_key, file_path) -> bool; release_file_edit_lock;
+    editing_lock_holder_is_alive(pid) using os.kill(pid, 0). In open(): (1) check
+    write-lock via FileEditLock; if live session holds lock return BUFFER_LOCKED;
+    (2) apply formatter selection precedence: open_as_text=True > small_file_threshold
+    > parse_error_fallback > auto; (3) parse and register buffer. In close(): release
+    lock in finally block. new() creates unsaved buffer with relative_path=None, modified=False.
+    reload() re-reads from disk and reapplies formatter selection. Do not implement
+    save, save_as, validate, copy, cut, paste, or write_all.
+
+    '
+  non_goals:
+  - save / save_as / validate pipeline (T-004)
+  - copy / cut / paste (T-005)
+  - write_all (T-006)
+  - AbstractFormatter implementation
+  - Session directory management
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''

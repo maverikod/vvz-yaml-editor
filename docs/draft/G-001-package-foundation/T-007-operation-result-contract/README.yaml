@@ -1,0 +1,166 @@
+format: tactical_step_v1
+parent_step_id: G-001
+parent_step_name: package_contracts_and_distribution
+tactical_step_id: T-007
+tactical_step_name: operation_result_contract
+title: Shared OperationResult contract
+status: draft
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-001-package-foundation/README.yaml
+intent: Define the shared operation result shape used by future mutation and checked-write
+  subsystems to report operation success, changed paths, hashes, backup identifiers,
+  dry-run state, validation results, and render preview metadata without owning mutation,
+  rendering, validation, backup, or write behavior.
+owned_code_paths:
+- ai_editor/contracts/operations.py
+owned_test_paths:
+- tests/contracts/test_operation_result_contract.py
+owned_docs_paths: []
+forbidden_paths:
+- pyproject.toml
+- ai_editor/__init__.py
+- ai_editor/contracts/result.py
+- ai_editor/contracts/errors.py
+- ai_editor/contracts/diagnostics.py
+- ai_editor/contracts/validation.py
+- ai_editor/contracts/__init__.py
+- ai_editor/document_io/
+- ai_editor/path_language/
+- ai_editor/reader/
+- ai_editor/mutations/
+- ai_editor/validation/
+- ai_editor/transaction_writer/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_depend_on:
+  - T-005-diagnostics-contract
+  - T-006-validation-result-contract
+  may_be_used_by:
+  - T-003-result-envelope
+  - T-008-contracts-public-index
+  - future_mutation_subsystem
+  - future_transaction_writer_subsystem
+public_contracts_provided:
+- OperationResult
+- RenderPreview
+- FileHashPair
+operation_result_contract:
+  operation_result_fields:
+  - success
+  - dry_run
+  - would_change
+  - changed_paths
+  - validation_result
+  - backup_uuid
+  - old_hash
+  - new_hash
+  - render_preview
+  - diagnostics
+  render_preview_fields:
+  - old_hash
+  - new_hash
+  - changed_paths
+  file_hash_pair_fields:
+  - old_hash
+  - new_hash
+  field_semantics:
+    success: Overall operation success flag; false when mutation, validation, render,
+      backup, or write fails.
+    dry_run: True when no file write was attempted or allowed.
+    would_change: True when the planned operation would change rendered content.
+    changed_paths: Ordered list of normalized structural YAML paths affected by the
+      operation.
+    validation_result: T-006 ValidationResult-compatible object or null when validation
+      was not requested by the caller policy.
+    backup_uuid: Backup identifier for real writes when a backup is created; null
+      for dry-run results.
+    old_hash: Hash of original content when available.
+    new_hash: Hash of rendered content when available.
+    render_preview: JSON-safe preview metadata for dry-run or checked writes.
+    diagnostics: T-005 Diagnostic-compatible list, always present.
+  invariants:
+  - diagnostics is always present as a list, even when empty.
+  - changed_paths is always present as a list, even when empty.
+  - dry_run=true requires backup_uuid=null.
+  - dry_run=true must not imply a file write happened.
+  - success=true for real writes requires validation_result.success=true when validation_result
+    is present.
+  - success=false preserves diagnostics explaining the failure.
+  - old_hash and new_hash must not be claimed unless they were computed by a later
+    writer owner.
+  - This contract must not implement mutation, validation, rendering, backup, hashing,
+    filesystem, CLI, or MCP wrapper behavior.
+requirements_from_tech_spec:
+  write_response_must_return:
+  - backup_uuid
+  - old_hash
+  - new_hash
+  - changed_paths
+  - validation_result
+  dry_run_response_must_return:
+  - success
+  - would_change
+  - changed_paths
+  - validation_result
+  - render_preview
+responsibilities:
+- Define a generic operation result structure, not operation execution behavior.
+- Represent changed_paths from structural YAML operations.
+- Represent dry-run state and whether the operation would change the file.
+- Represent backup_uuid, old_hash, new_hash, and render_preview where relevant.
+- Carry validation_result without owning validation rules.
+implementation_notes:
+- This tactical step must not implement yaml_write_checked.
+- This tactical step must not apply mutations, render YAML, compute hashes, create
+  backups, or write files.
+- OperationResult should be broad enough for single-operation and batch-operation
+  reporting.
+- Use validation_result consistently; do not introduce a separate validation field
+  name in this contract.
+verification:
+  commands:
+  - python -m pytest tests/contracts/test_operation_result_contract.py
+  expected:
+  - OperationResult can represent dry-run results without backup_uuid.
+  - OperationResult can represent real-write metadata.
+  - changed_paths are represented as structural path strings.
+  - validation_result uses the T-006 ValidationResult-compatible shape.
+  - diagnostics is always present as a list.
+  - Contract is JSON-safe and imports no forbidden subsystem modules.
+acceptance_criteria:
+- OperationResult is implementation-neutral and reusable.
+- OperationResult, RenderPreview, and FileHashPair fields and invariants are explicit.
+- It can represent mutation-only and checked-write outcomes.
+- It uses validation_result consistently for dry-run and real-write reporting.
+- It edits only owned code and tests.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: Implement only the OperationResult, RenderPreview, and FileHashPair
+    contracts and tests. Do not implement mutations, checked writes, backup handling,
+    hashing, rendering, validation, CLI, MCP wrappers, or filesystem behavior. This
+    task defines result data shapes and truthful result metadata only.
+observations_template:
+- actual: ''
+  command: ''
+  error: ''
+  expected: ''
+  fix: ''
+  post_fix_verification: ''
+  root_cause: ''
+  status: ''
+quality_loop_observations:
+- iteration: 1
+  point: G-001/T-007
+  problem: OperationResult fields and invariants were not explicit enough for implementers
+  action: added operation_result_contract fields, semantics, and invariants
+  status: fixed
+- iteration: 1
+  point: G-001/T-007
+  problem: dry-run response used validation while write response used validation_result
+  action: standardized the contract on validation_result for both dry-run and real-write
+    reporting
+  status: fixed

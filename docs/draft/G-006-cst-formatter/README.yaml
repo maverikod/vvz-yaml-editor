@@ -1,0 +1,642 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-006
+step_name: cst_formatter
+title: Built-in CST formatter backend for Python files
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- cst-code/README.md
+global_intent: Own the built-in CST formatter for .py files. Adapts the existing cst-code
+  subsystem into an AbstractFormatter implementation. The document in buffer is a
+  CSTTree. The formatter owns parse/render/mutate/query semantics for Python source
+  via LibCST. It does not open, save, or close files.
+why_this_block_exists: Python files require structural editing at the AST/CST level,
+  not line ranges. The cst-code subsystem already implements tree loading, stable
+  node identity, mutation operations, sidecar caching, and XPath-like query. This
+  block formalizes that code as a first-class AbstractFormatter so editor core, search,
+  and public interfaces treat .py files uniformly with other formats.
+owned_code_paths:
+- ai_editor/formatters/cst/
+- tests/formatters/cst/
+owned_docs_paths:
+- docs/cst_formatter.md
+source_code_origin:
+  adaptation_policy: 'Every file from take list must be adapted, not copied verbatim.
+    Direct copy without changes is forbidden. Each tactical step under G-006 owns
+    the detailed change list for its assigned files. The global step defines boundaries:
+    what files are taken, what is excluded, and what must never appear in adapted
+    code.'
+  do_not_take:
+  - code_analysis/core/cst_tree/node_id_markers.py
+  - code_analysis/commands/
+  - code_analysis/core/database/
+  - code_analysis/core/database_client/
+  - code_analysis/core/database_driver_pkg/
+  - code_analysis/core/file_handlers/
+  - code_analysis/cli/
+  never_transfer:
+    database_and_io:
+    - Any import of code_analysis.core.database or database_client or database_driver_pkg.
+    - Any SQLAlchemy model, session, query, or ORM call.
+    - Any asyncpg or psycopg call.
+    - 'Any file open/read/write call inside formatter code. CSTFormatter receives
+      raw_content: str from editor core. Editor core owns all disk I/O.'
+    - Any HTTP, WebSocket, or RPC call inside formatter code.
+    node_id_markers:
+    - 'append_persisted_node_ids() — writes trailing # cst-node-ids: begin...end block
+      into .py source. FORBIDDEN.'
+    - render_marker_block() — generates trailing marker block text. FORBIDDEN.
+    - 'Any trailing # cst-node-ids: begin...end block in rendered output. FORBIDDEN.'
+    - node_id_markers.py must not be imported anywhere in adapted code.
+    registry_and_ttl:
+    - _trees dict — in-memory tree registry. Belongs to server session layer, not
+      formatter.
+    - get_tree() — retrieve tree from registry.
+    - remove_tree() — delete tree from registry.
+    - start_cst_tree_ttl_cleanup() — background TTL thread.
+    - 'load_file_to_tree() — reads file from disk and registers tree. Both halves
+      are forbidden: disk read belongs to editor core, registry belongs to session
+      layer.'
+    - Any threading.Thread or asyncio background task inside formatter code.
+    server_layer_concepts:
+    - Job queue calls or job_id returns inside formatter code.
+    - MCP command registration inside formatter code.
+    - WebSocket subscription or delivery inside formatter code.
+    - Any reference to mcp_proxy_adapter inside formatter code.
+    - Any reference to code_analysis server config or settings inside formatter code.
+    set_and_get_stable_id_in_mutations:
+    - set_stable_id() and get_stable_id() as disk persistence mechanism (writing @node-id
+      comments to .py files). FORBIDDEN.
+    - node_id_markers.py (append_persisted_node_ids, render_marker_block). FORBIDDEN
+      — writes markers to disk.
+    - set_stable_id() and get_stable_id() ARE ALLOWED as transient in-memory transport
+      for FunctionDef/ClassDef during INSERT/DELETE/MOVE mutations ONLY. After get_stable_id()
+      recovery strip_inline_node_id_lines_from_source() must be called before _build_tree_index.
+      Result must never reach render() output or disk.
+    - 'node_stable_id.py is allowed for: (1) strip_inline_node_id_lines_from_source()
+      at parse time (defensive cleaner); (2) set_stable_id/get_stable_id in INSERT/DELETE/MOVE
+      mutation flow as transient in-memory transport.'
+  path: cst-code/
+  policy: adapt-not-rewrite
+  take:
+  - code_analysis/core/cst_tree/models.py
+  - code_analysis/core/cst_tree/tree_builder.py
+  - code_analysis/core/cst_tree/tree_modifier.py
+  - code_analysis/core/cst_tree/tree_modifier_ops.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_find.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_insert.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_parse.py
+  - code_analysis/core/cst_tree/tree_modifier_ops_replace.py
+  - code_analysis/core/cst_tree/tree_modifier_validate.py
+  - code_analysis/core/cst_tree/tree_saver.py
+  - code_analysis/core/cst_tree/tree_sidecar.py
+  - code_analysis/core/cst_tree/tree_metadata.py
+  - code_analysis/core/cst_tree/node_stable_id.py
+  - code_analysis/core/cst_tree/node_type_utils.py
+  - code_analysis/core/cst_tree/skeleton.py
+  - code_analysis/core/cst_module/patcher.py
+  - code_analysis/core/cst_module/patcher_insert.py
+  - code_analysis/core/cst_module/patcher_create.py
+  - code_analysis/core/cst_module/blocks.py
+  - code_analysis/core/cst_module/validation.py
+  - code_analysis/core/cst_module/docstring_validator.py
+  - code_analysis/core/cst_module/models.py
+  - code_analysis/core/cst_module/utils.py
+  - code_analysis/core/mutable_cst/
+  - code_analysis/cst_query/
+forbidden_code_paths:
+- ai_editor/editor_core/
+- ai_editor/search/
+- ai_editor/interfaces/
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
+- ai_editor/formatters/foreign.py
+- ai_editor/sessions/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_be_used_by:
+  - G-002 editor core and buffer registry (opens .py via CSTFormatter)
+  - G-004 universal search layer (iter_units via CSTFormatter)
+  - ai_editor/file_validation.py (validate_file for .py)
+  - G-008 session layer (calls render() and write_sidecar after mutation)
+  - G-007 project refactor (reference search via CSTFormatter directly, no session)
+  may_depend_on:
+  - G-003 AbstractFormatter contract
+  - libcst >= 1.1
+  - lark (cst_query XPath parser)
+public_contracts_provided:
+- CSTFormatter (implements AbstractFormatter)
+- CSTTree (document model, opaque to editor core)
+- stable_id (durable node address surviving mutations)
+- skeleton view (declarative read mode)
+- cst_query specific command (XPath-like search)
+formatter_registration:
+  extension: .py
+  formatter_name: cst
+document_model:
+  type: CSTTree
+  description: 'In-memory LibCST tree with node index. Opaque to editor core. address
+    is stable_id: a UUID assigned once at first parse, never changed.'
+  key_fields:
+  - tree_id: runtime session UUID
+  - module: libcst.Module object
+  - metadata_map: node_id -> TreeNodeMetadata (carries stable_id)
+  - node_map: node_id -> libcst.CSTNode
+  - node_id_aliases: old_node_id -> current_node_id (transitive, updated after each
+      mutation)
+  - root_node_id: stable_id of module root
+stable_id_contract:
+  address_for_callers: stable_id only. node_id is internal. All public operations
+    accept and return stable_id.
+  assignment_rule: 'stable_id is assigned EXACTLY ONCE per node: at the moment the
+    node first appears in _build_tree_index. Value = node_id at first assignment (UUID4).
+    It is stored in TreeNodeMetadata.stable_id and in sidecar metadata_map. It is
+    NEVER reassigned.'
+  node_stable_id_py_role: node_stable_id.py provides set_stable_id(node, stable_id)
+    and get_stable_id(node) for transient in-memory embedding of stable_id into FunctionDef/ClassDef
+    node data (leading_lines EmptyLine comment) during INSERT/DELETE/MOVE mutations
+    ONLY. This is not persistence — it is a mutation transport mechanism within a
+    single mutation step. strip_inline_node_id_lines_from_source() is used at parse
+    time (defensive cleaner for legacy files) and after mutation recovery to clean
+    the module source before re-indexing.
+  persistence: stable_id persists in sidecar metadata_map. Loaded on next parse when
+    both checksums match. Never written into .py source files.
+  resolution: find_by_stable_id(stable_id) -> TreeNodeMetadata -> node_id -> libcst
+    object. Linear scan over metadata_map.values().
+  rule: stable_id is assigned once. Never changes. Stored in node metadata and sidecar.
+    Transiently embedded in node data (leading_lines) during INSERT/DELETE/MOVE only,
+    removed immediately after recovery.
+  survival_across_mutations:
+    for_replace_replace_docstring: previous_metadata_map exact_key (start_line, start_col,
+      end_line, end_col, type) is sufficient. No position shift for replaced nodes.
+      No inline comment needed.
+    for_structural_mutations_insert_delete_move: '1. Before mutation: embed stable_id
+      into each FunctionDef/ClassDef node data via set_stable_id(node, stable_id)
+      -> inserts leading_lines comment ''# @node-id: <uuid>'' into node object in
+      memory. 2. Run LibCST transformation. The comment travels with the node through
+      the transformation because it is part of the node object. 3. After mutation:
+      call get_stable_id(node) on each FunctionDef/ClassDef in the new tree to recover
+      stable_ids. Call strip_inline_node_id_lines_from_source(module.code) to remove
+      all @node-id lines from module source. 4. Call _build_tree_index(previous_metadata_map=recovered_map).
+      For non-FunctionDef/ClassDef nodes: use exact_key + previous_obj_to_id.'
+    new_nodes: 'If a node cannot be matched by any mechanism: it is new, gets stable_id
+      = new UUID4.'
+    primary_all_ops: 'Snapshot previous_metadata_map before mutation. Build previous_obj_to_id
+      = {id(libcst_node): node_id for node in node_map}. After mutation call _build_tree_index(previous_metadata_map,
+      previous_obj_to_id).'
+sidecar_contract:
+  atomic_write: Write to .tmp file then os.replace to final path. Used for both session-side
+    and project-side sidecars.
+  existing_mechanism: tree_sidecar.py in cst-code implements write_sidecar_atomic,
+    read_sidecar_payload, parse_sidecar_file, tree_to_sidecar_payload. Adapt, do not
+    rewrite.
+  format: 'Line 1: CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_body_sha256_hex>
+
+    Line 2+: JSON body'
+  json_body_fields:
+  - format_version
+  - source_sha256
+  - tree_sha256
+  - root_node_id
+  - path_to_node_id
+  - metadata_map (node_id -> TreeNodeMetadata.to_dict with stable_id)
+  - metadata_node_order
+  - parent_map
+  - node_id_aliases
+  path_patterns:
+    project_side: '{py_dir}/.cst/{py_stem}.tree  — written on save/save_as and when
+      auto_write=True'
+    session_side: <session_dir>/<buffer_id>.cst  — written after every mutation
+  purpose: Persist node identity (stable_id in metadata_map) and checksums. Session-side
+    sidecar tracks current in-session tree state. Project-side sidecar is the stable
+    on-disk cache.
+  two_checksums:
+    source_sha256: SHA-256 of UTF-8 bytes of logical Python source. Computed as SHA-256(tree.module.code.encode('utf-8')).
+    tree_sha256: SHA-256 of the JSON body text of the sidecar file.
+  validation_on_load:
+  - 1. Check session-side sidecar first (<session_dir>/<buffer_id>.cst). If valid
+    (both checksums pass) -> use it. Fast path.
+  - '2. If session-side missing or invalid: check project-side sidecar (.cst/<stem>.tree).
+    If valid -> use it.'
+  - '3. If neither valid: build tree from scratch via _build_tree_index. All stable_ids
+    are new UUID4.'
+  - '4. Validation: parse header, check tree_sha256 = SHA-256(json_body), check source_sha256
+    = SHA-256(file_content).'
+  - 5. Load metadata_map. Call sidecar_matches_built_tree. Mismatch -> build from
+    scratch.
+  written_at: 'Session-side: after every mutation (always). Project-side: on save/save_as
+    and when auto_write=True.'
+parse_contract:
+  error_contract: libcst.ParserSyntaxError -> CSTFormatter re-raises as FORMAT_VALIDATION_FAILED
+    with CST_PARSE_FAILED diagnostic. Editor core catches and falls back to text formatter
+    (G-002 formatter_fallback_policy). Empty file -> return empty CSTTree with empty
+    module body, no error. No auto-fix of syntax errors inside CSTFormatter.
+  lifecycle_open_without_sidecar:
+  - '1. Receive raw_content: str from editor core.'
+  - '2. Strip legacy trailing marker block: strip_persisted_node_ids(raw_content)
+    -> logical_source. (Defensive: new files will have no markers.)'
+  - '3. Strip legacy inline @node-id comment lines: strip_inline_node_id_lines_from_source(logical_source).
+    (Defensive: new files will have none.)'
+  - 4. Compute source_sha256 = SHA-256(logical_source.encode('utf-8')).
+  - '5. If file_path given: attempt sidecar load per sidecar_contract.validation_on_load.
+    Both checksums must pass. If valid -> load metadata_map from sidecar, go to step
+    9.'
+  - '6. Parse: module = libcst.parse_module(logical_source). If ParserSyntaxError
+    -> raise FORMAT_VALIDATION_FAILED + CST_PARSE_FAILED. Do not attempt auto-fix.'
+  - '7. Build index: _build_tree_index(tree, previous_metadata_map=None). Each node:
+    stable_id = node_id (new UUID). stable_id stored in TreeNodeMetadata.'
+  - 8. Return CSTTree. Sidecar NOT written here.
+  - 9. Return CSTTree. module parsed from logical_source so libcst graph is live.
+    metadata_map from sidecar if step 5 succeeded.
+  lifecycle_open_with_valid_sidecar: source_sha256 matches AND tree_sha256 matches
+    AND sidecar_matches_built_tree passes -> metadata_map loaded from sidecar, module
+    parsed from source, _build_tree_index skipped. Fast path.
+  method: 'parse(raw_content: str, file_path: str | None = None) -> CSTTree'
+  note: CSTFormatter.parse receives content as string from editor core. Editor core
+    owns file I/O. file_path is optional metadata used only to locate the sidecar.
+render_contract:
+  method: render(document) -> str
+  output: tree.module.code
+  guarantee: clean Python source, no markers of any kind
+save_orchestration:
+  owner: CSTFormatter (called by session layer after every mutation and on save/save_as)
+  steps:
+  - 1. validate_document(document) -> ValidationResult. Failure -> abort, return error.
+  - 2. render(document) -> python_source string.
+  - '3. Write sidecar to session dir: compute source_sha256 = SHA-256(tree.module.code);
+    serialise metadata_map to JSON body; compute tree_sha256 = SHA-256(json_body_bytes);
+    write ''CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_sha256>'' as header
+    line, then JSON body, atomically to <session_dir>/<buffer_id>.cst. This happens
+    after EVERY mutation (buf write path).'
+  - '4. If session.auto_write=True (result write path): formatter.write(python_source,
+    real_file_path) via ai_editor/writer.py (backup + atomic write + read-back). Then
+    also write sidecar to .cst/<stem>.tree alongside the real .py file.'
+  - '5. If session.auto_write=False: real file and project-side sidecar are NOT written.
+    Only session-side sidecar (<buffer_id>.cst) is written.'
+  - '6. On explicit save/save_as (not auto_write): step 4 always executes — write
+    real file and project-side sidecar.'
+  sidecar_locations:
+    project_side: .cst/<stem>.tree alongside the real .py file. Written on save/save_as
+      and on auto_write=True mutations.
+    session_side: <session_dir>/<buffer_id>.cst. Written after every mutation (always).
+      Contains current in-session tree state.
+mutation_operations:
+  inline_comment_transport:
+    invariant: The DISK PERSISTENCE variant of this mechanism is REMOVED. node_id_markers.py
+      (append_persisted_node_ids, render_marker_block) wrote @node-id markers to .py
+      files on disk — this is FORBIDDEN. The TRANSIENT IN-MEMORY variant (set_stable_id/get_stable_id
+      on FunctionDef/ClassDef during INSERT/DELETE/MOVE) is ACTIVE and documented
+      in stable_id_in_node_data_during_mutation. The inline_comment_transport section
+      describes only the disk-persistence aspect which was removed.
+    legacy_note: cst-code tree_builder.py used @node-id leading_lines comments as
+      both in-memory transport AND disk persistence. The disk persistence half is
+      removed. The in-memory transport half is retained for INSERT/DELETE/MOVE on
+      FunctionDef/ClassDef.
+    status: disk_persistence_REMOVED, in_memory_transport_ACTIVE
+  libcst_constraints_requiring_workarounds:
+    Match_node_rejection: Match node body is not directly insertable. Require MatchCase
+      as parent_stable_id; reject Match with clear error.
+    SimpleStatementSuite_expansion: SimpleStatementSuite cannot accept inserted children.
+      Auto-expand one-liner to IndentedBlock before insert.
+    docstring_positional: Docstring is positional Expr at body[0]. replace_docstring
+      detects and handles this explicitly.
+    immutable_tree_recreation: 'All nodes recreated after any transformation. Stable_id
+      survival: previous_metadata_map exact_key matching + previous_obj_to_id (id(obj)->node_id).
+      No inline comment transport.'
+    transformer_object_identity: CSTTransformer matches by object identity. node_map
+      holds pre-mutation objects; previous_obj_to_id maps post-mutation recovery.
+  note: All operations accept and return stable_id as address. node_id is internal.
+  operations:
+  - op: insert
+    params:
+    - parent_stable_id
+    - position
+    - code
+    position_values:
+    - first
+    - last
+    - after:<stable_id>
+    special_cases:
+    - empty file: create Module with docstring + first node
+    - SimpleStatementSuite parent: auto-expand to IndentedBlock before insert
+    - Match node as parent: reject with hint to use MatchCase
+    stable_id_survival: previous_metadata_map exact_key + previous_obj_to_id in _build_tree_index
+      after mutation
+  - note: descendants deleted automatically by LibCST
+    op: delete
+    params:
+    - node_stable_id
+    stable_id_survival: previous_metadata_map exact_key + previous_obj_to_id
+  - note: atomic delete + insert preserving node code
+    op: move
+    params:
+    - node_stable_id
+    - parent_stable_id
+    - position
+    stable_id_survival: previous_metadata_map exact_key + previous_obj_to_id
+  - note: full node replacement; header-only replace for ClassDef/FunctionDef preserves
+      body
+    op: replace
+    params:
+    - node_stable_id
+    - code
+    stable_id_survival: previous_metadata_map exact_key
+  - note: specialized replace for file/class/method docstring; inserts if absent,
+      replaces if present
+    op: replace_docstring
+    params:
+    - node_stable_id
+    - text
+    stable_id_survival: previous_metadata_map exact_key
+  stable_id_survival_mechanism: 'Before mutation: snapshot tree.metadata_map as previous_metadata_map
+    and build previous_obj_to_id = {id(libcst_node): node_id for each node in node_map}.
+    Run mutation. After mutation: call _build_tree_index(previous_metadata_map=previous_metadata_map,
+    previous_obj_to_id=previous_obj_to_id). For each rebuilt node: try exact_key (start_line,
+    start_col, end_line, end_col, type) -> get stable_id from prev_meta; if not found
+    try previous_obj_to_id; if not found: new node, new UUID4. No inline comments.'
+libcst_constraints_and_workarounds:
+  constraint_1_immutable_nodes:
+    constraint: LibCST tree is immutable. Any `with_changes()` or `visit()` creates
+      entirely new node objects throughout the ancestor chain. After mutation, `node_map`
+      (id(obj)->node_id) is stale for all affected nodes.
+    workarounds:
+    - 'stable_id survival: snapshot `previous_metadata_map` before mutation, build
+      `previous_obj_to_id = {id(v): k for k, v in tree.node_map.items()}` before mutation.
+      After mutation call `_build_tree_index(previous_metadata_map=..., previous_obj_to_id=...)`.
+      For each rebuilt node: try exact_key (start_line, start_col, end_line, end_col,
+      type) to get previous stable_id; fallback to previous_obj_to_id for object identity
+      match; fallback to new UUID4.'
+    - 'node_map goes stale in batch: partial `_remove_operation_nodes_from_index`
+      after each sequential operation removes only the targeted nodes so remaining
+      valid node_ids stay addressable for the next operation in the batch.'
+  constraint_2_transformer_object_identity:
+    constraint: CSTTransformer.on_leave matches nodes by Python object identity (`original_node
+      is target`). After any prior transformation in a batch, `node_map` may hold
+      pre-mutation object references that no longer exist in the current module tree.
+    workarounds:
+    - 'For compound statements (FunctionDef, ClassDef, If, For, While, Try, With):
+      `resolve_replace_target_to_current_module(module, node, metadata)` re-resolves
+      by type+name+start_position scan via MetadataWrapper+PositionProvider. Used
+      before every replace and delete.'
+    - 'For inserts: `find_parent_in_module_by_position(module, start_line, start_col)`
+      scans current module for the container by exact start position; if not found
+      (positions shifted after prior inserts) falls back to smallest span containing
+      the target position.'
+    - 'For fine-grained nodes (Name, Param, Annotation): `find_leaf_node_in_module_by_position()`
+      with exact 4-coordinate match + preferred_type disambiguation by depth.'
+  constraint_3_simple_statement_suite:
+    constraint: '`SimpleStatementSuite` (one-liner body, e.g. `def f(): pass`) has
+      no insertable children collection. `insert_node_at_position` raises ValueError
+      when parent is SimpleStatementSuite.'
+    workaround: 'Detect parent type before insert. If `isinstance(parent_node, cst.SimpleStatementSuite)`:
+      raise with message ''Expand the block to IndentedBlock first, then insert.''
+      The caller (or a pre-insert step) must rewrite the function/class to use IndentedBlock
+      body before inserting into it.'
+  constraint_4_match_node:
+    constraint: '`Match` node body is a sequence of `MatchCase` nodes, not `BaseStatement`.
+      Direct insertion into Match is not supported by the insert logic.'
+    workaround: 'Detect `isinstance(parent_node, cst.Match)` and raise ValueError:
+      ''Use MatchCase node as parent_node_id instead.'' Callers must pass a MatchCase
+      stable_id as parent.'
+  constraint_5_codegen_compat:
+    constraint: libcst 1.8.x codegen passes `default_semicolon=` kwarg to `SimpleStatementLine._codegen_impl(self,
+      state)` which does not accept it, causing TypeError.
+    workaround: 'Monkey-patch at module load: wrap `SimpleStatementLine._codegen_impl`
+      to accept `**kwargs` and ignore them. Applied once via `_apply_libcst_codegen_compat()`
+      at import time.'
+  constraint_6_insert_target_normalization:
+    constraint: Callers may pass a stable_id pointing to any node (e.g. an Import
+      inside SimpleStatementLine, or a Name inside FunctionDef). The insert logic
+      needs a statement-level ancestor that is a direct child of the body list.
+    workaround: '`insert_node_relative()` walks up the `parent_id` chain in `metadata_map`
+      from the target node until it finds an ancestor whose `(start_line, start_col)`
+      matches a direct element of the parent body (resolved via PositionProvider scan).
+      This means callers never need to manually pick the right statement level — any
+      node_id from anywhere in the subtree works.'
+  constraint_7_batch_mutable_path:
+    constraint: 'Sequential single-op LibCST transformations for multi-op batches
+      are slow and fragile: each op re-parses, positions shift, object identity is
+      lost for subsequent ops.'
+    workaround: 'For batches of (>1 replace or >1 insert or any delete) without REPLACE_RANGE
+      or MOVE: use `mutable_cst` layer (`build_from_libcst` -> `apply_operations`
+      -> `serialize_to_source` -> `cst.parse_module`). This converts the immutable
+      LibCST tree to a mutable representation, applies all ops at once, then re-parses
+      the result. Falls back to sequential if `mutable_cst` is unavailable or if fine-grained
+      node types (Name, Param) are targeted. For sequential multi-op: sort DELETE
+      bottom-to-top, then REPLACE bottom-to-top, then INSERT bottom-to-top by parent
+      position to prevent position shift from invalidating subsequent targets.'
+  stable_id_in_node_data_during_mutation:
+    invariant: After mutation completes, `@node-id` blocks do NOT exist anywhere.
+      They are transient in the source text only between `set_stable_id()` call and
+      the subsequent `strip_inline_node_id_lines_from_source()` call within the same
+      mutation step.
+    lifecycle: '1. Before structural mutation: for each FunctionDef/ClassDef in tree.module,
+      call `set_stable_id(node, stable_id)` — embeds `# @node-id: <uuid>` as a leading_lines
+      EmptyLine comment directly in the node data (in memory, not on disk). 2. Run
+      LibCST transformation (insert/delete/move). FunctionDef/ClassDef nodes carry
+      their stable_id through the transformation because the comment travels with
+      the node object. 3. After mutation: walk new tree, call `get_stable_id(node)`
+      on each FunctionDef/ClassDef — recover stable_id from leading_lines. Strip all
+      @node-id comments from module.code via `strip_inline_node_id_lines_from_source()`.
+      4. Call `_build_tree_index` with recovered stable_ids in `previous_metadata_map`.
+      The stable_id is now back in metadata only — never in source.'
+    why_inline: For INSERT/DELETE/MOVE operations, node positions shift throughout
+      the tree. exact_key matching (start_line, start_col, end_line, end_col, type)
+      fails for nodes that moved. previous_obj_to_id also fails because LibCST recreates
+      all ancestor nodes. Embedding stable_id in the node data (leading_lines comment)
+      makes it travel with the node object through the transformation, regardless
+      of position shift.
+    why_only_funcdef_classdef: 'LibCST only supports `leading_lines` (EmptyLine with
+      Comment) on FunctionDef and ClassDef nodes. Other node types do not have this
+      attribute. For all other node types: exact_key + previous_obj_to_id is sufficient
+      because they either do not shift (replace) or their stable_id is recoverable
+      through parent chain.'
+read_operations:
+  default_buffer_format: declarative. When editor core opens a .py file via CSTFormatter
+    the view returned to the caller is the declarative overview, not full source.
+    Full source available on demand via get_unit(stable_id).
+  declarative:
+    alias_function: build_declarative_overview(tree) -> (text, outline_nodes)
+    default: true
+    description: Declarative view of file structure without implementation bodies.
+      Every element carries its stable_id prefixed as [stable_id] in the signature
+      line.
+    hides:
+    - method bodies
+    - function bodies
+    - complex initializers
+    method: 'skeleton(document: CSTTree) -> str'
+    placeholder: 'Function and method bodies show: # Implementation hidden; request
+      node by node_id for full code'
+    shows:
+    - file docstring
+    - import statements with stable_id
+    - class definition header with stable_id
+    - class docstring
+    - class properties (Assign / AnnAssign) with stable_id and first line
+    - method signatures with stable_id
+    - method docstrings
+    - function signatures with stable_id
+    - function docstrings
+    stable_id_in_output: Every visible element prefixed with [stable_id] so caller
+      can address nodes directly for get_unit or mutation.
+  get_unit:
+    description: Returns full source code of the node identified by stable_id, including
+      implementation body.
+    method: 'get_unit(document: CSTTree, stable_id: str) -> unit'
+  iter_units:
+    description: Iterates over visible units for search layer (G-004). Each unit carries
+      stable_id and declarative metadata.
+    method: 'iter_units(document: CSTTree, scope: str | None) -> Iterator[unit]'
+  list_units:
+    description: Returns flat list of all nodes with stable_id, type, kind, name,
+      qualname, start_line, end_line. No source bodies included. Used for navigation
+      and as cst_query result metadata.
+    method: 'list_units(document: CSTTree) -> List[unit]'
+specific_commands:
+  cst_query:
+    description: XPath-like search over document nodes using Lark-based selector parser.
+    implementation: cst_query package (existing Lark grammar, parser, executor)
+    result_format: declarative. Each matched node is presented as declarative overview
+      (signature + docstring + children signatures, no bodies). Same rules as skeleton().
+      Full body available via get_unit(stable_id).
+    returns: 'List of nodes. Each entry: stable_id, type, name, qualname, start_line,
+      end_line. Implementation body not included by default.'
+    selector_examples:
+    - //FunctionDef[@name='foo']
+    - class > method:first
+    - Def:*[start_line>=100]
+    - function[@name^='_']:not([name^='__'])
+validation:
+  validate_content:
+    input: raw Python source string
+    behavior: parse via libcst; return syntax errors as diagnostics
+    used_by: ai_editor/file_validation.py for .py files
+  validate_document:
+    input: CSTTree
+    behavior: compile tree.module.code; return compile errors as diagnostics
+verification:
+  scope: global_completion_gate
+  commands:
+  - python -m pytest tests/formatters/cst
+  expected:
+  - 'parse round-trips without loss: render(parse(src)) == src for valid Python.'
+  - stable_id survives insert, delete, replace, move operations via previous_metadata_map.
+  - 'stable_id not in source: no @node-id comments and no # cst-node-ids blocks in
+    .py after any operation.'
+  - 'sidecar written after save with two checksums: source_sha256 and tree_sha256.'
+  - 'sidecar fast path: if both checksums match on reload tree is not re-parsed via
+    _build_tree_index.'
+  - 'sidecar corrupted (tree_sha256 mismatch): tree rebuilt from scratch.'
+  - 'source changed (source_sha256 mismatch): tree rebuilt from scratch.'
+  - skeleton returns only declarative elements with stable_id; method bodies replaced
+    by placeholder comment.
+  - 'skeleton shows: file docstring, imports, class headers+docstrings+properties,
+    method signatures+docstrings, function signatures+docstrings. All prefixed with
+    [stable_id].'
+  - get_unit(stable_id) returns full source code of single node including body.
+  - list_units() returns flat list with stable_id and no bodies.
+  - cst_query returns matching nodes in declarative format; full body via get_unit.
+  - replace_docstring inserts docstring when absent, replaces when present.
+  - SimpleStatementSuite parent auto-expanded to IndentedBlock before insert.
+  - delete removes node and all descendants.
+  - move is atomic (no partial state on failure).
+  - CSTFormatter.parse raises FORMAT_VALIDATION_FAILED on libcst.ParserSyntaxError;
+    editor core applies text fallback.
+  - validate_document uses compile() not libcst.parse_module and does not write files.
+acceptance_criteria:
+- CSTFormatter implements AbstractFormatter contract in full.
+- document model is CSTTree; public address is stable_id; node_id is internal only.
+- stable_id is assigned EXACTLY ONCE per node at first _build_tree_index. Value =
+  UUID4. Never reassigned, never changed, never written into .py source as a persisted
+  artifact.
+- stable_id is stored in TreeNodeMetadata.stable_id and persisted in sidecar metadata_map.
+- 'stable_id survives INSERT/DELETE/MOVE via inline comment transport (set_stable_id/get_stable_id
+  on FunctionDef/ClassDef as transient in-memory mechanism) combined with previous_metadata_map
+  + previous_obj_to_id. For REPLACE/REPLACE_DOCSTRING: previous_metadata_map exact_key
+  only. Inline comments are TRANSIENT IN-MEMORY ONLY — stripped before _build_tree_index,
+  never written to disk, never visible in render() output.'
+- 'node_stable_id.py is used in two contexts: (1) at parse time: strip_inline_node_id_lines_from_source()
+  as defensive cleaner for legacy files; (2) in INSERT/DELETE/MOVE mutation flow:
+  set_stable_id/get_stable_id as transient in-memory transport for FunctionDef/ClassDef
+  nodes only. After get_stable_id recovery, strip_inline_node_id_lines_from_source()
+  is called to clean module.code before _build_tree_index.'
+- 'Sidecar has two checksums: source_sha256 and tree_sha256. Both validated on load.'
+- 'If either checksum fails or sidecar is missing: tree built from scratch via _build_tree_index,
+  all stable_ids are new UUID4.'
+- Session-side sidecar (<session_dir>/<buffer_id>.cst) is written after every mutation.
+  Project-side sidecar (.cst/<stem>.tree) is written on save/save_as and when auto_write=True.
+  Sidecar is never written from parse.
+- parse(raw_content) receives string from editor core. file_path optional for sidecar
+  lookup only.
+- 'render(document) produces clean Python. No @node-id comments. No # cst-node-ids
+  blocks. No markers of any kind.'
+- 'Default read format is declarative: skeleton(). Full source via get_unit(stable_id).'
+- skeleton() shows structure with [stable_id] prefix on every element. No bodies.
+- get_unit(stable_id) returns full source including body.
+- 'list_units() returns flat list: stable_id, type, kind, name, qualname, start_line,
+  end_line. No bodies.'
+- cst_query results in declarative format. Full body via get_unit(stable_id).
+- append_persisted_node_ids and render_marker_block (from node_id_markers.py) are
+  FORBIDDEN — they write markers to disk as a persistence mechanism. set_stable_id
+  and get_stable_id are ALLOWED ONLY as transient in-memory mutation transport for
+  FunctionDef/ClassDef during INSERT/DELETE/MOVE — result must never reach render()
+  output or disk.
+- append_persisted_node_ids, render_marker_block absent from adapted code (both from
+  node_id_markers.py). set_stable_id/get_stable_id allowed ONLY as in-memory transport
+  in INSERT/DELETE/MOVE.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: 'Implement CSTFormatter under ai_editor/formatters/cst/ by adapting
+    cst-code. Policy: adapt-not-rewrite. Do NOT copy files verbatim. Each tactical
+    step under G-006 contains the detailed change list for its assigned source files
+    (what to remove, rename, rewrite, keep). Read the tactical step README before
+    touching any file. Forbidden patterns from source_code_origin/forbidden_patterns
+    apply to all adapted code unconditionally. The global constraints defined in this
+    file (stable_id contract, sidecar contract, parse contract, mutation operations,
+    libcst_constraints_and_workarounds) are the authoritative specification — adapt
+    source code to match them, not the other way around. Do not edit editor_core,
+    sessions, search, interfaces, writer, text formatter, yaml formatter, foreign
+    formatter, .venv, venv, site-packages.'
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+formatter_contract_extensions:
+  parse_exception_contract:
+    behavior: libcst.parse_module raises cst.ParserSyntaxError; CSTFormatter.parse
+      catches it and re-raises as FORMAT_VALIDATION_FAILED with CST_PARSE_FAILED diagnostic
+    caller_behavior: editor core catches FORMAT_VALIDATION_FAILED and falls back to
+      text formatter (see G-002 formatter_fallback_policy)
+    must_raise_on:
+    - any Python source that libcst.parse_module cannot parse
+    - structurally corrupt .py file
+    must_not_raise_on:
+    - syntactically valid Python regardless of style
+    - 'empty file: return empty CSTTree with empty module body'
+  validate_document_contract:
+    behavior: compile tree.module.code via compile() built-in; return ValidationResult
+      with syntax diagnostics on failure
+    called_by: editor core as first stage of save/save_as pipeline and by validate(buffer_id)
+    must_not:
+    - write files
+    - modify document
+    - re-parse from disk
+stable_id_in_node_data_during_mutation:
+  invariant: 'ACTIVE mechanism for INSERT/DELETE/MOVE on FunctionDef/ClassDef. set_stable_id
+    embeds # @node-id: <uuid> as leading_lines EmptyLine comment in node data (in
+    memory only). The comment travels with the node through LibCST transformation.
+    After transformation get_stable_id recovers stable_id. strip_inline_node_id_lines_from_source()
+    removes all @node-id lines from module.code. Result: stable_id is back in metadata
+    only, never in source or on disk. This mechanism is FORBIDDEN for disk persistence
+    (node_id_markers.py). It is ALLOWED ONLY as transient in-memory transport within
+    a single mutation step.'

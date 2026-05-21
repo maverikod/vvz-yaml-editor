@@ -1,0 +1,146 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-007
+parent_step_name: project_refactor
+step_id: G-007/T-004
+step_name: rename_execution_pipeline
+title: Rename execution pipeline with automatic rollback
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-007-project-refactor/README.yaml
+parent_global_context: 'G-007 owns project-wide rename refactoring always run via
+  mcp-proxy-adapter queue. T-004 owns the core execution pipeline: validate new_name,
+  create checkpoint (T-002), search references (T-003), apply CST renames to all found
+  files, create result commit, return RenameJobResult. On any failure after checkpoint:
+  automatic rollback via T-002. No session layer is involved; CSTFormatter is called
+  directly.
+
+  '
+intent: 'Implement execute_rename(target, new_name, update_references, dry_run, project_root)
+  -> RenameJobResult. Pipeline: (1) validate new_name is a valid Python identifier;
+  (2) if not dry_run: detect_git_availability and create checkpoint (git or backup);
+  (3) open definition file, find node by stable_id via CSTFormatter; (4) rename definition
+  node header via CST replace operation; (5) if update_references: call find_references
+  (T-003); (6) apply rename replace operations to all reference files via CSTFormatter;
+  (7) save all modified files via formatter.write; (8) if git available: create one
+  multi-file result commit; (9) return RenameJobResult. On any exception after checkpoint:
+  auto-rollback.
+
+  '
+why_this_step_exists: 'The execution pipeline integrates checkpoint (T-002) and reference
+  search (T-003) into the end-to-end rename flow. Dry_run preview, rollback on failure,
+  and result commit are concerns that span both checkpoint and search and therefore
+  belong in a separate step that owns the composition. This step does not re-implement
+  checkpoint or search.
+
+  '
+owned_code_paths:
+- ai_editor/project_refactor/rename_pipeline.py
+- tests/project_refactor/test_rename_pipeline.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/yaml/
+- ai_editor/formatters/text/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-007/T-001 contracts (RenameTarget, RenameJobResult, error codes)
+  - G-007/T-002 safety_checkpoint (detect_git_availability, create_git_checkpoint,
+    create_backup_checkpoint, rollback_git, rollback_backups)
+  - G-007/T-003 reference_search (find_references, FileReference)
+  - G-006 CSTFormatter (find_by_stable_id, rename node, apply replace, write)
+  - G-007 writer.py (backup mechanism for git-unavailable path)
+  provides_to:
+  - G-007/T-005 RenameCommand (calls execute_rename via queue job)
+public_contracts_provided:
+- 'execute_rename(target: RenameTarget, new_name: str, update_references: bool, dry_run:
+  bool, project_root: str) -> RenameJobResult: complete rename pipeline as described
+  in intent. Always returns RenameJobResult (never raises to caller).
+
+  '
+- 'validate_new_name(new_name: str) -> None: raises RENAME_INVALID_IDENTIFIER if new_name
+  is not a valid Python identifier (keyword or non-identifier string).
+
+  '
+implementation_notes: "step 1: validate_new_name calls str.isidentifier() and keyword.iskeyword().\
+  \ step 2 (skip when dry_run=True): detect_git_availability; if True: create_git_checkpoint;\n\
+  \  if False: create_backup_checkpoint for definition file and all reference files\
+  \ discovered\n  in a preliminary scan.\nstep 3: CSTFormatter.find_by_stable_id(file_path,\
+  \ stable_id) -> CST node.\n  RENAME_TARGET_NOT_FOUND if not found.\nstep 4: CSTFormatter\
+  \ applies CST replace operation to rename the definition node name. step 5: find_references\
+  \ returns ReferenceSearchResult. step 6: for each FileReference apply CSTFormatter\
+  \ rename replace operation. step 7: formatter.write each changed file. step 8 (skip\
+  \ when dry_run=True): if git available create one multi-file commit with\n  message\
+  \ 'rename <old_name> -> <new_name> (<N> files changed)'. Only one commit\n  for\
+  \ all changed files.\nOn any exception in steps 3-8: rollback_git or rollback_backups;\
+  \ set rollback_performed=True. dry_run returns RenameJobResult with changed_files\
+  \ as preview list and no files written.\n"
+verification:
+  commands:
+  - python -m pytest tests/project_refactor/test_rename_pipeline.py -v
+  expected:
+  - validate_new_name raises RENAME_INVALID_IDENTIFIER for keywords and non-identifiers.
+  - git tag pre-rename/<uuid> is created before first file modification.
+  - Definition node is renamed by stable_id.
+  - Valid-sidecar reference files are searched without re-parsing.
+  - Stale-sidecar files are re-parsed and sidecar rebuilt.
+  - Parse-error files are skipped and recorded in skipped_files.
+  - All discovered references are renamed in changed_files.
+  - dry_run=True returns preview without modifying files or creating git tag.
+  - Any failure triggers automatic rollback and rollback_performed=True in result.
+  - git unavailable falls back to file backups and operation proceeds.
+  - RenameJobResult is JSON-serialisable.
+  - Result commit is one multi-file commit for all changed files.
+acceptance_criteria:
+- execute_rename never raises to the caller; always returns RenameJobResult.
+- Safety checkpoint precedes first file write.
+- Automatic rollback on any failure after checkpoint.
+- dry_run preview has no side effects.
+- Result git commit is one multi-file commit.
+- skipped_files is always a list.
+- changed_files in dry_run is a preview only.
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement rename execution pipeline with rollback
+  owned_paths:
+  - ai_editor/project_refactor/rename_pipeline.py
+  - tests/project_refactor/test_rename_pipeline.py
+  forbidden_paths:
+  - ai_editor/editor_core/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement rename_pipeline.py with validate_new_name(new_name) and
+    execute_rename (target, new_name, update_references, dry_run, project_root) ->
+    RenameJobResult. Pipeline steps as described in intent and implementation_notes.
+    Call T-002 safety_checkpoint functions for checkpoint creation and rollback. Call
+    T-003 find_references for reference discovery. Call CSTFormatter directly (no
+    session). On any exception after checkpoint wrap in try/except, call rollback,
+    set rollback_performed=True, return RenameJobResult with success=False. Write
+    tests in tests/project_refactor/test_rename_pipeline.py. Do not implement MCP
+    command, session layer, or editor core.
+
+    '
+  non_goals:
+  - RenameCommand MCP class (T-005)
+  - Session layer involvement
+  - Editor core buffer operations
+  - Text-based reference matching
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''

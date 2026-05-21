@@ -1,0 +1,7 @@
+{
+  "$schema": "ai_editor_config_v1",
+  "formatter": {
+    "small_file_threshold": "1k",
+    "small_file_formatter": "text"
+  }
+}

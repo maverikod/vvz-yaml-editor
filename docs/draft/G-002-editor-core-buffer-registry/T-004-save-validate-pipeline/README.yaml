@@ -1,0 +1,144 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-002
+parent_step_name: editor_core_buffer_registry
+step_id: G-002/T-004
+step_name: save_validate_pipeline
+title: save, save_as, and validate pipeline with stale check and atomic write
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-002-editor-core-buffer-registry/README.yaml
+parent_global_context: 'G-002 owns the format-independent editor core: AbstractBuffer,
+  BufferRegistry, buffer lifecycle, formatter fallback policy, file edit lock, save/validate
+  pipeline, copy/cut/paste orchestration, and config integration. T-004 owns save,
+  save_as, and the validate method that is called both explicitly and as the first
+  stage of save.
+
+  '
+intent: 'Implement buffer.save, buffer.save_as, and buffer.validate -> ValidationResult.
+  validate calls formatter.validate_document without writing files or changing buffer
+  state. save and save_as call validate as the first pipeline stage and abort on failure.
+  After validation: render, stale-check, backup, atomic write via writer.py write_result,
+  reset modified=False.
+
+  '
+why_this_step_exists: 'save/validate is a distinct ownership seam from open/close
+  (T-003) and copy/cut/paste (T-005). Isolating it here means each step can be implemented
+  and tested independently. The stale-check and atomic write protocol is concentrated
+  in one place.
+
+  '
+owned_code_paths:
+- ai_editor/editor_core/save_pipeline.py
+- tests/editor_core/test_save_pipeline.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/buffer.py
+- ai_editor/editor_core/copy_cut_paste.py
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-002/T-002 BufferRegistry and BufferAddress
+  - G-002/T-003 ConcreteBuffer buffer fields (document, formatter, modified, original_hash,
+    current_hash, file_path, editing_pid)
+  - ai_editor/writer.py write_result (backup plus atomic write plus read-back; owned
+    by ai_editor package, not a separate global step)
+  - G-003 AbstractFormatter validate_document and render methods
+  - G-001 contracts (ValidationResult, OperationResult, VALIDATION_FAILED, BUFFER_STALE,
+    BUFFER_NOT_FOUND, SAVE_TARGET_EXISTS)
+  provides_to:
+  - G-002/T-006 (write_all calls save per buffer)
+  - G-008 session layer (calls save/save_as after mutations)
+public_contracts_provided:
+- 'validate(session_key, buffer_id) -> ValidationResult: calls formatter.validate_document
+  on the current in-memory document. Does not write any file. Does not change modified.
+
+  '
+- 'save(session_key, buffer_id) -> OperationResult: validate then render then stale-check
+  (editing_pid equals os.getpid()) then backup then atomic write via write_result
+  then reset modified=False then update current_hash. Returns old_hash and new_hash.
+
+  '
+- 'save_as(session_key, buffer_id, file_path, overwrite=False) -> OperationResult:
+  same pipeline as save but writes to target file_path. Checks overwrite flag and
+  returns SAVE_TARGET_EXISTS if file exists and overwrite=False. Binds buffer to new
+  file_path after successful write.
+
+  '
+implementation_notes: 'validate delegates to formatter.validate_document(document).
+  text formatter validate_document always returns success=True. save pipeline order:
+  (1) validate and abort if fails; (2) render via formatter.render; (3) stale check
+  via SELECT editing_pid from files table and compare to os.getpid(); return BUFFER_STALE
+  if mismatch; (4) write_result from ai_editor/writer.py; (5) reset modified=False;
+  (6) update current_hash. save_as: before step 1 check if target exists with overwrite=False
+  and return SAVE_TARGET_EXISTS. After successful write rebind buffer.file_path and
+  buffer.relative_path to new path. save and save_as never write when validation fails.
+  Disk state is unchanged on any pipeline failure before the actual write.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/editor_core/test_save_pipeline.py -v
+  expected:
+  - validate returns ValidationResult without writing file or changing modified.
+  - save calls formatter.validate_document before render and aborts on failure.
+  - Failed validation leaves disk unchanged.
+  - Stale buffer (editing_pid mismatch) returns BUFFER_STALE without writing.
+  - Successful save returns old_hash and new_hash and sets modified=False.
+  - save_as respects overwrite=False and returns SAVE_TARGET_EXISTS.
+  - save_as rebinds buffer to new file_path after success.
+  - text formatter always passes validate so save proceeds for text buffers.
+acceptance_criteria:
+- validate does not write any file and does not change buffer modified state.
+- save pipeline order is validate then render then stale-check then write_result.
+- save never writes when validate returns success=False.
+- save_as checks overwrite flag before write.
+- save_as rebinds buffer file_path on success.
+- Stale lock check compares editing_pid to os.getpid().
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement save, save_as, and validate pipeline
+  owned_paths:
+  - ai_editor/editor_core/save_pipeline.py
+  - tests/editor_core/test_save_pipeline.py
+  forbidden_paths:
+  - ai_editor/editor_core/buffer.py
+  - ai_editor/editor_core/copy_cut_paste.py
+  - ai_editor/formatters/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement save_pipeline.py with three functions: validate(buffer)
+    -> ValidationResult delegating to formatter.validate_document; save(buffer) executing
+    validate then render then stale-check (editing_pid equals os.getpid()) then write_result
+    from ai_editor/writer.py then reset modified=False then update current_hash; save_as(buffer,
+    file_path, overwrite) checking overwrite flag and rebinding buffer.file_path after
+    success. Write tests in tests/editor_core/test_save_pipeline.py covering all acceptance
+    criteria. Do not implement open/close/reload, copy/cut/paste, write_all, formatter
+    internals, or session logic.
+
+    '
+  non_goals:
+  - open and close and reload (T-003)
+  - copy and cut and paste orchestration (T-005)
+  - write_all (T-006)
+  - AbstractFormatter implementation
+  - Session directory management
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''

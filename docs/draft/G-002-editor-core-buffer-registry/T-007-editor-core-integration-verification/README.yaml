@@ -1,0 +1,126 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-002
+parent_step_name: editor_core_buffer_registry
+step_id: G-002/T-007
+step_name: editor_core_integration_verification
+title: Editor core integration verification and docs
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-002-editor-core-buffer-registry/README.yaml
+parent_global_context: 'G-002 owns the format-independent editor core. T-007 is the
+  verification and documentation gate for the entire G-002 subsystem. It runs the
+  integration test suite that exercises all T-001..T-006 components together and produces
+  the docs/editor_core.md document. It does not introduce new production code.
+
+  '
+intent: 'Write integration tests that verify all G-002 acceptance criteria together:
+  config loading, buffer open/new/close, formatter selection and fallback, file edit
+  lock, save/validate pipeline, copy/cut/paste, write_all. Produce docs/editor_core.md
+  documenting the public contract and usage examples for G-008 and G-008 implementers.
+
+  '
+why_this_step_exists: 'Each T-001..T-006 step has unit tests. T-007 adds integration
+  tests that exercise the cross-component interactions (e.g. open -> mutate -> validate
+  -> save, or open -> cut -> paste -> save_as). These cannot be owned by any single
+  unit test step. The docs gate ensures G-008 and G-008 have a reference without reading
+  code.
+
+  '
+owned_code_paths:
+- tests/editor_core/test_editor_core_integration.py
+owned_docs_paths:
+- docs/editor_core.md
+forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/sessions/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-002/T-001 through T-006 (all editor core components under test)
+  - G-003 text formatter (used as test formatter via stubs or real implementation)
+  - ai_editor/writer.py (called via save pipeline)
+  provides_to:
+  - G-008 session layer implementer (docs/editor_core.md as reference)
+  - ai_editor/api.py and cli.py public interface implementers (docs/editor_core.md
+    as reference)
+public_contracts_provided:
+- docs/editor_core.md documenting AbstractBuffer contract, BufferRegistry, BufferAddress,
+  BufferState, ClipboardItem, write_all.
+implementation_notes: "Integration tests should use real ConcreteBuffer instances\
+  \ with a stub or real text formatter. Each test should exercise a complete user\
+  \ workflow:\n  open -> get_state -> validate -> save\n  open -> cut(address) ->\
+  \ paste(target_address) -> save_as\n  open(formatter=auto, small file) -> check\
+  \ buffer_status=small_file\n  open(formatter=explicit, parse error) -> check FORMAT_VALIDATION_FAILED\n\
+  \  open same file twice in same session -> check same buffer_id returned\n  open\
+  \ same file in two sessions -> check BUFFER_LOCKED on second\n  write_all with mixed\
+  \ modified and unmodified buffers\ndocs/editor_core.md must include: subsystem purpose,\
+  \ public types, method signatures with parameters, ownership boundaries (what editor\
+  \ core does NOT do), and one usage example for each of open, save, copy/cut/paste,\
+  \ write_all.\n"
+verification:
+  commands:
+  - python -m pytest tests/editor_core/ -v
+  - test -f docs/editor_core.md
+  expected:
+  - All G-002 acceptance criteria pass in integration.
+  - open acquires file edit lock before parse.
+  - Opening same file twice in same session returns existing buffer_id.
+  - Opening same file readwrite in two sessions returns BUFFER_LOCKED on second.
+  - open with readonly=True sets buffer.readonly=True and mutations return BUFFER_READONLY.
+  - New unsaved buffers have relative_path=None and modified=False.
+  - Copy does not mark buffers modified.
+  - Cut and paste mark the correct buffers modified.
+  - save and save_as call formatter.validate_document and abort on failure.
+  - Stale file-backed buffers are rejected before disk write.
+  - Editor core never parses YAML addresses or text line ranges directly.
+  - validate returns ValidationResult without writing file or changing modified.
+  - Config loaded from mcp_proxy_adapter config.json ai_editor section with defaults.
+  - close releases editing_pid and session_key lock in finally block.
+  - write_all returns written_buffers, failed_buffers, skipped_buffers.
+  - docs/editor_core.md exists and covers all public types and ownership boundaries.
+acceptance_criteria:
+- Integration test suite passes for all G-002 acceptance criteria.
+- docs/editor_core.md documents AbstractBuffer contract and usage.
+- No new production code is introduced in this step.
+model_assignment_spec:
+  performer: coding_agent
+  title: Write G-002 integration tests and docs/editor_core.md
+  owned_paths:
+  - tests/editor_core/test_editor_core_integration.py
+  - docs/editor_core.md
+  forbidden_paths:
+  - ai_editor/editor_core/
+  - ai_editor/formatters/
+  - ai_editor/sessions/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Write tests/editor_core/test_editor_core_integration.py exercising
+    complete multi-step workflows across all G-002 components. All G-002 acceptance
+    criteria listed in G-002/README.yaml must be covered by at least one integration
+    test. Write docs/editor_core.md documenting AbstractBuffer, BufferRegistry, BufferAddress,
+    BufferState, ClipboardItem, and write_all with method signatures and ownership
+    boundaries. Do not add or modify production code in ai_editor/editor_core/.
+
+    '
+  non_goals:
+  - Adding production code to ai_editor/editor_core/
+  - Implementing any formatter
+  - Session layer logic
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''

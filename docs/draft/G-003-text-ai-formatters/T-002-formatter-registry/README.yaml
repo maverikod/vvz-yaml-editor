@@ -1,0 +1,116 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-003
+parent_step_name: text_ai_formatters
+step_id: G-003/T-002
+step_name: formatter_registry
+title: Formatter registry and extension-based formatter resolution
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-003-text-ai-formatters/README.yaml
+parent_global_context: 'G-003 owns AbstractFormatter and the initial formatter backends.
+  T-002 owns the formatter registry: the mapping from file extension (or explicit
+  formatter name) to formatter class, used by validate_file and buffer open(formatter=auto).
+
+  '
+intent: 'Implement FormatterRegistry: register_formatter(name, extensions, formatter_class),
+  resolve_by_extension(file_path) -> formatter_class, resolve_by_name(name) -> formatter_class.
+  Register text and YAML formatters by their extensions. Provide a default registry
+  singleton. This registry is used by G-007 validate_file and G-002 editor core open().
+
+  '
+why_this_step_exists: 'The registry is independently testable from any concrete formatter.
+  Isolating it here means T-003..T-006 can register their formatters once the registry
+  exists without modifying the abstract base or each other.
+
+  '
+owned_code_paths:
+- ai_editor/formatters/registry.py
+- tests/formatters/test_registry.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/formatters/base.py
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
+- ai_editor/editor_core/
+- ai_editor/sessions/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-003/T-001 AbstractFormatter (type hint for registered formatter class)
+  - G-001 contracts (FORMATTER_NOT_FOUND, FORMATTER_UNSUPPORTED)
+  provides_to:
+  - G-003/T-003 (text formatter registers itself)
+  - G-003/T-004 (YAML formatter registers itself)
+  - G-002 editor core open() (calls resolve_by_extension or resolve_by_name)
+  - ai_editor/file_validation.py validate_file (calls resolve_by_extension or resolve_by_name)
+public_contracts_provided:
+- 'FormatterRegistry — class with: register(name, extensions, formatter_class); resolve_by_extension(file_path)
+  -> AbstractFormatter class or FORMATTER_NOT_FOUND; resolve_by_name(name) -> AbstractFormatter
+  class or FORMATTER_NOT_FOUND; list_formatters() -> list[str].
+
+  '
+- 'default_registry: FormatterRegistry singleton pre-populated with text and YAML
+  formatters after T-003 and T-004 are implemented. Extension mapping: .yaml and .yml
+  -> yaml formatter; .txt .md .log etc -> text formatter.
+
+  '
+implementation_notes: 'FormatterRegistry is a plain dict. Extensions are stored without
+  leading dot for normalisation. resolve_by_extension extracts the extension from
+  file_path using pathlib.Path(file_path).suffix.lower(). FORMATTER_NOT_FOUND raised
+  when no formatter matches and explicit name given; FORMATTER_UNSUPPORTED raised
+  for auto-detection with unknown extension (falls through to text formatter as default).
+  default_registry is populated lazily (or explicitly) after T-003 and T-004 are registered.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/formatters/test_registry.py -v
+  expected:
+  - register adds formatter to registry under name and all extensions.
+  - resolve_by_extension returns yaml formatter for .yaml and .yml files.
+  - resolve_by_extension returns text formatter for .txt and .md files.
+  - resolve_by_name returns formatter for known name.
+  - resolve_by_name raises FORMATTER_NOT_FOUND for unknown name.
+  - list_formatters returns all registered formatter names.
+acceptance_criteria:
+- FormatterRegistry resolves .yaml and .yml to YAML formatter.
+- FormatterRegistry resolves .txt, .md, .log to text formatter.
+- resolve_by_name raises FORMATTER_NOT_FOUND for unknown name.
+- Registry does not hard-code formatter logic; it only maps names and extensions.
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement formatter registry with extension and name resolution
+  owned_paths:
+  - ai_editor/formatters/registry.py
+  - tests/formatters/test_registry.py
+  forbidden_paths:
+  - ai_editor/formatters/base.py
+  - ai_editor/formatters/text/
+  - ai_editor/formatters/yaml/
+  - ai_editor/editor_core/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement registry.py with FormatterRegistry class: register, resolve_by_extension,
+    resolve_by_name, list_formatters. Provide default_registry singleton. Write tests
+    in tests/formatters/test_registry.py. Do not implement any concrete formatter.
+
+    '
+  non_goals:
+  - AbstractFormatter implementation (T-001)
+  - Text formatter (T-003)
+  - YAML formatter (T-004..T-006)
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''

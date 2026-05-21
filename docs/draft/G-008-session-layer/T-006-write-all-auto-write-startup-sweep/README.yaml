@@ -1,0 +1,157 @@
+format: tactical_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+parent_step_id: G-008
+parent_step_name: session_layer
+step_id: G-008/T-006
+step_name: write_all_auto_write_startup_sweep
+title: write_all, auto_write, and startup_sweep
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/G-008-session-layer/README.yaml
+parent_global_context: 'G-008 owns the session layer. T-006 owns three related session-wide
+  batch/sweep operations: write_all (batch save all eligible buffers), auto_write
+  (after each mutation if session.auto_write=True), and startup_sweep (clears stale
+  session directories and locks on server start). These are independently testable
+  from session lifecycle (T-001), buffer open/close (T-002), mutation commits (T-003),
+  undo/redo (T-004), and clipboard (T-005).
+
+  '
+intent: 'Implement write_all(session_key, force=False) -> WriteAllResult that batch-saves
+  all eligible buffers via G-002 save_pipeline and creates one project git commit
+  per file. Implement auto_write(session, buffer) called after each mutation when
+  session.auto_write=True. Implement startup_sweep(sessions_base_dir) that scans session
+  directories, identifies expired/corrupt sessions, releases stale write locks, and
+  deletes stale session directories.
+
+  '
+why_this_step_exists: 'write_all, auto_write, and startup_sweep share the same ownership
+  (session-wide batch operations) without overlapping with any single-buffer or lifecycle
+  step. Grouping them here allows T-001..T-005 to be implemented without write_all
+  or startup_sweep complexity.
+
+  '
+owned_code_paths:
+- ai_editor/sessions/write_all_session.py
+- ai_editor/sessions/startup_sweep.py
+- tests/sessions/test_write_all_session.py
+- tests/sessions/test_startup_sweep.py
+owned_docs_paths: []
+forbidden_paths:
+- ai_editor/editor_core/
+- ai_editor/formatters/
+- ai_editor/search/
+- ai_editor/interfaces/
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  consumes_from:
+  - G-008/T-001 ses_settings.py (read session list and expiry check)
+  - G-008/T-003 mutation_commit (commit_mutation called by auto_write)
+  - G-002/T-004 save_pipeline (save per buffer)
+  - G-007 writer.py write_result (backup + atomic write + read-back per buffer)
+  - G-001 contracts (WriteAllResult, GIT_COMMIT_FAILED diagnostic)
+  - gitpython (project git commit per saved file)
+  provides_to:
+  - G-008/T-007 integration verification
+  - G-008 public interfaces (write_all command)
+public_contracts_provided:
+- 'write_all_session(session_key, force=False) -> WriteAllResult: for each non-readonly
+  buffer in session: if force=False skip unmodified buffers; call formatter.validate_document;
+  if fails add to failed_buffers; call write_result; on success create one project
+  git commit per file (best-effort; GIT_COMMIT_FAILED diagnostic on failure); add
+  to written_buffers. Unsaved buffers (real_file_path=None) add to skipped_buffers.
+  WriteAllResult: success (True only if all eligible succeed), written_buffers, failed_buffers,
+  skipped_buffers.
+
+  '
+- 'auto_write_on_mutation(session, buffer) -> None: called when session.auto_write=True
+  and buffer has a real_file_path. Calls write_result; on success creates project
+  git commit. New unsaved buffers (real_file_path=None) silently skipped.
+
+  '
+- 'startup_sweep(sessions_base_dir: str) -> SweepResult: scans all session directories;
+  reads ses_settings.json; identifies expired or corrupt sessions; releases write
+  locks in files table; deletes stale directories. Returns SweepResult with cleaned_sessions
+  and errors.
+
+  '
+- 'SweepResult — dataclass: cleaned_sessions (list[str]), errors (list[str]).
+
+  '
+implementation_notes: 'write_all_session iterates buffer_ids from ses_settings. Per
+  buffer: validate then write. Project git commit message: ''<formatter_name>: save
+  <relative_file_path>''. Git commit is best-effort; write still succeeds even when
+  git commit fails. auto_write_on_mutation is called by the mutation handler in G-008
+  session operations AFTER commit_mutation. Skips real_file_path=None buffers silently.
+  startup_sweep: scan sessions_base_dir for directories whose names are valid UUID4.
+  For each: read ses_settings.json; if missing/corrupt or expired (now - last_active_at
+  > idle_timeout_seconds): release write locks via UPDATE files SET editing_pid=NULL
+  session_key=NULL WHERE session_key=<stale_key>; delete directory atomically.
+
+  '
+verification:
+  commands:
+  - python -m pytest tests/sessions/test_write_all_session.py tests/sessions/test_startup_sweep.py
+    -v
+  expected:
+  - write_all with force=False writes only modified non-readonly buffers.
+  - write_all with force=True writes all non-readonly buffers.
+  - write_all validation failure records buffer in failed_buffers; others continue.
+  - Unsaved buffers (real_file_path=None) appear in skipped_buffers.
+  - write_all success=False when any eligible buffer fails.
+  - Project git commit created per written file (best-effort).
+  - GIT_COMMIT_FAILED diagnostic attached when git commit fails without failing write.
+  - auto_write_on_mutation calls write_result for real-file buffers.
+  - auto_write_on_mutation skips buffers with real_file_path=None.
+  - startup_sweep releases write locks for expired sessions.
+  - startup_sweep deletes expired session directories atomically.
+  - startup_sweep handles corrupt ses_settings.json without crashing.
+acceptance_criteria:
+- write_all result is always partial-write-safe and session remains open on failure.
+- failed_buffers contains buffer_id, error_code, and message.
+- Project git commit is best-effort and GIT_COMMIT_FAILED is non-fatal.
+- auto_write skips new unsaved buffers silently.
+- startup_sweep never crashes on corrupt or missing ses_settings.json.
+- startup_sweep releases stale locks before deleting directories.
+model_assignment_spec:
+  performer: coding_agent
+  title: Implement write_all, auto_write, and startup_sweep for session layer
+  owned_paths:
+  - ai_editor/sessions/write_all_session.py
+  - ai_editor/sessions/startup_sweep.py
+  - tests/sessions/test_write_all_session.py
+  - tests/sessions/test_startup_sweep.py
+  forbidden_paths:
+  - ai_editor/editor_core/
+  - ai_editor/formatters/
+  - .venv
+  - venv
+  - site-packages
+  instruction: 'Implement write_all_session.py with write_all_session(session_key,
+    force) -> WriteAllResult (validate then write_result per eligible buffer; best-effort
+    project git commit per file) and auto_write_on_mutation(session, buffer) (write_result
+    for real-file buffers; skip None). Implement startup_sweep.py with SweepResult
+    dataclass and startup_sweep(sessions_base_dir) scanning directories, reading ses_settings.json,
+    releasing stale locks, deleting expired directories. Write tests in tests/sessions/test_write_all_session.py
+    and tests/sessions/test_startup_sweep.py. Do not implement session lifecycle,
+    buffer open/close, mutation commits, undo/redo, or clipboard.
+
+    '
+  non_goals:
+  - Session lifecycle connect/disconnect (T-001)
+  - Buffer open/close within session (T-002)
+  - Mutation commit per edit (T-003)
+  - undo/redo (T-004)
+  - Session clipboard (T-005)
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''

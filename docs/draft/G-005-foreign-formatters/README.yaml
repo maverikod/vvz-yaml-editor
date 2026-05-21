@@ -1,0 +1,154 @@
+format: global_package_step_v2
+plan_id: ai_editor_pip_package_for_mcp
+step_id: G-005
+step_name: foreign_formatters
+title: ForeignFormatter and external OpenAPI/MCP formatter adapter subsystem
+status: draft
+source_plan: docs/plans/create_pip_package_for_mcp.yaml
+source_documents:
+- docs/tech_spec.md
+- docs/plans/create_pip_package_for_mcp.yaml
+global_intent: 'Own ForeignFormatter: an AbstractFormatter implementation that delegates
+  complex formatter operations to external servers through OpenAPI calls backed by
+  mcp-proxy-adapter. Foreign formatters must follow the same formatter contract as
+  local text/AI formatters while preserving truthful nested success/error semantics.'
+why_this_block_exists: Some document formats require specialized CST, AST, semantic,
+  or language-server-like logic that should not live inside the base editor package.
+  The editor must be able to call such formatters through the same AbstractFormatter
+  surface used for local formatters, including validate_content, validate_document,
+  address normalization, unit iteration, search matching, comparison, copy/cut/paste,
+  and diagnostics.
+owned_code_paths:
+- ai_editor/formatters/foreign.py
+- tests/formatters/foreign/
+owned_docs_paths:
+- docs/foreign_formatters.md
+forbidden_code_paths:
+- ai_editor/editor_core/
+- ai_editor/search/
+- ai_editor/interfaces/
+- ai_editor/formatters/text/
+- ai_editor/formatters/yaml/
+- ai_editor/formatters/cst/
+- ai_editor/sessions/
+- ai_editor/writer.py
+- .venv
+- venv
+- site-packages
+allowed_dependencies:
+  may_be_used_by:
+  - G-002 editor core through formatter registry
+  - G-004 universal search layer through formatter contract
+  - ai_editor/api.py and ai_editor/interfaces/cli.py public API and CLI
+  - G-008 session layer (calls render() after mutation)
+  may_depend_on:
+  - G-003 AbstractFormatter contract
+  - mcp-proxy-adapter OpenAPI call semantics
+public_contracts_provided:
+- ForeignFormatter
+- foreign formatter configuration model
+- OpenAPI/MCP formatter call adapter
+- nested-success error mapping contract
+foreign_formatter_contract:
+  class_name: ForeignFormatter
+  implements: AbstractFormatter
+  required_configuration:
+  - formatter_name
+  - openapi_endpoint
+  - mcp_server_id
+  - command_mapping
+  - timeout_policy
+  - error_mapping
+  required_methods:
+  - validate_content(raw_content, *, file_path=null, schema=null, options=null)
+  - validate_document(document, *, schema=null, options=null)
+  - list_commands() -> FormatterCommandCatalog
+  - parse(raw_content)
+  - render(document)
+  - normalize_address(address)
+  - copy_fragment(document, source_address)
+  - cut_fragment(document, source_address)
+  - paste_fragment(document, target_address, fragment, mode)
+  - get_unit(document, address)
+  - iter_units(document, scope)
+  - match_unit(unit, query)
+  - compare_units(unit_a, unit_b, options)
+  - diagnostics(document)
+openapi_mcp_proxy_rules:
+- ForeignFormatter calls external formatter commands through OpenAPI/MCP-proxy-adapter.
+- A transport-level completed call is not formatter success by itself.
+- Nested result.success=false must be mapped to a local failure response.
+- Missing nested success fields must return FOREIGN_FORMATTER_CONTRACT_VIOLATION.
+- Timeouts must return FOREIGN_FORMATTER_TIMEOUT.
+- External server exceptions must return FOREIGN_FORMATTER_FAILED with diagnostics.
+- ForeignFormatter must not open, save, or close files for buffer lifecycle operations.
+- ForeignFormatter may perform format-specific validation, CST/AST address handling,
+  unit iteration, and edit fragment operations.
+example_use_cases:
+- .ts -> TypeScript AST/CST via external language server ForeignFormatter
+- .md -> Markdown via external formatter ForeignFormatter
+- .go, .rs, .java -> language-specific external formatter ForeignFormatter
+verification:
+  scope: global_completion_gate
+  commands:
+  - python -m pytest tests/formatters/foreign
+  expected:
+  - ForeignFormatter implements the same AbstractFormatter contract as local formatters.
+  - ForeignFormatter validate_content delegates to the external formatter and maps
+    successful results.
+  - ForeignFormatter validate_document delegates to the external formatter.
+  - ForeignFormatter mutate_set, mutate_append, mutate_delete etc. delegate to external
+    formatter commands.
+  - ForeignFormatter write(content, path) uses default ai_editor/writer.py implementation.
+  - Nested success=false is returned as local success=false.
+  - Missing nested result.success returns FOREIGN_FORMATTER_CONTRACT_VIOLATION.
+  - Timeout returns FOREIGN_FORMATTER_TIMEOUT.
+  - Transport failure returns FOREIGN_FORMATTER_FAILED.
+  - ForeignFormatter never writes files or owns buffer lifecycle.
+acceptance_criteria:
+- ForeignFormatter can be registered in the formatter registry under a formatter name
+  and extension list.
+- validate_file can select a ForeignFormatter by extension or explicit formatter name.
+- External formatter responses are normalized to the same validation_result and diagnostics
+  shape as local formatters.
+- No foreign formatter call may mask nested failure as success.
+- ForeignFormatter keeps editor core independent of OpenAPI/MCP transport details.
+model_assignment_spec:
+  performer: coding_agent
+  instruction: 'Implement only ForeignFormatter and tests/formatters/foreign. It must
+    implement the AbstractFormatter contract by delegating operations to external
+    OpenAPI/MCP-proxy-adapter backed formatter commands. Preserve nested success/error
+    semantics: transport completion is not success unless the nested formatter result
+    reports success=true. Do not edit editor core, local text/AI formatters, search
+    internals, public CLI, MCP wrappers outside this adapter, .venv, venv, site-packages,
+    or installed dependencies.'
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+foreign_command_discovery:
+  purpose: Expose external formatter-specific commands as a local FormatterCommandCatalog
+    while preserving OpenAPI schema details.
+  required_behavior:
+  - Call external OpenAPI/MCP-proxy-adapter command discovery or configured schema
+    endpoint
+  - Normalize external OpenAPI operations into FormatterCommandMetadata
+  - Preserve formatter-specific commands such as CST XPath-like search and derived
+    tree export
+  - Mark commands that write derived artifacts with writes_files=true
+  - Return FORMATTER_COMMAND_DISCOVERY_FAILED on external discovery failure
+  - Return FORMATTER_COMMAND_SCHEMA_INVALID when external schema cannot be normalized
+  - Return FOREIGN_FORMATTER_CONTRACT_VIOLATION when nested success/result contract
+    is missing
+  - Do not treat proxy transport completion as successful discovery unless nested
+    result.success=true
+  catalog_output: FormatterCommandCatalog
+  examples:
+  - CST formatter exposes xpath-like tree search
+  - CST formatter exposes save extracted tree to separate file with writes_files=true
+  - Language formatter exposes node parent/children/sibling navigation

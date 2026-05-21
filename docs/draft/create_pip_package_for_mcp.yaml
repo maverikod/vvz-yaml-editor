@@ -1,0 +1,1404 @@
+format: implementation_plan_v1
+plan_id: ai_editor_pip_package_for_mcp
+project: ai_editor
+source_documents:
+- docs/tech_spec.md
+created_for: mcp_server_usage
+status: draft
+language_policy:
+  documentation_language: English
+  code_logs_commands_prompts_and_specs: English
+summary:
+  goal: 'Create a production-ready Python pip package that provides a small, familiar
+    editor interface for MCP servers and AI models. The package operates in sessions:
+    each client connects and receives a session_key, under which it opens buffers
+    for files. Buffers are backed by temporary .buf files and tracked by ses_settings.json
+    session files on disk. All mutations are applied to the buffer only; the real
+    file is written only on explicit save. Operation history is stored as git commits
+    on a per-buffer branch (buf/<buffer_id>) in the session-local git repo (<session_dir>/git/),
+    enabling undo/redo for the lifetime of the buffer. On buffer close the branch
+    is deleted. The package must separate file/buffer lifecycle, formatter-specific
+    editing, universal search, and format validation. YAML is the first structured
+    formatter and text is the first plain formatter; foreign formatters must make
+    complex CST/AST or server-side formatters possible through OpenAPI/MCP-proxy-adapter
+    without redesigning AbstractBuffer, AbstractFormatter, or AbstractSearch.'
+  main_principle: validate_file/open/new buffer -> search/select addresses -> copy/cut/paste
+    in buffers -> formatter.validate_document -> formatter.render -> checked save/save_as
+  non_goals:
+  - Do not expose many technical buffer, session, or clipboard internals as normal
+    model-facing commands.
+  - Do not let formatter implementations open, save, or close files.
+  - Do not let buffer lifecycle logic know YAML paths or text line ranges.
+  - Do not put search/query semantics inside file save/open logic.
+  - Do not make validate_file perform edits or writes.
+  - Do not implement regular editing through unsafe line ranges for structured formats.
+  - Do not patch .venv, site-packages, or installed dependency code.
+  - Do not allow save/save_as to persist invalid content for the active formatter.
+  - Do not make YAML-specific assumptions part of the editor core.
+  - Do not treat external OpenAPI/MCP proxy completion as formatter success unless
+    nested result.success is true.
+  - Do not push git buffer branches to any remote repository.
+  - Do not merge buffer branches into the project main branch on save.
+  - Do not index ses_settings.json or .buf files in the code analysis database.
+  - Do not allow the same file to be open for writing in two sessions simultaneously.
+package_target:
+  distribution_name: ai-editor-mcp
+  import_package: ai_editor
+  python_requires: '>=3.10'
+  license: TBD
+  build_backend: hatchling
+  runtime_dependencies:
+  - ruamel.yaml
+  - jsonschema
+  - jsonpath-ng
+  - gitpython
+  optional_dependencies:
+    dev:
+    - pytest
+    - pytest-cov
+    - mypy
+    - ruff
+    - build
+    - twine
+  public_entry_points:
+    console_scripts:
+    - ai-editor=ai_editor.interfaces.cli:main
+  repository_constraints:
+    forbidden_paths:
+    - .venv
+    - venv
+    - site-packages
+    editable_scope:
+    - pyproject.toml
+    - README.md
+    - ai_editor
+    - tests
+    - docs
+module_architecture:
+  package_layout:
+  - path: ai_editor/__init__.py
+    purpose: Public package exports and version.
+  - path: ai_editor/editor_core/
+    purpose: 'AbstractBuffer and buffer registry: file-backed/unsaved buffers, buffer
+      fields (filename, relative_path, formatter, modified, readonly), open/save/save_as/close/reload
+      lifecycle, stale checks, and atomic persistence orchestration. Accepts session_key
+      as a required parameter but does not own ses_settings.json, .buf files, or session
+      git. Does not know formatter internals.'
+  - path: ai_editor/sessions/
+    purpose: 'Session layer (G-008): connect/reconnect/disconnect, session_key lifecycle,
+      per-session directory (<sessions_base_dir>/<session_key>/), ses_settings.json
+      and .buf file management, write-lock enforcement, session-local bare git repo
+      for undo/redo, session-scoped clipboard. After every mutation commits rendered
+      buffer to session git branch buf/<buffer_id>.'
+  - path: ai_editor/formatters/base.py
+    purpose: 'AbstractFormatter contract: parse, render, validate_content [abstract],
+      validate_document [abstract], mutate_set [abstract], mutate_replace_block [abstract],
+      mutate_append [abstract], mutate_delete [abstract], mutate_move [abstract],
+      list_commands, normalize_address, copy_fragment, cut_fragment, paste_fragment,
+      get_unit, iter_units, match_unit, compare_units, diagnostics.'
+  - path: ai_editor/formatters/registry.py
+    purpose: Formatter registry and extension-based formatter resolution for validate_file
+      and open(formatter=auto).
+  - path: ai_editor/formatters/text/
+    purpose: Text formatter backend. Implements all AbstractFormatter abstract methods
+      for array-of-lines document model. validate_content and validate_document always
+      return success=True.
+  - path: ai_editor/formatters/yaml/
+    purpose: YAML formatter backend. Implements all AbstractFormatter abstract methods
+      for YAML tree document model (ruamel.yaml). Owns YAML address, YAML unit, structural
+      path, mutation operations, validate_content (parse+schema+semantic+render check),
+      validate_document, plan_task_v1 rules, and YAML copy/cut/paste semantics. Also
+      contains document_io/ and compat/ submodules.
+  - path: ai_editor/formatters/cst/
+    purpose: CST formatter backend (LibCST). Implements all AbstractFormatter abstract
+      methods for Python files. Owns stable_id, sidecar, CST mutations, validate_document
+      (compile()), cst_query. Owned by G-006.
+  - path: ai_editor/formatters/foreign.py
+    purpose: 'ForeignFormatter: AbstractFormatter implementation delegating to external
+      OpenAPI/MCP-proxy-adapter. Implements all abstract methods including validate_content,
+      validate_document, and mutate_* via external calls.'
+  - path: ai_editor/file_validation.py
+    purpose: 'validate_file orchestration: resolve formatter by extension or explicit
+      name, call formatter.validate_content or formatter.validate_document, return
+      unified diagnostics without writes.'
+  - path: ai_editor/search/
+    purpose: 'AbstractSearch: find, find_one, list_units, select over formatter-provided
+      units via iter_units, match_unit, compare_units.'
+  - path: ai_editor/config/
+    purpose: AiEditorConfig, AiEditorConfigGenerator, AiEditorConfigValidator extending
+      mcp_proxy_adapter SimpleConfig. Reads ai_editor section from config.json.
+  - path: ai_editor/api.py
+    purpose: High-level model-facing API for session lifecycle, buffer lifecycle,
+      validate_file, copy/cut/paste, search, validation, and YAML compatibility wrappers.
+  - path: ai_editor/models.py
+    purpose: 'Typed request and response dataclasses: BufferAddress, BufferDescriptor,
+      SessionDescriptor, ValidationResult, OperationResult, WriteAllResult, clipboard
+      and search contracts.'
+  - path: ai_editor/clipboard.py
+    purpose: JSON Schema for plan_task_v1 validation. Used by YAML formatter validate_content
+      and validate_document for plan_task_v1 semantic validation. Owned by G-003 (YAML
+      formatter). Packaged inside the wheel as package data.
+  - path: ai_editor/writer.py
+    purpose: 'Checked persistence helper: write_buf (atomic, no backup, no read-back)
+      for .buf files after every mutation; write_result (backup + atomic write + read-back
+      + project git commit) for real files on save/save_as. Owned by G-007.'
+  - path: ai_editor/schemas/plan_task_v1.schema.json
+    purpose: 'Atomic write helper used by two distinct paths: (1) buffer write — session
+      layer (G-008) writes .buf file to <session_dir>/<filename>.buf after every mutation,
+      no backup, no read-back; (2) result write — editor core (G-002) writes real
+      file to disk on save/save_as, with backup before write and read-back after.
+      Both paths call formatter.write(content, path) which delegates to this helper.
+      Owned by G-007.'
+  - path: ai_editor/interfaces/cli.py
+    purpose: 'Thin CLI diagnostic wrapper. Console script target: ai_editor.interfaces.cli:main.'
+  - path: tests/
+    purpose: Unit and integration tests over session lifecycle, buffer lifecycle,
+      format validation, formatter mutations, foreign formatter contract, search,
+      text formatter, YAML formatter, CST formatter, and real fixtures.
+public_api:
+  core_commands:
+  - name: connect
+    layer: session
+    purpose: Create a new session and return session_key and empty session_descriptor.
+    request:
+      idle_timeout_seconds: integer (default 3600)
+    response_fields:
+    - success
+    - session_key
+    - session_descriptor
+    - diagnostics
+  - name: reconnect
+    layer: session
+    purpose: Reconnect to an existing session and restore open buffer list.
+    request:
+      session_key: UUID4 string
+    response_fields:
+    - success
+    - session_key
+    - session_descriptor
+    - diagnostics
+  - name: disconnect
+    layer: session
+    purpose: Close or idle a session. Blocked by modified buffers unless close_unsaved=True.
+    request:
+      session_key: UUID4 string
+      force: boolean (default False)
+      close_unsaved: boolean (default False)
+    response_fields:
+    - success
+    - session_key
+    - closed
+    - unsaved_buffer_ids
+    - diagnostics
+  - name: session_status
+    layer: session
+    purpose: Return current session state and list of open buffer descriptors.
+    request:
+      session_key: UUID4 string
+    response_fields:
+    - success
+    - session_key
+    - open_buffers
+    - diagnostics
+  - name: open
+    layer: buffer
+    purpose: Open a file-backed buffer within a session. Returns existing buffer_id
+      if file already open.
+    request:
+      session_key: UUID4 string
+      file_path: string
+      formatter: auto|text|yaml|cst|foreign
+      readonly: boolean (default False)
+    response_fields:
+    - success
+    - buffer_descriptor
+    - diagnostics
+  - name: new
+    layer: buffer
+    purpose: Create a new unsaved buffer within a session.
+    request:
+      session_key: UUID4 string
+      formatter: text|yaml|cst|foreign
+      display_name: optional string
+    response_fields:
+    - success
+    - buffer_descriptor
+    - diagnostics
+  - name: save
+    layer: buffer
+    purpose: Validate, render, stale-check, back up, and atomically write a buffer
+      to its real file.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+    response_fields:
+    - success
+    - buffer_id
+    - file_path
+    - old_hash
+    - new_hash
+    - diagnostics
+  - name: save_as
+    layer: buffer
+    purpose: Write buffer to a target file path and bind the buffer to that file.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      file_path: string
+      overwrite: boolean
+    response_fields:
+    - success
+    - buffer_id
+    - file_path
+    - old_hash
+    - new_hash
+    - diagnostics
+  - name: close
+    layer: buffer
+    purpose: Close a buffer within a session. Real file unchanged if not saved.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+    response_fields:
+    - success
+    - buffer_id
+    - closed
+    - diagnostics
+  - name: undo
+    layer: buffer
+    purpose: Undo the last N mutations on a buffer via editor-internal git.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      steps: integer (default 1)
+    response_fields:
+    - success
+    - buffer_id
+    - modified
+    - diagnostics
+  - name: redo
+    layer: buffer
+    purpose: Redo N mutations if no new mutation occurred since last undo.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      steps: integer (default 1)
+    response_fields:
+    - success
+    - buffer_id
+    - modified
+    - diagnostics
+  - name: validate_file
+    layer: file_validation
+    purpose: Validate a file by path or buffer by buffer_id without writing.
+    request:
+      session_key: optional UUID4 string
+      file_path: optional string
+      buffer_id: optional UUID4 string
+      formatter: auto|text|yaml|cst|foreign
+    response_fields:
+    - success
+    - formatter
+    - file_path
+    - buffer_id
+    - validation
+    - errors
+    - warnings
+    - diagnostics
+  - name: formatter_commands
+    layer: formatter_discovery
+    purpose: Return standard and formatter-specific command catalog.
+    request:
+      session_key: optional UUID4 string
+      formatter: optional formatter name
+      buffer_id: optional UUID4 string
+      file_path: optional string
+    response_fields:
+    - success
+    - formatter
+    - standard_commands
+    - specific_commands
+    - diagnostics
+  - name: copy
+    layer: edit
+    purpose: Copy a fragment from a buffer address into the session clipboard.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      address: formatter-specific value
+      clipboard_item_id: optional string
+    response_fields:
+    - success
+    - clipboard_item_id
+    - source_formatter
+    - diagnostics
+  - name: cut
+    layer: edit
+    purpose: Cut a fragment from a buffer address into the session clipboard. Marks
+      buffer modified.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      address: formatter-specific value
+      clipboard_item_id: optional string
+    response_fields:
+    - success
+    - clipboard_item_id
+    - source_formatter
+    - modified
+    - diagnostics
+  - name: paste
+    layer: edit
+    purpose: Paste a clipboard fragment into a buffer address. Marks buffer modified.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      address: formatter-specific value
+      mode: formatter-specific string
+      clipboard_item_id: optional string
+    response_fields:
+    - success
+    - target_formatter
+    - modified
+    - diagnostics
+  - name: find
+    layer: search
+    purpose: Find all matching formatter units in a buffer.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      query: formatter/search query object
+      scope: optional formatter-specific scope
+    response_fields:
+    - success
+    - matches
+    - diagnostics
+  - name: find_one
+    layer: search
+    purpose: Return exactly one matching unit or a typed search error.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      query: formatter/search query object
+      scope: optional formatter-specific scope
+    response_fields:
+    - success
+    - match
+    - address
+    - diagnostics
+  - name: list_units
+    layer: search
+    purpose: List formatter units in a buffer.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      scope: optional formatter-specific scope
+    response_fields:
+    - success
+    - units
+    - diagnostics
+  - name: validate
+    layer: formatter
+    purpose: Validate in-memory buffer document without writing.
+    request:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      schema: optional string
+    response_fields:
+    - success
+    - validation
+    - errors
+    - warnings
+    - diagnostics
+  compatibility_commands:
+    ai_compatibility:
+    - yaml_load -> open(file_path, formatter=ai) plus AI formatter summary
+    - yaml_write_checked -> open/apply formatter operations/save compatibility flow
+    - yaml_validate -> validate(buffer_id) through AI formatter
+    - yaml_get -> find_one/get_unit through AI formatter address
+    - yaml_get_command -> find_one with YAML query over units
+    - yaml_set -> paste(mode=set) on AI formatter
+    - yaml_replace_block -> paste(mode=replace_block) on AI formatter
+    - yaml_append -> paste(mode=append) on AI formatter
+    - yaml_delete -> cut and discard clipboard fragment on AI formatter
+    - yaml_move -> cut + paste on AI formatter
+    - yaml_clipboard_* -> editor copy/cut/paste plus clipboard internals
+  buffer_address_contract:
+    name: BufferAddress
+    required_fields:
+    - buffer_id
+    - address
+    rules:
+    - address is opaque to editor core
+    - address is interpreted only by the buffer formatter
+    - AI formatter treats address as structural YAML path
+    - Text formatter treats address as line range, insertion point, or whole document
+  fallback_unsafe_commands:
+  - name: yaml_read_lines
+    allowed_usage: Emergency diagnostics only.
+  - name: yaml_write_lines_unsafe
+    allowed_usage: Emergency low-level repair only; must be visibly marked unsafe
+      and must not be part of normal editor workflows.
+yaml_path_requirements:
+  supported_syntax:
+  - top_level_key
+  - dotted.path.to.key
+  - list[0]
+  - commands[name=buf_diff]
+  - commands[name=buf_diff].metadata.best_practices[1]
+  parser_rules:
+  - Reject empty paths for replace operations unless the command explicitly supports
+    full-document replacement.
+  - Return a typed error for no match.
+  - Return a typed error for non-unique list filter matches.
+  - Preserve mapping order and comments where ruamel.yaml can preserve them.
+  - Report changed_paths exactly as normalized structural paths.
+validation_requirements:
+  generic:
+  - YAML must parse before any operation is applied.
+  - Patched in-memory tree must remain valid YAML.
+  - Rendered YAML must parse back to an equivalent tree.
+  - Rendering must be deterministic for the same input tree.
+  - Write must be rejected if changed paths differ from expected operation paths.
+  plan_task_v1:
+  - format must equal plan_task_v1.
+  - node_id must match the file level conventions used by the plans repository.
+  - kind must be one of spec, global, tactical, atomic.
+  - depends_on must be a list of strings.
+  - commands must be a list of objects.
+  - commands[].name values must be unique.
+  - commands[].schema.required must reference only existing properties.
+  - read_model.sees_live_tmpfs_worktree must be false for read-only plan_* disk commands.
+  - buf_flush semantics must not contradict root README semantics: commit to buf/<uuid>,
+      no merge, lock retained.
+  - verification must be a non-empty list.
+  - status must be one of draft, ready_for_review, ready_for_implementation, blocked.
+error_model:
+  typed_errors:
+  - SESSION_NOT_FOUND
+  - SESSION_EXPIRED
+  - SESSION_LOCK_CONFLICT
+  - SESSION_HAS_UNSAVED_BUFFERS
+  - SESSION_READONLY
+  - BUFFER_NOT_FOUND
+  - BUFFER_ALREADY_OPEN
+  - BUFFER_HAS_UNSAVED_CHANGES
+  - BUFFER_STALE
+  - BUFFER_INVALID
+  - BUFFER_LOCKED
+  - BUFFER_READONLY
+  - FORMATTER_NOT_FOUND
+  - FORMATTER_UNSUPPORTED
+  - FORMATTER_COMMAND_DISCOVERY_FAILED
+  - FORMATTER_COMMAND_SCHEMA_INVALID
+  - FORMATTER_COMMAND_UNSUPPORTED
+  - FORMAT_VALIDATION_FAILED
+  - FOREIGN_FORMATTER_FAILED
+  - FOREIGN_FORMATTER_TIMEOUT
+  - FOREIGN_FORMATTER_CONTRACT_VIOLATION
+  - PATH_PARSE_FAILED
+  - PATH_NOT_FOUND
+  - PATH_NOT_UNIQUE
+  - TARGET_TYPE_MISMATCH
+  - ADDRESS_INVALID
+  - ADDRESS_NOT_FOUND
+  - ADDRESS_NOT_UNIQUE
+  - SEARCH_QUERY_INVALID
+  - SEARCH_NO_MATCH
+  - SEARCH_NOT_UNIQUE
+  - SEARCH_SCOPE_INVALID
+  - FORMATTER_SEARCH_UNSUPPORTED
+  - CLIPBOARD_EMPTY
+  - CLIPBOARD_ITEM_NOT_FOUND
+  - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_FORMAT_MISMATCH
+  - CLIPBOARD_SOURCE_STALE
+  - CLIPBOARD_INVALID_MODE
+  - YAML_PARSE_FAILED
+  - CST_PARSE_FAILED
+  - VALIDATION_FAILED
+  - SCHEMA_VALIDATION_FAILED
+  - SEMANTIC_VALIDATION_FAILED
+  - RENDER_NOT_DETERMINISTIC
+  - CHANGED_PATH_MISMATCH
+  - WRITE_FAILED
+  - BACKUP_FAILED
+  - SAVE_TARGET_EXISTS
+  - SAVE_TARGET_MISSING
+  - UNDO_AT_BEGINNING
+  - REDO_AT_END
+  - HISTORY_UNAVAILABLE
+  - GIT_COMMIT_FAILED
+  - GIT_NOT_AVAILABLE
+  - RENAME_TARGET_NOT_FOUND
+  - RENAME_INVALID_IDENTIFIER
+  - RENAME_GIT_CHECKPOINT_FAILED
+  - RENAME_ROLLBACK_FAILED
+  response_contract:
+    success: boolean
+    error_code: optional string
+    message: string
+    details: object
+    diagnostics: object
+implementation_steps:
+- id: step_01
+  title: Initialize package skeleton
+  actions:
+  - Create pyproject.toml with hatchling build backend.
+  - Create ai_editor package and tests directory.
+  - Define package metadata, runtime dependencies (ruamel.yaml, jsonschema, jsonpath-ng,
+    gitpython), and dev optional dependencies.
+  deliverables:
+  - pyproject.toml
+  - ai_editor/__init__.py
+  - tests/conftest.py
+  verification:
+  - python -m build succeeds locally.
+  - pip install -e . installs ai_editor from the repository source.
+- id: step_02
+  title: Implement AbstractBuffer and editor core
+  actions:
+  - Implement dynamic buffer registry.
+  - Implement file-backed and unsaved buffers.
+  - Implement open, new, save, save_as, close, reload, get_state, and get_formatter.
+  - Track original_hash, current_hash, dirty, revision, and status.
+  - Ensure one file_path cannot have multiple open buffers.
+  - Keep address values opaque and formatter-owned.
+  - AbstractBuffer accepts session_key as a required parameter in every method but
+    does not own session file structure (.buf, .cst, session git). Those belong to
+    the session layer.
+  deliverables:
+  - ai_editor/editor_core/
+  - tests/editor_core/
+  verification:
+  - Opening the same file twice returns the same buffer_id.
+  - Unsaved buffers have file_path=null and dirty=true.
+  - save/save_as are the only operations that write files.
+  - Editor core does not parse YAML addresses, text line ranges, or formatter-specific
+    command semantics.
+- id: step_03
+  title: Implement AbstractFormatter contract and formatter registry
+  actions:
+  - Define formatter base interface for parse, render, validate_content, validate_document,
+    validate, list_commands, normalize_address, copy_fragment, cut_fragment, paste_fragment,
+    get_unit, iter_units, match_unit, compare_units, and diagnostics.
+  - 'Define formatter metadata: formatter_name, formatter_version, supported_payload_kinds,
+    supported_address_kinds, supported_paste_modes, can_render_to_text, and can_parse_from_text.'
+  - Define FormatterCommandCatalog and FormatterCommandMetadata contracts.
+  - Implement formatter registry and extension-based formatter resolution for validate_file
+    and open(formatter=auto).
+  deliverables:
+  - ai_editor/formatters/base.py
+  - ai_editor/formatters/registry.py
+  - tests/formatters/test_base_contract.py
+  - tests/formatters/test_registry.py
+  verification:
+  - Formatter contract does not include open, save, close, buffer registry, or stale
+    disk checks.
+  - Every formatter exposes list_commands() with standard command metadata.
+  - Registry resolves .yaml/.yml to YAML formatter and text extensions to text formatter.
+  - Invalid command schema returns FORMATTER_COMMAND_SCHEMA_INVALID.
+- id: step_04
+  title: Implement text formatter
+  actions:
+  - Represent text documents as arrays of lines.
+  - Implement text addresses as line range, insertion point, or whole document.
+  - Implement validate_content and validate_document for text constraints.
+  - Implement copy/cut/paste over text units.
+  - 'Implement text compare_units semantics: exact text, normalized text, substring,
+    regex, line number, and range overlap.'
+  - Expose text formatter command catalog.
+  deliverables:
+  - ai_editor/formatters/text/
+  - tests/formatters/text/
+  verification:
+  - Text formatter parses and renders arrays of lines.
+  - Text validate_content reports encoding/line diagnostics without opening a buffer.
+  - Text copy/cut require source_address.
+  - Text paste requires target_address.
+  - Text list_commands includes standard commands and text-specific metadata.
+- id: step_05
+  title: Implement YAML formatter
+  actions:
+  - Represent YAML documents as ruamel.yaml trees.
+  - Implement YAML structural addresses for keys, indexes, and list filters such as
+    commands[name=buf_diff].
+  - Implement validate_content and validate_document for YAML parse, schema, semantic,
+    and render checks.
+  - 'Implement YAML copy/cut/paste modes: set, replace_block, append, insert_before,
+    insert_after.'
+  - Implement YAML compare_units semantics for node type, key, scalar value, mapping
+    fields, list item identity, and semantic name fields.
+  - Expose YAML formatter command catalog.
+  deliverables:
+  - ai_editor/formatters/yaml/
+  - ai_editor/schemas/plan_task_v1.schema.json
+  - tests/formatters/yaml/
+  verification:
+  - YAML formatter parses real plan fixtures.
+  - YAML validate_content validates a file's raw YAML without opening a buffer.
+  - YAML addresses resolve uniquely or return ADDRESS_NOT_FOUND/ADDRESS_NOT_UNIQUE.
+  - YAML copy/cut require source_address.
+  - YAML paste requires target_address.
+  - YAML list_commands includes standard and YAML-specific command metadata.
+- id: step_06
+  title: Implement ForeignFormatter
+  actions:
+  - Implement ForeignFormatter as an AbstractFormatter implementation.
+  - Delegate operations to external OpenAPI/MCP-proxy-adapter backed formatter commands.
+  - Implement validate_content, validate_document, and list_commands through external
+    calls.
+  - Normalize external OpenAPI operations into FormatterCommandCatalog.
+  - Map nested success=false, missing success fields, timeouts, and transport failures
+    to typed local errors.
+  deliverables:
+  - ai_editor/formatters/foreign.py
+  - tests/formatters/foreign/
+  - docs/foreign_formatters.md
+  verification:
+  - ForeignFormatter implements the same AbstractFormatter contract as local formatters.
+  - ForeignFormatter validate_content maps successful external results.
+  - Nested success=false is returned as local success=false.
+  - Missing nested result.success returns FOREIGN_FORMATTER_CONTRACT_VIOLATION.
+  - External discovery schema problems return FORMATTER_COMMAND_SCHEMA_INVALID.
+  - ForeignFormatter never writes files or owns buffer lifecycle.
+- id: step_07
+  title: Implement validate_file orchestration
+  actions:
+  - Implement validate_file(file_path|buffer_id, formatter=auto).
+  - Resolve formatter by extension, explicit formatter name, or buffer formatter.
+  - Validate raw file content with formatter.validate_content when file_path is used.
+  - Validate in-memory document with formatter.validate_document when buffer_id is
+    used.
+  - Return unified validation_result, errors, warnings, diagnostics, formatter_name,
+    file_path, and buffer_id.
+  - Ensure validate_file never writes files and never changes buffer dirty state.
+  deliverables:
+  - ai_editor/file_validation.py
+  - tests/test_file_validation.py
+  verification:
+  - validate_file validates a YAML plan file by extension.
+  - validate_file validates a text file by extension.
+  - validate_file validates a dirty in-memory buffer without writing.
+  - Unknown extension or formatter returns FORMATTER_NOT_FOUND or FORMATTER_UNSUPPORTED.
+  - Invalid content returns FORMAT_VALIDATION_FAILED with diagnostics.
+- id: step_08
+  title: Implement AbstractSearch
+  actions:
+  - Implement find, find_one, list_units, and select over formatter-provided units.
+  - Use formatter.iter_units, formatter.match_unit, and formatter.compare_units.
+  - Return formatter-provided addresses suitable for BufferAddress in copy/cut/paste.
+  - Implement search typed errors for invalid query, no match, non-unique match, invalid
+    scope, and unsupported formatter search.
+  deliverables:
+  - ai_editor/search/
+  - tests/search/
+  verification:
+  - Search works over text units and YAML units.
+  - find_one returns SEARCH_NO_MATCH for zero matches.
+  - find_one returns SEARCH_NOT_UNIQUE for multiple matches.
+  - Search does not parse YAML paths or text line ranges directly.
+- actions:
+  - Implement connect(idle_timeout_seconds) -> {session_key, session_descriptor}.
+  - Implement reconnect(session_key) -> {session_key, session_descriptor}.
+  - 'Implement disconnect(session_key, force=True, close_unsaved=False): if close_unsaved=False
+    and any buffer has modified=True — abort, return SESSION_HAS_UNSAVED_BUFFERS with
+    list of modified buffer_ids.'
+  - 'Implement session_status(session_key) -> {session_key, open_buffers: [buffer_descriptor]}.'
+  - Create session directory <sessions_base_dir>/<session_key>/ on connect. Delete
+    atomically on session close (rename to <session_key>.closing then rmtree).
+  - Implement ses_settings.json in session directory for persistence across restarts.
+  - 'Implement <buffer_id>.buf files in session directory: write after every mutation,
+    load on reconnect. Named after bare filename (e.g. README.buf). Collision resolved
+    by <hash8>_<filename>.buf.'
+  - 'Implement write-lock enforcement: same file may not be open readwrite in two
+    sessions simultaneously. files table gains session_key column.'
+  - Initialise bare git repo at <session_dir>/git/ via gitpython on connect.
+  - 'On buffer open: create branch buf/<buffer_id> in <session_dir>/git/ with initial
+    commit ''open: <path> [may be modified]''.'
+  - 'On mutation: render buffer, commit to buf/<buffer_id> branch. Commit message:
+    ''<operation>: <params>''. Write .buf file.'
+  - 'Implement undo(session_key, buffer_id, steps=1): checkout HEAD~steps on buf/<buffer_id>,
+    reload buffer, update .buf file. Returns UNDO_AT_BEGINNING if at first commit.'
+  - 'Implement redo(session_key, buffer_id, steps=1): move HEAD forward. Returns REDO_AT_END
+    if at latest. Redo stack resets on any new mutation.'
+  - 'On buffer close: delete branch buf/<buffer_id>, delete .buf file, release lock.'
+  - 'On session close: release all locks, rename session dir to <session_key>.closing,
+    rmtree.'
+  - 'Implement startup sweep: on server start scan sessions_base_dir, release locks
+    and delete directories of expired/missing sessions.'
+  - 'Implement session-scoped clipboard: copy/paste between buffers within the same
+    session; cross-session access rejected.'
+  - idle_timeout expiry always behaves as close_unsaved=True.
+  deliverables:
+  - ai_editor/sessions/
+  - tests/sessions/
+  - docs/sessions.md
+  id: step_09
+  title: Implement session layer
+  verification:
+  - connect creates session directory with ses_settings.json and git/ repo.
+  - connect returns session_key and empty buffer list.
+  - reconnect restores buffer_descriptor list from ses_settings.json and .buf files
+    without re-opening real files.
+  - disconnect with close_unsaved=False and modified buffer returns SESSION_HAS_UNSAVED_BUFFERS.
+  - disconnect with close_unsaved=True closes despite modified buffers.
+  - open in two sessions for same file readwrite returns BUFFER_LOCKED on second.
+  - Same file opened twice in same session returns existing buffer_id.
+  - Mutation commits to buf/<buffer_id> branch in session git and updates .buf file.
+  - undo restores buffer to previous commit, updates .buf file.
+  - undo at first commit returns UNDO_AT_BEGINNING.
+  - New mutation after undo resets redo stack.
+  - redo after new mutation returns REDO_AT_END.
+  - Buffer close deletes branch and .buf file.
+  - Session close deletes entire session directory atomically.
+  - Startup sweep clears expired session directories and releases stale locks.
+  - Clipboard paste from session A into session B is rejected.
+  - idle_timeout expiry closes session as close_unsaved=True.
+- id: step_10
+  title: Implement format-aware clipboard
+  actions:
+  - Implement clipboard item contract with source_buffer_id, source_formatter, source_address,
+    source_revision, payload_kind, and payload.
+  - Implement paste request contract with target_buffer_id, target_formatter, target_address,
+    mode, and clipboard_item_id.
+  - 'Enforce session scope: clipboard items are accessible only within the session
+    that created them.'
+  - Implement compatibility rules for text->text, yaml->yaml, yaml->text rendered
+    text, and text->yaml parse_as_yaml.
+  - Implement CLIPBOARD_FORMAT_MISMATCH and CLIPBOARD_SOURCE_STALE.
+  - Clear clipboard on session close.
+  deliverables:
+  - ai_editor/clipboard.py
+  - tests/test_clipboard.py
+  verification:
+  - copy does not mark buffers dirty.
+  - cut marks source buffer dirty.
+  - paste marks target buffer dirty without writing files.
+  - Incompatible formatter paste returns CLIPBOARD_FORMAT_MISMATCH.
+  - Cross-session paste is rejected.
+- id: step_11
+  title: Implement checked persistence helpers
+  actions:
+  - Implement stale disk checks for save/save_as.
+  - Implement backup creation before real write.
+  - Implement atomic write and read-back diagnostics.
+  - Ensure save/save_as call formatter.validate_document and formatter.render before
+    writing.
+  deliverables:
+  - ai_editor/writer.py
+  - tests/test_writer.py
+  verification:
+  - Failed formatter validation leaves disk unchanged.
+  - Stale file-backed buffer returns BUFFER_STALE.
+  - Successful save returns old_hash and new_hash.
+  - save_as respects overwrite=false with SAVE_TARGET_EXISTS.
+- id: step_12
+  title: Implement public API and YAML compatibility wrappers
+  actions:
+  - 'Expose session lifecycle commands: connect, reconnect, disconnect, session_status.'
+  - 'Expose generic editor commands: open, new, save, save_as, close, validate_file,
+    formatter_commands, copy, cut, paste, find, find_one, list_units, validate, undo,
+    redo.'
+  - Expose YAML compatibility wrappers as mappings over generic buffer/search/formatter/save
+    architecture.
+  - All commands require session_key alongside buffer_id where applicable.
+  - Ensure all responses are JSON-serializable and preserve nested success=false truthfully.
+  deliverables:
+  - ai_editor/api.py
+  - tests/test_public_api.py
+  verification:
+  - Session commands satisfy the session_model contract.
+  - Generic editor commands satisfy the public_api contract.
+  - validate_file is visible as a standalone public API command.
+  - formatter_commands returns standard and formatter-specific command schemas.
+  - API responses can be serialized with json.dumps.
+- id: step_13
+  title: Add CLI and MCP integration docs
+  actions:
+  - Implement CLI as a thin diagnostic wrapper over public API.
+  - CLI supports connect, disconnect, open, find, copy, paste, save, undo, redo.
+  - Document MCP request/response examples for session and buffer commands.
+  - Document YAML compatibility examples as compatibility wrappers, not core architecture.
+  deliverables:
+  - ai_editor/interfaces/cli.py
+  - docs/mcp_integration.md
+  - docs/cli_usage.md
+  - tests/interfaces/test_cli.py
+  verification:
+  - ai-editor --help exits with code 0.
+  - CLI can connect and open a file in one call.
+  - CLI can run validate-file by file_path.
+  - CLI can undo/redo through generic commands.
+  - Docs show session_key in all buffer command examples.
+- id: step_14
+  title: Add packaging and release checks
+  actions:
+  - Run ruff, mypy, pytest, build, and twine check.
+  - Confirm wheel contains schemas and formatter packages.
+  - Confirm import works from installed wheel in a clean virtual environment.
+  deliverables:
+  - dist/*.whl
+  - dist/*.tar.gz
+  - docs/release_checklist.md
+  - docs/regression_observations.md
+  verification:
+  - python -m build succeeds.
+  - twine check dist/* succeeds.
+  - python -c "import ai_editor; print(ai_editor.__version__)" succeeds after wheel
+    install.
+model_assignment_spec:
+  title: Implement editor-core package with buffer, formatter, and search abstractions
+    from docs/tech_spec.md
+  role: coding_agent
+  scope: Work only inside the ai_editor source repository. Do not edit .venv, venv,
+    site-packages, or installed packages. Build a reusable package that MCP servers
+    can import to edit documents through AbstractBuffer, AbstractFormatter, and AbstractSearch.
+    YAML is the first structured formatter and text is the first plain formatter.
+  required_behavior:
+  - Separate file/buffer lifecycle from formatter editing semantics.
+  - Separate search/query behavior from file open/save lifecycle.
+  - Keep editor-core address values opaque and formatter-owned.
+  - Require copy/cut source BufferAddress and paste target BufferAddress.
+  - 'Prefer generic editor commands for normal model-facing workflows: open, new,
+    save, save_as, close, copy, cut, paste, find, find_one, list_units, validate.'
+  - Keep legacy yaml_* commands as compatibility wrappers over the generic editor/search/formatter
+    architecture.
+  - Make every save/save_as checked and atomic.
+  - Return truthful, typed errors instead of partial success.
+  - Provide JSON-serializable responses suitable for MCP command handlers.
+  - Validate behavior with actual commands and tests, not only code inspection.
+  implementation_order:
+  - package_skeleton
+  - editor_core_buffer_registry
+  - text_yaml_formatters
+  - foreign_formatters
+  - format_validation
+  - universal_search
+  - session_layer
+  - format_aware_clipboard
+  - checked_persistence
+  - public_api
+  - cli
+  - mcp_integration_docs
+  - packaging_release_checks
+  acceptance_criteria:
+  - The package can be installed as a wheel.
+  - The package can be imported by an MCP server without side effects.
+  - AbstractBuffer owns open/new/save/save_as/close/reload and no formatter-specific
+    address semantics.
+  - AbstractFormatter owns parse/render/validate/address/edit/unit/compare semantics
+    and no file lifecycle.
+  - AbstractSearch owns find/find_one/list_units/select over formatter-provided units
+    and no file lifecycle.
+  - Text formatter works over array-of-lines documents.
+  - AI formatter works over YAML-tree documents and structural YAML addresses.
+  - copy/cut require source BufferAddress and paste requires target BufferAddress.
+  - Clipboard payloads carry source_formatter, source_address, source_revision, payload_kind,
+    and payload.
+  - save/save_as never persist invalid content for the active formatter.
+  - Tests cover buffer lifecycle, text formatter, AI formatter, search, clipboard
+    compatibility, stale buffer, invalid content, missing/ambiguous search match,
+    and compatibility wrappers.
+  - CLI diagnostics work for generic editor commands and YAML compatibility flows.
+  prohibited_actions:
+  - Do not edit .venv, venv, site-packages, or dependency internals.
+  - Do not let formatter implementations open, save, or close files.
+  - Do not let buffer lifecycle logic know YAML paths or text line ranges.
+  - Do not put search/query semantics inside file save/open logic.
+  - Do not implement normal model workflows through yaml_write_lines_unsafe.
+  - Do not silently coerce invalid operation targets.
+  - Do not return completed or success when validation failed.
+regression_commands:
+  local:
+  - python -m pytest tests/editor_core tests/formatters tests/search tests/interfaces
+    tests/integration
+  - python -m ruff check .
+  - python -m mypy ai_editor
+  - python -m build
+  - python -m twine check dist/*
+  mcp_level:
+  - connect() -> session_key. Verify empty buffer list returned.
+  - open(session_key, file_path, formatter=yaml) -> buffer_descriptor. Verify readonly=False,
+    modified=False.
+  - find_one(session_key, buffer_id, query) -> match with formatter-provided address.
+  - copy(session_key, buffer_id, address) -> clipboard_item_id. Verify source_formatter=yaml.
+  - paste(session_key, target_buffer_id, target_address, clipboard_item_id) -> buffer
+    modified=True without writing real file.
+  - save(session_key, buffer_id) -> old_hash, new_hash. Verify one project git commit
+    created.
+  - Verify save result via separate open+find_one on fresh session.
+  - write_all(session_key, force=False) -> written_buffers, failed_buffers, skipped_buffers.
+    Verify only modified buffers written.
+  - write_all with validation error in one buffer -> that buffer in failed_buffers,
+    others in written_buffers.
+  - undo(session_key, buffer_id, steps=1) -> buffer restored to previous state.
+  - undo at first commit -> UNDO_AT_BEGINNING.
+  - New mutation after undo -> redo stack reset; redo returns REDO_AT_END.
+  - connect(auto_write=True) -> open file -> mutate -> verify real file written without
+    explicit save.
+  - connect(readonly=True) -> open file -> mutate -> BUFFER_READONLY.
+  - disconnect(close_unsaved=False) with modified buffer -> SESSION_HAS_UNSAVED_BUFFERS.
+  - disconnect(close_unsaved=True) -> session closed despite modified buffers.
+  - reconnect(session_key) -> session_descriptor with all buffer_descriptors restored.
+  - yaml_get compatibility wrapper -> same result as open+find_one on fresh session.
+  - yaml_write_checked compatibility wrapper -> same result as open+mutate+save.
+  - copy from yaml buffer, paste to text buffer without explicit rendered-text mode
+    -> CLIPBOARD_FORMAT_MISMATCH.
+  - open same file in two sessions readwrite -> BUFFER_LOCKED on second open.
+observations_template:
+- command: ''
+  expected: ''
+  actual: ''
+  error: ''
+  root_cause: ''
+  fix: ''
+  post_fix_verification: ''
+  status: ''
+coverage_gap_closures:
+- gap: unsafe_line_fallback_owner
+  resolution: G-008/T-008 owns yaml_read_lines and yaml_write_lines_unsafe as emergency-only
+    fallback APIs.
+- gap: changed_path_mismatch_gate
+  resolution: G-007/T-009 owns expected-vs-actual changed path comparison and CHANGED_PATH_MISMATCH
+    rejection before persistence.
+- gap: model_friendly_write_helpers
+  resolution: G-008/T-009 owns YAML-specific helper compatibility semantics such as
+    yaml_update_command, yaml_append_verification, and yaml_validate_plan_task over
+    the generic editor/search/formatter architecture.
+- gap: console_entry_point_alignment
+  resolution: Root console script target is ai-editor=ai_editor.interfaces.cli:main
+    and G-008/T-010 owns alignment verification with G-001 metadata coordination.
+- gap: buffer_file_lifecycle_separated_from_formatter
+  resolution: G-002 owns AbstractBuffer, dynamic buffer registry, file-backed/unsaved
+    buffers, dirty state, stale checks, and open/new/save/save_as/close/reload lifecycle.
+    Formatters must not open, save, or close files.
+- gap: formatter_editing_separated_from_buffer_and_search
+  resolution: G-003 owns AbstractFormatter, initial text/AI formatters, formatter-specific
+    address semantics, validate_content, validate_document, list_commands, copy/cut/paste
+    fragment operations, unit contracts, compare_units, and formatter clipboard compatibility.
+- gap: universal_search_separated_from_file_and_formatter_lifecycle
+  resolution: 'G-004 owns AbstractSearch over formatter-provided units: find, find_one,
+    list_units, select, match_unit use, compare_units use, search result policy, and
+    search typed errors.'
+- gap: copy_cut_paste_address_contract
+  resolution: Root public API and G-002 require copy/cut to provide source BufferAddress
+    and paste to provide target BufferAddress; address is opaque to editor core and
+    interpreted only by formatter.
+- gap: validate_file_public_api_and_project_manager_use
+  resolution: Root public API exposes validate_file(file_path|buffer_id, formatter=auto)
+    for project managers. It resolves formatter by extension or explicit formatter
+    name and validates raw file content or in-memory buffer document without editing
+    or writing.
+- gap: foreign_formatter_external_adapter
+  resolution: G-005 owns ForeignFormatter, external OpenAPI/MCP-proxy-adapter delegation,
+    nested success/error mapping, and foreign formatter contract compliance for complex
+    CST/AST/server-side formatters.
+- gap: formatter_command_discovery_and_specific_commands
+  resolution: Root public API exposes formatter_commands and G-003 requires AbstractFormatter.list_commands()
+    -> FormatterCommandCatalog. G-005 maps external OpenAPI command discovery into
+    the same catalog, including formatter-specific commands and writes_files metadata.
+- gap: session_layer_above_buffers
+  resolution: 'G-008 owns the session layer: connect/reconnect/disconnect, session_key
+    (UUID4), ses_settings.json session files, .buf buffer files, per-buffer git branches
+    in the editor-internal bare git repo (sessions_dir/git/), undo/redo via git commits,
+    write-lock enforcement across sessions, and session-scoped clipboard. G-002 owns
+    AbstractBuffer lifecycle; G-008 aggregates and manages buffers through sessions.'
+- gap: clipboard_scoped_to_session
+  resolution: 'G-008 owns the session layer: connect/reconnect/disconnect, session_key
+    (UUID4), ses_settings.json session files, .buf buffer files, per-buffer git branches
+    in the session-local bare git repo (<session_dir>/git/), undo/redo via git commits,
+    write-lock enforcement across sessions, and session-scoped clipboard. G-002 owns
+    AbstractBuffer lifecycle; G-008 aggregates and manages buffers through sessions.'
+- gap: git_in_editor_for_history
+  resolution: G-008 owns the editor-internal bare git repo (<session_dir>/git/). Each
+    session has its own isolated git repo. This repo is separate from any project
+    git. Project git is only touched by the save/save_as operation writing the real
+    file (write_result in writer.py). gitpython is the chosen library for reliability
+    and API safety. It is a required runtime dependency of ai_editor.
+workflow_clipboard:
+  purpose: Format-aware runtime clipboard for editor copy/cut/paste operations between
+    buffers. Clipboard state is workflow/cache state and must not be stored inside
+    edited documents.
+  storage_modes:
+  - memory
+  - persistent_project_local_cache
+  default_storage_mode: persistent_project_local_cache
+  persistent_storage_path: .ai_editor_clipboard/
+  git_policy: Clipboard storage is workflow/cache state and must not be committed.
+  clipboard_item_contract:
+    required_fields:
+    - item_id
+    - source_buffer_id
+    - source_formatter
+    - source_address
+    - source_revision
+    - payload_kind
+    - payload
+    rules:
+    - source_address replaces YAML-specific source_path at the editor-core level
+    - payload_kind is defined by the source formatter
+    - payload is a formatter-produced fragment or rendered text snapshot
+    - clipboard item may use snapshot mode or reject_if_source_revision_changed mode
+  paste_request_contract:
+    required_fields:
+    - target_buffer_id
+    - target_formatter
+    - target_address
+    - mode
+    - clipboard_item_id
+    rules:
+    - target_address replaces YAML-specific target_path at the editor-core level
+    - mode is formatter-specific
+    - paste never writes files directly
+    - paste marks the target buffer dirty on success
+  compatibility_rules:
+  - text -> text paste is allowed
+  - yaml -> yaml paste is allowed
+  - yaml -> text paste is allowed only when paste mode explicitly requests rendered
+    text
+  - text -> yaml paste is rejected by default unless paste mode explicitly requests
+    parse_as_yaml
+  - unsupported combinations return CLIPBOARD_FORMAT_MISMATCH
+  - source revision policy violations return CLIPBOARD_SOURCE_STALE
+  commands:
+  - copy
+  - cut
+  - paste
+  typed_errors:
+  - CLIPBOARD_EMPTY
+  - CLIPBOARD_ITEM_NOT_FOUND
+  - CLIPBOARD_ITEM_EXISTS
+  - CLIPBOARD_FORMAT_MISMATCH
+  - CLIPBOARD_SOURCE_STALE
+  - CLIPBOARD_INVALID_MODE
+  - ADDRESS_INVALID
+  - ADDRESS_NOT_FOUND
+session_model:
+  overview: The editor operates in sessions. A session is a named unit of work with
+    its own set of open buffers, temporary storage, and operation history. Sessions
+    are created on connect and destroyed on disconnect or explicit close. Multiple
+    sessions may run concurrently; the same file may not be open for writing in two
+    sessions simultaneously.
+  session_lifecycle:
+    attributes:
+      auto_write: 'Boolean. Default False. Set at connect, never changes. If True:
+        after every successful mutation the session layer immediately writes the rendered
+        buffer to the real file (result write path: backup + atomic write + read-back).
+        New unsaved buffers (real_file_path=null) are silently skipped.'
+      created_at: ISO-8601 datetime with seconds precision. Set at connect. Never
+        changes.
+      last_active_at: ISO-8601 datetime with seconds precision. Updated on every operation.
+      readonly: 'Boolean. Default False. Set at connect, never changes. If True: all
+        buffers opened or already open in this session have readonly=True forced unconditionally.
+        Mutation operations rejected with BUFFER_READONLY. close_unsaved check is
+        skipped on disconnect (no modified buffers possible).'
+    connect: Client calls connect(idle_timeout_seconds=3600, auto_write=False, readonly=False).
+      Server creates session directory <sessions_base_dir>/<session_key>/, writes
+      ses_settings.json, initialises bare git repo at <session_dir>/git/. Returns
+      session_key and empty session_descriptor.
+    disconnect: Session directory and all contents remain on disk for idle_timeout
+      seconds. State fully preserved.
+    invariants:
+    - session_key is UUID4, assigned once, never reused.
+    - Session directory exists iff session is active or within idle_timeout.
+    - A session with no open buffers is valid until explicitly closed or timed out.
+    - auto_write and readonly are set at connect and never change for the lifetime
+      of the session.
+    - 'If readonly=True: close_unsaved check is always skipped.'
+    reconnect: Client calls reconnect(session_key). Server reads ses_settings.json,
+      restores all session attributes (auto_write, readonly) and buffer list. Returns
+      session_descriptor.
+    session_close: All buffers closed, write locks released, session directory deleted
+      atomically (rename to <session_key>.closing then rmtree).
+    explicit_close:
+      close_unsaved_false: 'Default and safe path. If session.readonly=False: check
+        every open buffer for modified=True. If any modified buffer exists — abort,
+        return SESSION_HAS_UNSAVED_BUFFERS. If session.readonly=True: skip check (no
+        modified buffers possible).'
+      close_unsaved_true: Force-close regardless of modified flags. All unsaved buffer
+        changes permanently discarded. Real files unchanged. Must be passed explicitly.
+      idle_timeout_expiry: Always behaves as close_unsaved=True.
+      param: disconnect(session_key, force=True, close_unsaved=False)
+  session_file:
+    format: 'JSON: {session_key, created_at, last_active_at, idle_timeout_seconds,
+      auto_write, readonly, buffer_ids: [...]}'
+    not_indexed: true
+    path_pattern: <sessions_base_dir>/<session_key>/ses_settings.json
+    purpose: Persistent session settings and state. Survives server restart. Loaded
+      on reconnect to restore all session attributes and buffer list.
+    sessions_base_dir: 'Configured via ai_editor section in config.json: sessions.base_dir.
+      Default: <project_root>/.ai_editor_sessions/'
+  buffer_descriptor:
+    description: Returned to client on connect, reconnect, and after every open/new/close.
+      Full flag semantics defined in /buffer_model.
+    fields:
+      buffer_id: UUID4. Stable for the lifetime of the buffer within the session.
+      buf_file_path: 'Absolute path: <session_dir>/<filename>.buf (or <hash8>_<filename>.buf
+        if name collision). Null for readonly buffers.'
+      filename: Bare file name without path (e.g. README.yaml).
+      formatter: Name of the active formatter. Set at open time, never changes.
+      modified: Boolean. Always False for readonly buffers. See /buffer_model/flags/modified.
+      readonly: Boolean. Set at open time, never changes. See /buffer_model/flags/readonly.
+      relative_path: Path relative to project root. Null for new unsaved buffers.
+      session_key: UUID4 of the owning session.
+  buffer_file:
+    cleanup: Deleted as part of session directory deletion on session close.
+    not_indexed: true
+    path_pattern: <sessions_base_dir>/<session_key>/<buffer_id>.buf
+    purpose: Temporary on-disk copy of current buffer content. Written after every
+      mutation so state survives restart. Loaded on reconnect.
+    write_policy: Written after every mutation (any operation that sets modified=true
+      on the buffer).
+  write_lock_policy:
+    rule: The same real file may not be open for writing (open_mode=readwrite) in
+      two different sessions simultaneously.
+    enforcement: 'Checked at open() time using files.editing_pid extended with session_key:
+      if a live session already holds a readwrite lock on the file -> return BUFFER_LOCKED
+      with holder session_key.'
+    readonly_allowed: Any number of sessions may open the same file in readonly mode
+      simultaneously.
+    own_session: A session may not open the same file twice. Second open() of the
+      same real_file_path within the same session returns the existing buffer_id.
+    lock_columns: files table gains session_key VARCHAR NULL column alongside editing_pid.
+      Both must match on release.
+  operation_protocol:
+    description: All operations after connect are identified by session_key + buffer_id.
+      The file_path is never used as an operation target after open.
+    request_shape:
+      session_key: UUID4 string
+      buffer_id: UUID4 string
+      operation: string (open | new | save | save_as | close | validate | find | find_one
+        | list_units | copy | cut | paste | undo | redo | ...)
+      params: operation-specific dict
+    invariants:
+    - All mutations are applied to the in-memory buffer and the .buf file only.
+    - The real file on disk is written only by the save and save_as operations.
+    - close without save discards the .buf file and releases the write lock. The real
+      file is unchanged.
+    - readonly buffers reject all mutation operations with BUFFER_READONLY error.
+  operation_history:
+    description: Every mutation operation on a buffer is recorded as a git commit
+      in a dedicated per-buffer branch. This provides full undo/redo history for the
+      lifetime of the buffer.
+    git_repo: 'Always a session-local bare git repo at <sessions_base_dir>/<session_key>/git/.
+      Each session has its own isolated git repo. Created on connect, deleted with
+      the session directory on session close. Branch naming: buf/<buffer_id>. No connection
+      to any project git repository.'
+    branch_naming: buf/<buffer_id> in <session_dir>/git/. One branch per buffer. No
+      session_key in branch name.
+    on_open:
+    - Initialize bare git repo at <session_dir>/git/ on connect (each session has
+      its own git repo). git init --bare.
+    - Create branch buf/<buffer_id> in <session_dir>/git/ on open.
+    - 'Make initial commit: content = rendered buffer at open time. Message: ''open:
+      <real_file_path> [may be modified]''.'
+    on_mutation: 'After every successful mutation operation: render buffer to string
+      and commit to the buffer branch. Commit message: ''<operation_name>: <brief
+      params summary>''. This is the source of truth for undo/redo.'
+    on_save: save/save_as writes the real file from the current buffer content. Does
+      NOT merge or touch the main git branch of the project.
+    on_close:
+    - Release all write locks held by the session in files table.
+    - 'Delete the entire session directory atomically: rename to <session_key>.closing,
+      then rmtree. This removes all .buf files, ses_settings.json, git/, and clipboard.json
+      in one operation.'
+    undo:
+      operation: undo(session_key, buffer_id, steps=1)
+      behavior: git checkout to (HEAD~steps) on the buffer branch; reload buffer content
+        from that commit; update .buf file; modified flag stays true unless HEAD~steps
+        equals the original open commit.
+      limit: Cannot undo past the first commit (the open snapshot). Returns UNDO_AT_BEGINNING
+        if already at first commit.
+    redo:
+      operation: redo(session_key, buffer_id, steps=1)
+      behavior: Move HEAD forward by steps commits on the buffer branch. Only valid
+        if no new mutation has occurred since the last undo. Returns REDO_AT_END if
+        already at the latest commit.
+      redo_stack_policy: Redo stack is derived from the git reflog position on the
+        buffer branch. Any new mutation after an undo creates a new commit on the
+        branch, permanently discarding the redo future (exactly like standard git).
+        The redo stack resets on every new mutation.
+    invariants:
+      git_library: gitpython (required runtime dependency). Chosen for API reliability
+        over subprocess. Used only by the session layer (G-008) for all editor-internal
+        git operations.
+      invariants:
+      - Git commits on the buffer branch never touch the project git repository.
+      - Project git is only affected by save/save_as writing the real file to disk
+        — same as any other file write.
+      - Buffer branch is always local to the editor-internal repo. Never pushed to
+        any remote.
+      - Undo/redo only move HEAD on the buffer branch. They do not affect the real
+        file until save is called.
+      - If gitpython operations fail (disk full, corrupted repo) the operation proceeds
+        without history; a HISTORY_UNAVAILABLE diagnostic is attached to the response.
+      - The editor-internal git repo and any project git repo are completely separate;
+        no cross-repo operations ever occur.
+      project_git_separation: The editor-internal git repo (sessions_dir/git/) is
+        entirely separate from any project git repository. Editor history operations
+        (undo, redo, buffer branch create/delete) use only the editor-internal repo.
+        The project git repository is touched only when save or save_as writes the
+        real file to disk — this is a normal file write, not a git operation performed
+        by the editor.
+    on_session_close:
+      invariants:
+      - No session directory, branch, commit, or object belonging to a closed session
+        is retained.
+      - 'Session directory deletion is atomic: rename to <session_key>.closing before
+        rmtree.'
+      - If deletion fails (disk error), failure is logged. Stale directories cleaned
+        on next startup sweep.
+      startup_sweep: 'On server start: scan sessions_base_dir for session directories.
+        For each: read ses_settings.json, check if session is expired or file is missing/corrupt.
+        If so — release all write locks for that session_key in files table, then
+        delete the session directory. Recovers from crashes and hard kills.'
+      steps:
+      - Release all write locks held by the session (UPDATE files SET editing_pid=NULL,
+        session_key=NULL WHERE session_key=<session_key>).
+      - 'Delete the entire session directory atomically: rename <session_key>/ to
+        <session_key>.closing, then rmtree. Removes all .buf files, ses_settings.json,
+        git/, clipboard.json.'
+      trigger: Session close (explicit disconnect with force=true, idle_timeout expiry,
+        or server-side forced close).
+  new_error_codes:
+  - BUFFER_READONLY
+  - SESSION_NOT_FOUND
+  - SESSION_EXPIRED
+  - UNDO_AT_BEGINNING
+  - REDO_AT_END
+  - HISTORY_UNAVAILABLE
+  - SESSION_LOCK_CONFLICT
+  new_public_api_additions:
+    session_commands:
+    - connect(idle_timeout_seconds=3600) -> {session_key, session_descriptor}
+    - reconnect(session_key) -> {session_key, session_descriptor}
+    - disconnect(session_key)
+    - 'session_status(session_key) -> {session_key, open_buffers: [buffer_descriptor],
+      ...}'
+    buffer_commands_extended:
+    - open(session_key, file_path, formatter=auto, open_mode=readwrite) -> buffer_descriptor
+    - new(session_key, formatter, display_name) -> buffer_descriptor
+    - close(session_key, buffer_id, save=false)
+    - undo(session_key, buffer_id, steps=1)
+    - redo(session_key, buffer_id, steps=1)
+    all_existing_commands_extended: All existing buffer commands (save, save_as, validate,
+      find, find_one, list_units, copy, cut, paste, ...) gain session_key as a required
+      parameter alongside buffer_id.
+  clipboard_policy:
+    cross_session: Cross-session clipboard operations are rejected with SESSION_LOCK_CONFLICT.
+      A clipboard item created in session A cannot be pasted into a buffer in session
+      B.
+    purpose: Session-scoped format-aware clipboard for copy/cut/paste between buffers
+      within the same session. Clipboard state is workflow state and must not be stored
+      inside edited documents.
+    scope: Session-scoped. Each session has its own clipboard. Copy/paste is allowed
+      between any buffers within the same session. Cross-session clipboard access
+      is not permitted.
+    storage: Clipboard items are stored in memory during the session. Optionally persisted
+      to sessions_dir/<session_key>.clipboard for recovery on reconnect.
+    cleanup: All clipboard items are discarded when the session is closed.
+  session_commands_model:
+    commands_are_session_attributes: Session is the editor. All editing commands are
+      attributes of the session, not of the file. A buffer is the in-memory representation
+      of a file; the session orchestrates all operations over its buffers — open,
+      save, write_all, undo, redo, find, copy, cut, paste, validate. This mirrors
+      familiar editor command sets (e.g. :w, :wq, :wa in vim).
+    editor_git_commits:
+      description: After every successful buffer mutation the session commits the
+        rendered buffer content to the session-local git repo (<session_dir>/git/)
+        on branch buf/<buffer_id>. This provides per-buffer undo/redo history. Owned
+        by G-008.
+      trigger: Every mutation on any buffer in the session.
+    project_git_commits:
+      commit_message: '"<formatter_name>: save <relative_file_path>"'
+      description: When a buffer is written to the real file (via save, save_as, write_all,
+        or auto_write), the session creates one git commit per written file in the
+        project git repository (if git is available in project_root). Each file gets
+        its own commit.
+      failure_policy: 'If project git commit fails (dirty working tree, no git, no
+        user config): write is still considered successful. A GIT_COMMIT_FAILED diagnostic
+        is attached to the response. Git commit is best-effort.'
+      multi_file_exception: Project-wide rename (G-007) creates a single multi-file
+        commit for all changed files, preceded by a git tag pre-rename/<uuid>. This
+        is the only case where multiple files share one project git commit.
+      trigger: Every successful result write (save, save_as, write_all, auto_write).
+    write_all_command:
+      behavior:
+      - 'For each open buffer in the session where readonly=False:'
+      - 'Call formatter.validate_document(document). If validation fails: record in
+        failed_buffers with error; skip write.'
+      - 'Call formatter.write(content, real_file_path). If write fails: record in
+        failed_buffers with error.'
+      - 'On success: create one project git commit for this file.'
+      - 'New unsaved buffers (real_file_path=null): skip silently unless save_as path
+        is provided.'
+      description: write_all(force=False) writes all eligible buffers in the session
+        to their real files.
+      force_flag: 'force=False (default): only write buffers where modified=True.
+        force=True: write all non-readonly buffers regardless of modified flag.'
+      partial_result:
+        fields:
+        - 'success: bool (True only if ALL eligible buffers were written without error)'
+        - 'written_buffers: list of buffer_ids successfully written'
+        - 'failed_buffers: list of {buffer_id, error_code, message} for buffers that
+          failed validation or write'
+        - 'skipped_buffers: list of buffer_ids skipped (readonly, new unsaved without
+          path, or not modified when force=False)'
+        invariant: Even when success=False the caller receives complete information
+          about which buffers succeeded and which failed. Partial writes are valid
+          — the session remains open with all buffers intact.
+buffer_model:
+  definition:
+    description: A buffer is an in-memory representation of a file open for editing
+      within a session.
+    fields:
+      filename: Bare file name without path (e.g. README.yaml). Used as the .buf file
+        name on disk.
+      formatter: The formatter assigned at open time (text, yaml, cst, foreign, ...).
+        Never changes for the lifetime of the buffer.
+      modified: Boolean flag. True if any mutation has been applied since open or
+        last save. Always False for readonly buffers.
+      readonly: Boolean flag. True if the buffer was opened in readonly mode. Set
+        at open time, never changes.
+      relative_path: Path of the file relative to the project root (e.g. docs/plans/G-008/README.yaml).
+        Used to locate the real file on disk.
+  disk_representation:
+    location: 'Inside the session directory: <sessions_base_dir>/<session_key>/'
+    naming: 'Bare filename only, no path components, extension replaced with .buf.
+      Example: README.yaml -> README.buf'
+    collision_note: 'If two files with the same bare name but different paths are
+      open in the same session (e.g. src/config.yaml and tests/config.yaml), the .buf
+      file name is disambiguated by prepending a short hash of relative_path: <hash8>_<filename>.buf'
+    not_indexed: true
+    purpose: On-disk copy of current buffer content. Written after every mutation.
+      Loaded on reconnect.
+  flags:
+    modified:
+      default: false
+      description: True if any mutation has been applied to the buffer since open
+        or last save.
+      invariants:
+      - Set to True after every successful mutation.
+      - Reset to False after save or save_as.
+      - Always False when readonly=True.
+      - 'Checked by disconnect(close_unsaved=False): session close blocked if any
+        buffer has modified=True.'
+    readonly:
+      default: false
+      description: 'If True: buffer accepts no mutations, .buf file is not written,
+        no write-lock is acquired, modified is always False.'
+      invariants:
+      - Set at open time from open_mode parameter. Never changes.
+      - Mutation operations rejected with BUFFER_READONLY before any state change.
+      - No write-lock acquired on open. Multiple sessions may hold readonly buffers
+        for the same file simultaneously.
+      - Not included in SESSION_HAS_UNSAVED_BUFFERS evaluation.
+      - .buf file is not created or updated for readonly buffers.
+  invariants:
+  - filename and relative_path are set at open time and never change.
+  - formatter is set at open time and never changes.
+  - readonly is set at open time and never changes.
+  - modified=True is impossible when readonly=True.
+  - A readonly buffer never causes BUFFER_LOCKED for other sessions.
+  - A readonly buffer never contributes to SESSION_HAS_UNSAVED_BUFFERS.
