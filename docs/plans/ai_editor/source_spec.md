@@ -384,53 +384,82 @@ Config reader: `SimpleConfig.load()` from adapter. `ai_editor` does not implemen
 Owns: `ai_editor/formatters/`, `ai_editor/schemas/`, `tests/formatters/`.
 
 ### AbstractFormatter required contract
-
-Every formatter must implement:
+AbstractFormatter is the **base class for every format**. It owns the tree and
+all operations over the tree. Subclasses own ONLY the conversion between the
+tree representation and the concrete file format. The editor works with the
+tree, not with the format: all structural editing is done by the base class.
 
 ```
-# Document lifecycle
-parse(raw_content) -> document
-render(document) -> raw_content
-render_skeleton(document, options=None) -> str
-write(content, path) -> None
+# ---- Base class: tree ownership and structural operations (NOT overridden) ----
 
-# Validation
-validate_document(document, *, schema=None, options=None) -> ValidationResult
-validate(document) -> ValidationResult   # alias
-# NOTE: validate_content does not exist. File validation = parse + validate_document.
+# Document lifecycle (delegates conversion to subclass hooks)
+open_tree(raw_content) -> tree        # parse via subclass, assign stable_ids, build sidecar
+export(tree) -> raw_content           # render whole tree via subclass
+render_skeleton(tree, selector=None, options=None) -> str   # unified preview/navigation
 
-# Mutation
-mutate_set(document, address, value) -> document
-mutate_replace_block(document, address, value) -> document
-mutate_append(document, address, value, *, dedupe=False) -> document
-mutate_delete(document, address) -> document
-mutate_move(document, address, target_address) -> document
-mutate_batch(document, operations) -> document  # atomic list of ops
-
-# Fragment operations
-copy_fragment(document, source_address) -> fragment
-cut_fragment(document, source_address) -> (document, fragment, changed_addresses)
-paste_fragment(document, target_address, fragment, mode) -> (document, changed_addresses)
-to_string(fragment) -> str       # serialize for clipboard.json
-from_string(body) -> fragment    # deserialize from clipboard.json
-
-# Search
+# Navigation / search (uniform across all formats; address = node stable_id)
 normalize_address(address) -> normalized_address
-get_unit(document, address) -> unit
-iter_units(document, scope) -> Iterator[unit]
+get_unit(tree, address) -> unit
+iter_units(tree, scope=None) -> Iterator[unit]
 match_unit(unit, query) -> bool | score
 compare_units(unit_a, unit_b, options) -> ComparisonResult
-diagnostics(document) -> list[Diagnostic]
-delete(buf_file_path) -> None   # remove buf file + any derived artifacts
+diagnostics(tree) -> list[Diagnostic]
+
+# Structural mutations over the tree (base class moves/deletes/inserts nodes)
+insert(tree, parent_address, position, content) -> tree
+  # position: first | last | <0-based index among siblings>
+  # content is raw block source; base calls node_from_source() to build the node,
+  # then inserts the returned node under parent_address at position.
+delete(tree, address) -> tree
+move(tree, address, target_parent_address, position) -> tree
+replace_node(tree, address, content) -> tree
+  # edits node content in place: base calls node_from_source(content),
+  # swaps the node body, and PRESERVES the existing stable_id of that node.
+mutate_batch(tree, operations) -> tree    # atomic ordered list of structural ops
+multiple_replace(tree, [(address, content), ...]) -> tree   # many replace_node in one call
+
+# Fragments / clipboard (structure handled by base; body via subclass converters)
+copy_fragment(tree, source_address) -> fragment
+cut_fragment(tree, source_address) -> (tree, fragment, changed_addresses)
+paste_fragment(tree, target_parent_address, position, fragment) -> (tree, changed_addresses)
+
+# Identity (owned entirely by the base class)
+#  - stable_id is assigned by the base class to every node.
+#  - editing a node's content via replace_node preserves its stable_id.
+#  - structural ops (insert/delete/move) maintain stable_id integrity.
+#  - subclasses never assign, read, or depend on stable_ids.
+
+# Write orchestration (base class; uniform for all formats)
+write(tree, path) -> WriteResult
+  # 1. raw = export(tree) via subclass render
+  # 2. show diff to caller (preview phase)
+  # 3. on confirm: write raw to a temp file
+  # 4. run all subclass-provided linters/validators on the temp file
+  # 5. no errors  -> atomic rename temp -> target (commit)
+  #    errors     -> abort, temp discarded, errors returned to caller
 
 # Discovery
 list_commands() -> FormatterCommandCatalog
 ```
 
-Required class attributes: `formatter_name`, `supported_payload_kinds`, `supported_address_kinds`,
-`supported_paste_modes`, `can_render_to_text`, `can_parse_from_text`.
+```
+# ---- Subclass: conversion hooks ONLY (each new format implements these) ----
 
-**Forbidden in formatters:**
+parse(raw_content) -> tree_nodes        # whole file source -> tree nodes (no ids)
+render(tree) -> raw_content             # whole tree -> file source
+node_from_source(raw_block) -> node     # block source -> one tree node/subtree (no id)
+node_to_source(node) -> raw_block       # one tree node -> block source
+linters() -> list[Linter]               # validators run by base over the temp file on write
+```
+
+The base class never knows the concrete syntax; the subclass never moves,
+deletes, inserts, or identifies nodes. Editing flow: caller passes block
+source -> base calls subclass node_from_source -> base performs the structural
+operation on the tree -> on write, base calls subclass render and runs subclass
+linters before the atomic rename.
+
+The base class (via the session/buffer layer) does NOT:
+
 - Open, save, or close files for buffer lifecycle.
 - Own buffer registry or stale disk checks.
 - Perform git operations.
