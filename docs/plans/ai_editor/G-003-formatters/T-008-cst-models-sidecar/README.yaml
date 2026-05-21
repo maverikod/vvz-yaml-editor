@@ -2,7 +2,22 @@ step_id: T-008
 parent_global_step: G-003
 name: CSTFormatter — CSTTree model, stable_id, TreeNodeMetadata, sidecar
 status: needs_review
-description: 'CSTTree as specialisation of generic Tree. Sidecar: CST uses .cst paths and CST_TREE_V1; generic Sidecar model applies (.tree for other formats). TreeNodeMetadata, stable_id protocol.'
+description: 'CSTTree (C-030) specialisation of generic Tree (C-063): tree_id runtime
+  UUID, module libcst.Module, metadata_map node_id -> TreeNodeMetadata, node_map node_id
+  -> libcst.CSTNode, parent_map node_id -> parent_node_id, node_id_aliases dict previous_obj_to_id
+  snapshot, root_node_id stable_id of module root. TreeNodeMetadata frozen dataclass:
+  stable_id str UUID4, start_line int, end_line int, docstring DocstringMeta | None
+  (C-034). Stable_id assignment and preservation remain base-owned (C-031, AbstractFormatter
+  base (C-021)); this step provides CST transient protocol only via node_stable_id.py
+  and node_id_markers.py (get_stable_id, strip_inline_node_id_lines_from_source; strip_persisted_node_ids;
+  no set_stable_id, no append_persisted_node_ids). CST Sidecar specialisation (C-032):
+  session <session_dir>/<buffer_id>.cst, project <py_dir>/.cst/<py_stem>.tree, header
+  CST_TREE_V1 sha256=<source_sha256> tree_sha256=<tree_body_sha256>. Sidecar JSON
+  body: serialised metadata_map {node_id -> {stable_id, start_line, end_line, docstring}}
+  where docstring is dict | null matching DocstringMeta serialisation shape (summary,
+  args, returns, attributes, docstring_body keys per C-034). load validates both checksums,
+  atomic write via write_result. Generic .tree Sidecar is generic TREE_V1 .tree Sidecar
+  owned by AbstractFormatter base package (C-032), not this step.'
 concepts:
 - C-029
 - C-030
@@ -11,26 +26,45 @@ concepts:
 - C-063
 - C-034
 inputs:
-- name: G-002/T-005 output
+- name: G-002 Writer module
   type: ai_editor.writer
-  description: write_result from ai_editor.writer for atomic sidecar writes.
+  description: write_result from ai_editor.writer for atomic CST sidecar writes.
 outputs:
+- name: ai_editor/formatters/cst/tree_node_metadata.py
+  type: file
+  description: TreeNodeMetadata frozen dataclass (stable_id, start_line, 
+    end_line, docstring dict|null per C-034 keys 
+    summary/args/returns/attributes/docstring_body). validate_docstring_dict; 
+    to_sidecar_dict and from_sidecar_dict for CST sidecar metadata_map entries. 
+    DocstringMeta type is added later in docstring_meta.py — no cross-import 
+    here.
 - name: ai_editor/formatters/cst/models.py
   type: file
-  description: CSTTree and TreeNodeMetadata dataclasses with all fields listed above.
+  description: 'CSTTree dataclass only (C-030): tree_id str UUID, module libcst.Module,
+    metadata_map dict[str, TreeNodeMetadata], node_map dict[str, libcst.CSTNode],
+    parent_map dict[str, str], node_id_aliases dict (previous_obj_to_id snapshot),
+    root_node_id str stable_id. Imports TreeNodeMetadata from tree_node_metadata.py;
+    does not define TreeNodeMetadata.'
 - name: ai_editor/formatters/cst/sidecar.py
   type: file
-  description: 'load_sidecar, save_sidecar, sidecar_matches_built_tree functions. Module-level alias: verify_sidecar_against_source = sidecar_matches_built_tree.
-
-    '
+  description: 'CST Sidecar (C-032 specialisation): load_sidecar, save_sidecar, sidecar_matches_built_tree
+    for session .cst and project .cst/<stem>.tree paths; CST_TREE_V1 header; module
+    alias verify_sidecar_against_source = sidecar_matches_built_tree. Does not implement
+    generic TREE_V1 .tree paths. JSON body serialises metadata_map as {node_id: {stable_id,
+    start_line, end_line, docstring}} with docstring dict|null per C-034 field keys.'
 - name: ai_editor/formatters/cst/node_stable_id.py
   type: file
-  description: get_stable_id and strip_inline_node_id_lines_from_source. No set_stable_id.
+  description: get_stable_id and strip_inline_node_id_lines_from_source for 
+    transient  # @node-id embedding during libcst re-parse. No set_stable_id.
 - name: ai_editor/formatters/cst/node_id_markers.py
   type: file
-  description: strip_persisted_node_ids only. No append_persisted_node_ids.
+  description: 'strip_persisted_node_ids(raw: str) -> str removes trailing persisted
+    block marked by lines "# cst-node-ids: begin" through "# cst-node-ids: end" inclusive.
+    No append_persisted_node_ids.'
 - name: ai_editor/formatters/cst/__init__.py
   type: file
-  description: Package init for cst formatter.
+  description: Package init exporting CSTTree, TreeNodeMetadata, sidecar 
+    helpers, stable_id utilities.
 atomic_steps: []
-cascade_note: changed — formatter paradigm cascade 2026-05-21
+cascade_note: changed — formatter paradigm cascade 2026-05-21; tactical-fix CST 
+  fields and sidecar scope 2026-05-21

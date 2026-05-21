@@ -1,0 +1,34 @@
+concepts:
+- C-060
+- C-058
+depends_on: []
+name: Guard ai_editor/ported/file_handlers/python_handler.py — CST stack 
+  deferred
+operation: modify_file
+parent_tactical_step: T-003
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/ported/file_handlers/python_handler.py.
+  Operation: modify_file.\n\nThis file imports code_analysis.core.cst_tree.tree_builder
+  and\ncode_analysis.commands.compose_cst_ops_flow — the full CST stack, which is
+  not\nported in G-000. Guard the entire module so it is importable without the CST
+  stack.\n\nReplace ALL content of the file with:\n\n```python\n\"\"\"\npython_handler.py
+  — Python file handler using libcst.\n\nGuarded in G-000: CST stack (cst_tree.*)
+  not ported.\nReal PythonFileHandler implementation wired in G-003/T-008.\nImporting
+  this module succeeds; PythonFileHandler is a stub that raises\nNotImplementedError
+  on all methods.\n\"\"\"\nfrom __future__ import annotations\n\nfrom typing import
+  Any\n\ntry:\n    from ai_editor.ported.file_handlers._python_handler_impl import
+  PythonFileHandler  # noqa: F401\nexcept ImportError:\n    class PythonFileHandler:\
+  \  # type: ignore[no-redef]\n        \"\"\"Stub PythonFileHandler — CST not available
+  in G-000.\"\"\"\n\n        def __getattr__(self, name: str) -> Any:\n          \
+  \  raise NotImplementedError(\n                f'PythonFileHandler.{name}: CST stack
+  not available in G-000. '\n                'Wired in G-003/T-008.'\n           \
+  \ )\n\n__all__ = ['PythonFileHandler']\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/ported/file_handlers/python_handler.py
+verification:
+  expected: import ai_editor.ported.file_handlers.python_handler succeeds 
+    without ImportError. PythonFileHandler() can be instantiated; any method 
+    call raises NotImplementedError.
+  target: ai_editor.ported.file_handlers.python_handler
+  type: import

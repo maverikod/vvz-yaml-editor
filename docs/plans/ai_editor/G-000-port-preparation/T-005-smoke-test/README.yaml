@@ -1,0 +1,28 @@
+atomic_steps:
+- A-001
+concepts:
+- C-061
+- C-058
+- C-059
+description: 'Write and run an import smoke test verifying TextGroupReadiness: (1)
+  `import ai_editor.ported.universal_file_edit` succeeds without code_analysis or
+  mcp_proxy_adapter on the Python path; (2) `import ai_editor.result` and `import
+  ai_editor.project` succeed; (3) end-to-end text format group test: open a .txt file
+  through UniversalFileOpenCommand, apply a text edit via UniversalFileEditCommand,
+  write via UniversalFileWriteCommand, close via UniversalFileCloseCommand, verify
+  file content. CST and tree_temp groups remain as guarded lazy imports and are NOT
+  tested here.'
+inputs:
+- description: ai_editor/ported/ tree after T-001..T-004 with shims and 
+    rewritten imports.
+  name: ported_tree_with_shims
+  type: directory
+name: Smoke test — import and text group end-to-end
+outputs:
+- description: 'tests/test_g000_smoke.py: import test + text group end-to-end test.
+    All tests pass under pytest.'
+  name: tests/test_g000_smoke.py
+  type: file
+parent_global_step: G-000
+status: draft
+step_id: T-005

@@ -1,0 +1,22 @@
+concepts:
+- C-058
+- C-061
+depends_on: []
+name: Create ai_editor/ported/universal_file_edit/__init__.py
+operation: create_file
+parent_tactical_step: T-004
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/__init__.py.
+  Operation: create_file.\n\nCreate the file ai_editor/ported/universal_file_edit/__init__.py
+  with the following exact content:\n\n```python\n\"\"\"Universal file edit commands,
+  ported from code-analysis-server for standalone use.\"\"\"\n```\n\nThis makes ai_editor/ported/universal_file_edit/
+  a proper Python package importable\nas ai_editor.ported.universal_file_edit. No
+  imports, no exports, no logic."
+status: draft
+step_id: A-002
+target_file: ai_editor/ported/universal_file_edit/__init__.py
+verification:
+  expected: import ai_editor.ported.universal_file_edit succeeds without 
+    ImportError.
+  target: ai_editor.ported.universal_file_edit
+  type: import

@@ -1,0 +1,57 @@
+concepts:
+- C-002
+depends_on: []
+name: Create ai_editor/contracts/error_codes.py — ErrorCode enum
+operation: create_file
+parent_tactical_step: T-002
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/contracts/error_codes.py. Operation:
+  create_file.\n\nMRS concept C-002 (ErrorCode): Centralised enum of all typed error
+  codes used\nacross every subsystem. Invariant: every possible typed error must appear
+  here;\nno subsystem defines its own ad-hoc error strings. Groups: Session, Buffer,
+  File,\nFormatter, Address, Search, Clipboard, YAML, CST, Validation, Write, History.\n\
+  \nCreate the directory ai_editor/contracts/ if it does not exist, then create the\n\
+  file ai_editor/contracts/error_codes.py with the following exact content:\n\n```python\n\
+  \"\"\"Centralised ErrorCode enum for all ai_editor subsystems.\n\nEvery typed error
+  across Session, Buffer, File, Formatter, Address, Search,\nClipboard, YAML, CST,
+  Validation, Write, and History subsystems is defined here.\nNo subsystem may define
+  its own ad-hoc error strings.\n\"\"\"\nfrom __future__ import annotations\n\nfrom
+  enum import Enum\n\n\nclass ErrorCode(str, Enum):\n    \"\"\"Typed error codes for
+  all ai_editor operations.\"\"\"\n\n    # --- Session ---\n    SESSION_NOT_FOUND
+  = \"SESSION_NOT_FOUND\"\n    SESSION_READONLY = \"SESSION_READONLY\"\n    SESSION_ALREADY_EXISTS
+  = \"SESSION_ALREADY_EXISTS\"\n    SESSION_CORRUPT = \"SESSION_CORRUPT\"\n\n    #
+  --- Buffer ---\n    BUFFER_NOT_FOUND = \"BUFFER_NOT_FOUND\"\n    BUFFER_LOCKED =
+  \"BUFFER_LOCKED\"\n    BUFFER_READONLY = \"BUFFER_READONLY\"\n    BUFFER_MODIFIED
+  = \"BUFFER_MODIFIED\"\n    BUFFER_NOT_MODIFIED = \"BUFFER_NOT_MODIFIED\"\n    BUFFER_ALREADY_OPEN
+  = \"BUFFER_ALREADY_OPEN\"\n    BUFFER_SAVE_FAILED = \"BUFFER_SAVE_FAILED\"\n   \
+  \ BUFFER_RELOAD_FAILED = \"BUFFER_RELOAD_FAILED\"\n\n    # --- File ---\n    FILE_NOT_FOUND
+  = \"FILE_NOT_FOUND\"\n    FILE_ALREADY_EXISTS = \"FILE_ALREADY_EXISTS\"\n    FILE_ACCESS_DENIED
+  = \"FILE_ACCESS_DENIED\"\n    FILE_TOO_LARGE = \"FILE_TOO_LARGE\"\n    FILE_ENCODING_ERROR
+  = \"FILE_ENCODING_ERROR\"\n\n    # --- Formatter ---\n    FORMATTER_NOT_FOUND =
+  \"FORMATTER_NOT_FOUND\"\n    FORMATTER_PARSE_ERROR = \"FORMATTER_PARSE_ERROR\"\n\
+  \    FORMATTER_RENDER_ERROR = \"FORMATTER_RENDER_ERROR\"\n    FORMATTER_LINT_ERROR
+  = \"FORMATTER_LINT_ERROR\"\n    FORMATTER_UNSUPPORTED = \"FORMATTER_UNSUPPORTED\"\
+  \n\n    # --- Address ---\n    ADDRESS_NOT_FOUND = \"ADDRESS_NOT_FOUND\"\n    ADDRESS_INVALID
+  = \"ADDRESS_INVALID\"\n    ADDRESS_AMBIGUOUS = \"ADDRESS_AMBIGUOUS\"\n\n    # ---
+  Search ---\n    SEARCH_NO_MATCH = \"SEARCH_NO_MATCH\"\n    SEARCH_MULTIPLE_MATCHES
+  = \"SEARCH_MULTIPLE_MATCHES\"\n    SEARCH_INVALID_QUERY = \"SEARCH_INVALID_QUERY\"\
+  \n\n    # --- Clipboard ---\n    CLIPBOARD_EMPTY = \"CLIPBOARD_EMPTY\"\n    CLIPBOARD_FORMAT_MISMATCH
+  = \"CLIPBOARD_FORMAT_MISMATCH\"\n\n    # --- YAML ---\n    YAML_PARSE_ERROR = \"\
+  YAML_PARSE_ERROR\"\n    YAML_SCHEMA_ERROR = \"YAML_SCHEMA_ERROR\"\n    YAML_PATH_NOT_FOUND
+  = \"YAML_PATH_NOT_FOUND\"\n\n    # --- CST ---\n    CST_PARSE_ERROR = \"CST_PARSE_ERROR\"\
+  \n    CST_NODE_NOT_FOUND = \"CST_NODE_NOT_FOUND\"\n    CST_NESTED_BATCH = \"CST_NESTED_BATCH\"\
+  \n    CST_LINT_ERROR = \"CST_LINT_ERROR\"\n\n    # --- Validation ---\n    VALIDATION_ERROR
+  = \"VALIDATION_ERROR\"\n    SCHEMA_NOT_FOUND = \"SCHEMA_NOT_FOUND\"\n\n    # ---
+  Write ---\n    WRITE_FAILED = \"WRITE_FAILED\"\n    WRITE_CONFLICT = \"WRITE_CONFLICT\"\
+  \n    WRITE_PERMISSION_DENIED = \"WRITE_PERMISSION_DENIED\"\n\n    # --- History
+  ---\n    UNDO_NOT_AVAILABLE = \"UNDO_NOT_AVAILABLE\"\n    REDO_NOT_AVAILABLE = \"\
+  REDO_NOT_AVAILABLE\"\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/contracts/error_codes.py
+verification:
+  expected: from ai_editor.contracts.error_codes import ErrorCode; 
+    ErrorCode.BUFFER_LOCKED == 'BUFFER_LOCKED'; all members are unique str 
+    values; len(ErrorCode) >= 40.
+  target: ai_editor.contracts.error_codes
+  type: import

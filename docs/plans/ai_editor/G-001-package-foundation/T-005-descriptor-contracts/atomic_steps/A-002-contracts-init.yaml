@@ -1,0 +1,44 @@
+concepts:
+- C-001
+- C-002
+- C-003
+- C-004
+- C-005
+- C-006
+- C-007
+- C-008
+- C-009
+- C-020
+depends_on:
+- A-001
+name: Create ai_editor/contracts/__init__.py — export all G-001 contracts
+operation: create_file
+parent_tactical_step: T-005
+priority: 2
+prompt: "Project: ai_editor. File: ai_editor/contracts/__init__.py. Operation: create_file.\n\
+  \nPreconditions (all must exist before this step):\n  - ai_editor/contracts/error_codes.py\
+  \   (ErrorCode)\n  - ai_editor/contracts/diagnostic.py    (Diagnostic)\n  - ai_editor/contracts/results.py\
+  \       (ResultEnvelope, ValidationResult, OperationResult, WriteAllResult)\n  -
+  ai_editor/contracts/descriptors.py   (SessionKey, BufferDescriptor, SessionDescriptor,
+  BufferAddress)\n\nCreate the file ai_editor/contracts/__init__.py with the following
+  exact content:\n\n```python\n\"\"\"Public contracts package for ai_editor.\n\nExports
+  all typed contracts used across the editor: error codes, diagnostics,\nresult envelopes,
+  and session/buffer descriptors.\n\"\"\"\nfrom __future__ import annotations\n\n\
+  from ai_editor.contracts.descriptors import (\n    BufferAddress,\n    BufferDescriptor,\n\
+  \    SessionDescriptor,\n    SessionKey,\n)\nfrom ai_editor.contracts.diagnostic
+  import Diagnostic\nfrom ai_editor.contracts.error_codes import ErrorCode\nfrom ai_editor.contracts.results
+  import (\n    OperationResult,\n    ResultEnvelope,\n    ValidationResult,\n   \
+  \ WriteAllResult,\n)\n\n__all__ = [\n    \"BufferAddress\",\n    \"BufferDescriptor\"\
+  ,\n    \"Diagnostic\",\n    \"ErrorCode\",\n    \"OperationResult\",\n    \"ResultEnvelope\"\
+  ,\n    \"SessionDescriptor\",\n    \"SessionKey\",\n    \"ValidationResult\",\n\
+  \    \"WriteAllResult\",\n]\n```"
+status: draft
+step_id: A-002
+target_file: ai_editor/contracts/__init__.py
+verification:
+  expected: from ai_editor.contracts import ErrorCode, Diagnostic, 
+    ResultEnvelope, ValidationResult, OperationResult, WriteAllResult, 
+    SessionKey, BufferDescriptor, SessionDescriptor, BufferAddress; all ten 
+    names importable from ai_editor.contracts in one import.
+  target: ai_editor.contracts
+  type: import

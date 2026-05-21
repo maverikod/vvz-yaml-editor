@@ -1,0 +1,29 @@
+concepts:
+- C-059
+depends_on: []
+name: Create ai_editor/git.py — commit_after_write no-op stub
+operation: create_file
+parent_tactical_step: T-001
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/git.py. Operation: create_file.\n\nCreate
+  the file ai_editor/git.py with the following exact content.\n\nThis shim replaces
+  code_analysis.core.git_integration.commit_after_write.\nThe stub is a no-op in G-000.
+  The real implementation that commits to\nSessionGit (C-040) is wired in G-005/T-002.\n\
+  \nRequired content:\n\n```python\n\"\"\"Shim replacing code_analysis git_integration
+  for standalone use.\n\ncommit_after_write is a no-op stub in G-000.\nReal SessionGit
+  integration is wired in G-005/T-002.\n\"\"\"\nfrom __future__ import annotations\n\
+  from pathlib import Path\n\n\ndef commit_after_write(path: Path, message: str =
+  \"\") -> None:\n    \"\"\"No-op stub for commit_after_write.\n\n    The real implementation
+  in G-005 commits the written file to the\n    per-buffer branch in SessionGit. This
+  stub allows ported/ write_command.py\n    to function without a git repository present.\n\
+  \n    Args:\n        path: Path to the file that was written (ignored in stub).\n\
+  \        message: Commit message (ignored in stub).\n    \"\"\"\n    return\n```\n\
+  \nNo other content. No imports beyond those shown."
+status: draft
+step_id: A-003
+target_file: ai_editor/git.py
+verification:
+  expected: Module imports without error; commit_after_write(Path('/tmp/x'), 
+    'msg') returns None without raising.
+  target: ai_editor.git
+  type: import

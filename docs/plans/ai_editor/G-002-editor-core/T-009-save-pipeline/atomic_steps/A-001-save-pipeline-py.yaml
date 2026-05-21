@@ -1,0 +1,108 @@
+concepts:
+- C-013
+- C-014
+depends_on: []
+name: Create ai_editor/editor_core/save_pipeline.py — run_validate, 
+  run_save_pipeline, run_save_as_pipeline
+operation: create_file
+parent_tactical_step: T-009
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/editor_core/save_pipeline.py. Operation:
+  create_file.\n\nMRS concepts:\n  C-013 CodeAnalysisClient: Single gateway for file
+  I/O. upload_content writes\n    content only and never releases the lock. unlock_file
+  is a separate call.\n  C-014 FileLock: server-side cooperative lock. Released only
+  via explicit\n    session_close_file during buffer close or save(close=True). upload_content\n\
+  \    never releases the lock.\n\nThis module implements the three pipeline functions
+  that the session layer (G-005)\ncalls when saving a buffer. The formatter WritePipeline
+  (export, diff, temp, linters,\natomic rename) runs in the formatter layer (G-003).
+  This module handles the\npost-WritePipeline CA server upload step.\n\nPreconditions:\n\
+  \  - ai_editor/contracts/__init__.py exists (OperationResult, ValidationResult,\n\
+  \    ErrorCode, Diagnostic importable)\n  - ai_editor/editor_core/ca_client.py exists
+  (CodeAnalysisClient)\n\nCreate the file ai_editor/editor_core/save_pipeline.py with
+  the following exact content:\n\n```python\n\"\"\"Save pipeline — validate, render,
+  and upload buffer content via CA client.\n\nThe formatter WritePipeline (export,
+  diff_preview, temp_write, linters,\natomic_rename) runs inside the formatter layer
+  (G-003). This module handles\nthe post-WritePipeline step: uploading the written
+  file to the CA server.\n\nupload_content never releases the file lock. Lock release
+  is always a\nseparate explicit unlock_file call during buffer close.\n\"\"\"\nfrom
+  __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import TYPE_CHECKING,
+  Any\n\nfrom ai_editor.contracts import Diagnostic, ErrorCode, OperationResult, ValidationResult\n\
+  \nif TYPE_CHECKING:\n    from ai_editor.editor_core.ca_client import CodeAnalysisClient\n\
+  \n\ndef run_validate(formatter: Any, document: Any) -> ValidationResult:\n    \"\
+  \"\"Run formatter linters over the current document state.\n\n    Delegates to formatter.validate()
+  which runs all registered linters.\n\n    Args:\n        formatter: AbstractFormatter
+  instance owning the document tree.\n        document: Current document state (formatter-specific).\n\
+  \n    Returns:\n        ValidationResult with success flag and list of Diagnostic
+  items.\n    \"\"\"\n    try:\n        result = formatter.validate(document)\n  \
+  \      if isinstance(result, ValidationResult):\n            return result\n   \
+  \     # Adapt older-style dict result if needed\n        return ValidationResult(\n\
+  \            success=bool(result.get(\"success\", True)),\n            diagnostics=[\n\
+  \                Diagnostic(code=d.get(\"code\", \"\"), message=d.get(\"message\"\
+  , \"\"))\n                for d in result.get(\"diagnostics\", [])\n           \
+  \ ],\n        )\n    except Exception as exc:\n        return ValidationResult(\n\
+  \            success=False,\n            diagnostics=[Diagnostic(code=\"VALIDATION_ERROR\"\
+  , message=str(exc))],\n        )\n\n\ndef run_save_pipeline(\n    formatter: Any,\n\
+  \    document: Any,\n    relative_path: str,\n    ca_client: CodeAnalysisClient,\n\
+  \    project_id: str,\n    file_id: str | None,\n    commit_message: str = \"\"\
+  ,\n) -> OperationResult:\n    \"\"\"Run the full save pipeline for a buffer.\n\n\
+  \    Steps:\n      1. Export document via formatter WritePipeline (render, linters,
+  atomic rename).\n      2. Read the written file bytes.\n      3. Upload to CA server
+  via ca_client.upload_content (content only; no lock release).\n\n    The file lock
+  is NOT released here. Lock release is a separate explicit\n    ca_client.unlock_file
+  call during buffer close or save(close=True).\n\n    Args:\n        formatter: AbstractFormatter
+  instance owning the document.\n        document: Current document state.\n     \
+  \   relative_path: Project-relative path of the file being saved.\n        ca_client:
+  CodeAnalysisClient gateway to the CA server.\n        project_id: UUID of the project.\n\
+  \        file_id: UUID of the file on the CA server, or None for new files.\n  \
+  \      commit_message: Commit message for the CA server (advisory).\n\n    Returns:\n\
+  \        OperationResult with success flag and any diagnostics.\n    \"\"\"\n  \
+  \  try:\n        export_result = formatter.export(document)\n        if not export_result.get(\"\
+  success\", True):\n            return OperationResult(\n                success=False,\n\
+  \                error_code=ErrorCode.FORMATTER_LINT_ERROR,\n                message=export_result.get(\"\
+  message\", \"Formatter export failed\"),\n                diagnostics=[\n      \
+  \              Diagnostic(code=d.get(\"code\", \"\"), message=d.get(\"message\"\
+  , \"\"))\n                    for d in export_result.get(\"diagnostics\", [])\n\
+  \                ],\n            )\n        written_path: Path = export_result[\"\
+  path\"]\n        content = written_path.read_bytes()\n        if file_id is not
+  None:\n            ca_client.upload_content(project_id, file_id, content)\n    \
+  \    return OperationResult(success=True, message=f\"Saved {relative_path}\")\n\
+  \    except Exception as exc:\n        return OperationResult(\n            success=False,\n\
+  \            error_code=ErrorCode.WRITE_FAILED,\n            message=str(exc),\n\
+  \        )\n\n\ndef run_save_as_pipeline(\n    formatter: Any,\n    document: Any,\n\
+  \    new_relative_path: str,\n    ca_client: CodeAnalysisClient,\n    project_id:
+  str,\n    overwrite: bool,\n    commit_message: str = \"\",\n) -> OperationResult:\n\
+  \    \"\"\"Run the save-as pipeline, writing content to a new project path.\n\n\
+  \    Steps:\n      1. Check if target path already exists (unless overwrite=True).\n\
+  \      2. Export document via formatter WritePipeline.\n      3. Upload content
+  to CA server for the new path.\n      4. The file lock on the original file is NOT
+  released here.\n\n    Args:\n        formatter: AbstractFormatter instance owning
+  the document.\n        document: Current document state.\n        new_relative_path:
+  New project-relative destination path.\n        ca_client: CodeAnalysisClient gateway
+  to the CA server.\n        project_id: UUID of the project.\n        overwrite:
+  If False and the target path exists, return an error.\n        commit_message: Commit
+  message for the CA server (advisory).\n\n    Returns:\n        OperationResult with
+  success flag and any diagnostics.\n    \"\"\"\n    try:\n        existing = ca_client.list_project_files(project_id)\n\
+  \        exists = any(\n            f.get(\"relative_path\") == new_relative_path
+  for f in existing\n        )\n        if exists and not overwrite:\n           \
+  \ return OperationResult(\n                success=False,\n                error_code=ErrorCode.FILE_ALREADY_EXISTS,\n\
+  \                message=f\"File already exists: {new_relative_path}\",\n      \
+  \      )\n        export_result = formatter.export(document)\n        if not export_result.get(\"\
+  success\", True):\n            return OperationResult(\n                success=False,\n\
+  \                error_code=ErrorCode.FORMATTER_LINT_ERROR,\n                message=export_result.get(\"\
+  message\", \"Formatter export failed\"),\n            )\n        written_path: Path
+  = export_result[\"path\"]\n        content = written_path.read_bytes()\n       \
+  \ # For save_as, upload_content always unlock_after_write=False\n        # (lock
+  on original file remains; new file has no lock)\n        ca_client.upload_content(project_id,
+  \"\", content)  # file_id TBD by session\n        return OperationResult(\n    \
+  \        success=True, message=f\"Saved as {new_relative_path}\"\n        )\n  \
+  \  except Exception as exc:\n        return OperationResult(\n            success=False,\n\
+  \            error_code=ErrorCode.WRITE_FAILED,\n            message=str(exc),\n\
+  \        )\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/editor_core/save_pipeline.py
+verification:
+  expected: from ai_editor.editor_core.save_pipeline import run_validate, 
+    run_save_pipeline, run_save_as_pipeline; all three importable without error.
+  target: ai_editor.editor_core.save_pipeline
+  type: import

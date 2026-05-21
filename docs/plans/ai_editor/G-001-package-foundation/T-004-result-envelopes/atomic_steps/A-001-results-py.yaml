@@ -1,0 +1,63 @@
+concepts:
+- C-001
+- C-004
+- C-005
+- C-006
+depends_on: []
+name: Create ai_editor/contracts/results.py — four result envelope dataclasses
+operation: create_file
+parent_tactical_step: T-004
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/contracts/results.py. Operation: create_file.\n\
+  \nMRS concepts:\n  C-001 ResultEnvelope: Universal response wrapper carrying success
+  flag, optional\n    error code (ErrorCode | None), message (str), details (dict),
+  diagnostics\n    (list[Diagnostic]).\n  C-004 ValidationResult: Result of a validation
+  operation: success (bool) and\n    diagnostics (list[Diagnostic]).\n  C-005 OperationResult:
+  Result of a mutating operation: success (bool), optional\n    error_code (ErrorCode
+  | None), message (str), diagnostics (list[Diagnostic]).\n  C-006 WriteAllResult:
+  Result of a bulk-save operation: success (bool),\n    written_buffers (list[str]),
+  failed_buffers (list[dict]),\n    skipped_buffers (list[str]), diagnostics (list[Diagnostic]).\n\
+  \nAll four are NOT frozen (mutable for incremental population in write_all loops).\n\
+  \nPreconditions:\n  - ai_editor/contracts/error_codes.py exists (ErrorCode importable)\n\
+  \  - ai_editor/contracts/diagnostic.py exists (Diagnostic importable)\n\nCreate
+  the file ai_editor/contracts/results.py with the following exact content:\n\n```python\n\
+  \"\"\"Result envelope dataclasses for all ai_editor operations.\"\"\"\nfrom __future__
+  import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import
+  Any\n\nfrom ai_editor.contracts.diagnostic import Diagnostic\nfrom ai_editor.contracts.error_codes
+  import ErrorCode\n\n\n@dataclass\nclass ResultEnvelope:\n    \"\"\"Universal response
+  wrapper for all editor operations.\n\n    Attributes:\n        success: True if
+  the operation succeeded.\n        error_code: Typed error code when success is False;
+  None otherwise.\n        message: Human-readable result or error description.\n\
+  \        details: Additional key-value fields for the caller.\n        diagnostics:
+  List of structured diagnostic messages.\n    \"\"\"\n\n    success: bool\n    error_code:
+  ErrorCode | None = None\n    message: str = \"\"\n    details: dict[str, Any] =
+  field(default_factory=dict)\n    diagnostics: list[Diagnostic] = field(default_factory=list)\n\
+  \n\n@dataclass\nclass ValidationResult:\n    \"\"\"Result of a validation operation.\n\
+  \n    Attributes:\n        success: True if validation passed.\n        diagnostics:
+  List of validation diagnostics (empty on success).\n    \"\"\"\n\n    success: bool\n\
+  \    diagnostics: list[Diagnostic] = field(default_factory=list)\n\n\n@dataclass\n\
+  class OperationResult:\n    \"\"\"Result of a mutating operation.\n\n    Attributes:\n\
+  \        success: True if the operation succeeded.\n        error_code: Typed error
+  code when success is False; None otherwise.\n        message: Human-readable result
+  or error description.\n        diagnostics: List of structured diagnostic messages.\n\
+  \    \"\"\"\n\n    success: bool\n    error_code: ErrorCode | None = None\n    message:
+  str = \"\"\n    diagnostics: list[Diagnostic] = field(default_factory=list)\n\n\n\
+  @dataclass\nclass WriteAllResult:\n    \"\"\"Result of a bulk-save (write_all) operation.\n\
+  \n    Attributes:\n        success: True if all saves succeeded.\n        written_buffers:
+  Buffer IDs that were successfully written.\n        failed_buffers: Dicts describing
+  each failed buffer (buffer_id + error info).\n        skipped_buffers: Buffer IDs
+  skipped (unmodified or readonly).\n        diagnostics: List of structured diagnostic
+  messages.\n    \"\"\"\n\n    success: bool\n    written_buffers: list[str] = field(default_factory=list)\n\
+  \    failed_buffers: list[dict[str, Any]] = field(default_factory=list)\n    skipped_buffers:
+  list[str] = field(default_factory=list)\n    diagnostics: list[Diagnostic] = field(default_factory=list)\n\
+  ```"
+status: draft
+step_id: A-001
+target_file: ai_editor/contracts/results.py
+verification:
+  expected: from ai_editor.contracts.results import ResultEnvelope, 
+    ValidationResult, OperationResult, WriteAllResult; all four import without 
+    error; ResultEnvelope(success=True) has message='', details={}, 
+    diagnostics=[]; WriteAllResult(success=True).written_buffers == [].
+  target: ai_editor.contracts.results
+  type: import

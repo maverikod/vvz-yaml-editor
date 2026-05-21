@@ -1,7 +1,12 @@
 step_id: G-002
 name: Editor core — buffer contracts, CA client, config, and infrastructure
-status: needs_review
-description: Defines shared buffer abstractions and editor infrastructure. Buffer and Writer sit on AbstractFormatter tree ownership and WritePipeline (export -> temp -> linters -> atomic rename). Zero session lifecycle logic. Owns AbstractBuffer, BufferState, CodeAnalysisClient, FileLock, Writer, FormatterRegistry, config components. Buffer open/close/save belong to G-005. T-008 permanently retired; next new step is T-010.
+status: ready_for_review
+description: Defines shared buffer abstractions and editor infrastructure. 
+  Buffer and Writer sit on AbstractFormatter tree ownership and WritePipeline 
+  (export -> temp -> linters -> atomic rename). Zero session lifecycle logic. 
+  Owns AbstractBuffer, BufferState, CodeAnalysisClient, FileLock, Writer, 
+  FormatterRegistry, config components. Buffer open/close/save belong to G-005. 
+  T-008 permanently retired; next new step is T-010.
 concepts:
 - C-010
 - C-011
@@ -80,16 +85,24 @@ executor_brief:
   - ai_editor/writer.py
   - tests/editor_core/
   tree_and_write_orchestration:
-    buffer_uses_formatter: AbstractBuffer (C-010) holds one AbstractFormatter (C-021) for buffer lifetime; formatter owns in-memory Tree
-    registry: FormatterRegistry (C-012) maps extension/name -> formatter class; registration at HooksRegister startup
+    buffer_uses_formatter: AbstractBuffer (C-010) holds one AbstractFormatter 
+      (C-021) for buffer lifetime; formatter owns in-memory Tree
+    registry: FormatterRegistry (C-012) maps extension/name -> formatter class; 
+      registration at HooksRegister startup
     writer_split:
       write_buf: session .buf files only (atomic, no backup)
       write_result: local derived artifacts (backup + atomic + read-back)
-      project_files: never written locally — CodeAnalysisClient.upload_content only
-    write_pipeline: disk commit path runs through formatter.write() (C-068); session buf updates use Writer.write_buf separately on each mutation
+      project_files: never written locally — CodeAnalysisClient.upload_content 
+        only
+    write_pipeline: disk commit path runs through formatter.write() (C-068); 
+      session buf updates use Writer.write_buf separately on each mutation
   explicit_non_scope:
   - buffer open/close/save lifecycle (session layer)
   - session git, clipboard, ses_settings
-  - sidecar persistence timing (session writes Sidecar after mutation; formatter defines Sidecar format)
-  ca_client: single gateway for all project file I/O; FileLock under external ca_session_id
-cascade_note: changed — recheck for base-class tree ownership + write orchestration; I1c source_ranges audited 2026-05-21; cycle_2 triple-autonomy 2026-05-21
+  - sidecar persistence timing (session writes Sidecar after mutation; formatter
+    defines Sidecar format)
+  ca_client: single gateway for all project file I/O; FileLock under external 
+    ca_session_id
+cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; base-class 
+  tree ownership + write orchestration rechecked; I1c source_ranges audited 
+  2026-05-21

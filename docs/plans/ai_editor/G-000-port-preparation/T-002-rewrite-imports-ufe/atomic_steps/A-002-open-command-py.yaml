@@ -1,0 +1,68 @@
+step_id: A-002
+parent_tactical_step: T-002
+name: Rewrite imports in ai_editor/ported/universal_file_edit/open_command.py
+target_file: ai_editor/ported/universal_file_edit/open_command.py
+operation: modify_file
+priority: 2
+depends_on: []
+concepts:
+- C-060
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/open_command.py.
+  Operation: modify_file.\n\nApply exactly these changes to the import section and
+  nothing else. Do not alter function bodies, class definitions, constants, or non-import
+  lines.\n\nCHANGE 1 — line:\n  from mcp_proxy_adapter.commands.result import ErrorResult,
+  SuccessResult\nReplace with:\n  from ai_editor.result import ErrorResult, SuccessResult\n\
+  \nCHANGE 2 — line:\n  from code_analysis.commands.base_mcp_command import BaseMCPCommand\n\
+  Replace with:\n  from ai_editor.project import BaseMCPCommand\n\nCHANGE 3 — line:\n\
+  \  from code_analysis.core.exceptions import ValidationError\nDelete this line entirely.
+  In validate_params(), replace the raise ValidationError(...) call with raise ValueError(...)
+  passing only the message string (first arg).\n\nCHANGE 4 — block:\n  from code_analysis.commands.universal_file_edit.errors
+  import (\n      PARSE_ERROR,\n      UNKNOWN_FORMAT,\n      error_result_from_make_error,\n\
+  \      make_error,\n  )\nReplace module path only:\n  from ai_editor.ported.universal_file_edit.errors
+  import (\n      PARSE_ERROR,\n      UNKNOWN_FORMAT,\n      error_result_from_make_error,\n\
+  \      make_error,\n  )\n\nCHANGE 5 — block:\n  from code_analysis.commands.universal_file_edit.format_group
+  import (\n      FORMAT_SIDECAR,\n      FORMAT_TEXT,\n      FORMAT_TREE_TEMP,\n \
+  \     FormatDescriptor,\n      check_lock,\n      delete_lockfile,\n      draft_path_for,\n\
+  \      lockfile_path_for,\n      resolve_format_group,\n      write_lockfile_pid,\n\
+  \  )\nReplace module path only:\n  from ai_editor.ported.universal_file_edit.format_group
+  import (\n      FORMAT_SIDECAR,\n      FORMAT_TEXT,\n      FORMAT_TREE_TEMP,\n \
+  \     FormatDescriptor,\n      check_lock,\n      delete_lockfile,\n      draft_path_for,\n\
+  \      lockfile_path_for,\n      resolve_format_group,\n      write_lockfile_pid,\n\
+  \  )\n\nCHANGE 6 — block:\n  from code_analysis.commands.universal_file_edit.open_command_metadata
+  import (\n      get_universal_file_open_metadata,\n  )\nDelete this block entirely.
+  In the metadata() classmethod body replace:\n  return cast(Dict[str, Any], get_universal_file_open_metadata(cls))\n\
+  With:\n  return {}\n\nCHANGE 7 — line:\n  from code_analysis.commands.universal_file_edit.session
+  import create_session\nReplace with:\n  from ai_editor.ported.universal_file_edit.session
+  import create_session\n\nCHANGE 8 — block:\n  from code_analysis.commands.universal_file_edit.tree_temp_open_support
+  import (\n      acquire_tree_temp_for_open,\n  )\nReplace with lazy guard:\n  try:\n\
+  \      from ai_editor.ported.universal_file_edit.tree_temp_open_support import (\n\
+  \          acquire_tree_temp_for_open,\n      )\n  except ImportError:\n      acquire_tree_temp_for_open
+  = None  # type: ignore[assignment]\n\nCHANGE 9 — inline lazy imports inside _write_sidecar_draft
+  method body:\n  from code_analysis.core.cst_tree import tree_builder as cst_builder\n\
+  \  from code_analysis.core.cst_tree.tree_sidecar import write_sidecar_atomic\nReplace
+  each with a try/except guard inside the method body:\n  try:\n      from ai_editor.ported.universal_file_edit
+  import cst_stub as cst_builder  # G-003 wires real CST\n      from ai_editor.ported.universal_file_edit
+  import cst_stub as _ws\n      write_sidecar_atomic = _ws.write_sidecar_atomic\n\
+  \  except ImportError:\n      raise NotImplementedError('CST not available in G-000;
+  wired in G-003')\n\nCHANGE 10 — inline lazy imports inside _write_tree_temp_draft
+  method body:\n  from code_analysis.core.tree_temp.json_source_serializer import
+  serialize_json_source\n  from code_analysis.core.tree_temp.yaml_source_serializer
+  import serialize_yaml_source\nReplace with guards inside the method body:\n  try:\n\
+  \      from ai_editor.ported.universal_file_edit.tree_temp_open_support import serialize_json_source\n\
+  \  except ImportError:\n      raise NotImplementedError('tree_temp not available
+  in G-000; wired in G-003')\n  (same pattern for serialize_yaml_source)\n\nCHANGE
+  11 — inline lazy import inside _create_initial_backup method body:\n  from code_analysis.core.backup_manager
+  import BackupManager\nReplace with:\n  from ai_editor.ported.backup_manager import
+  BackupManager\n\nAlso: return type annotations '-> Union[SuccessResult, ErrorResult]:'
+  change to '-> dict:'.\nThe cast(Dict[str, Any], ...) calls in metadata() are removed
+  along with the metadata body replacement above."
+verification:
+  type: static_analysis
+  target: ai_editor/ported/universal_file_edit/open_command.py
+  expected: No references to mcp_proxy_adapter or code_analysis remain in 
+    top-level imports. CST and tree_temp inline imports are guarded. File is 
+    importable with ai_editor.result, ai_editor.project, 
+    ai_editor.ported.universal_file_edit.errors, 
+    ai_editor.ported.universal_file_edit.format_group, 
+    ai_editor.ported.universal_file_edit.session on the Python path.
+status: draft

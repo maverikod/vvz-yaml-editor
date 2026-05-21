@@ -2,25 +2,417 @@ step_id: T-003
 parent_global_step: G-003
 name: TextFormatter
 status: needs_review
-description: 'TextFormatter subclass: converters only. Document model is paragraph/line tree (root -> paragraph -> line). Paragraphs split by blank lines; no blanks => one paragraph. Implement parse, render, node_from_source, node_to_source. No linters. Extensions: .txt .log .rst .ini .cfg .toml.'
+description: 'TextFormatter subclass (C-025): converter hooks only. Document model is paragraph/line tree (root -> paragraph -> line). Paragraphs split by blank lines; no blanks => one paragraph. Implements parse, render, node_from_source, node_to_source. linters() returns empty list. Does not override base structural ops, stable_id handling, Sidecar production, WritePipeline, or list_commands. Extensions: .txt .log .rst .ini .cfg .toml.'
 concepts:
 - C-025
 - C-021
 - C-063
 - C-064
 inputs:
-- name: T-001 G-003 output
+- name: AbstractFormatter base contract
   type: ai_editor.formatters.base
-  description: AbstractFormatter, FormatterUnit, ComparisonResult.
+  description: AbstractFormatter, FormatterUnit, ComparisonResult, SkeletonOptions from ai_editor.formatters.base.
 - name: G-001 contracts
   type: ai_editor.contracts
   description: ValidationResult, Diagnostic.
 outputs:
 - name: ai_editor/formatters/text/formatter.py
   type: file
-  description: TextFormatter implementing all AbstractFormatter methods.
+  description: 'TextFormatter implementing converter hooks only: parse, render, node_from_source, node_to_source; linters() returns []. Inherits structural ops, stable_id, Sidecar, WritePipeline, and list_commands from AbstractFormatter base. Registered extensions .txt .log .rst .ini .cfg .toml.'
 - name: ai_editor/formatters/text/__init__.py
   type: file
   description: Exports TextFormatter.
-atomic_steps: []
-cascade_note: changed — formatter paradigm cascade 2026-05-21
+atomic_steps:
+- step_id: A-001
+  parent_tactical_step: T-003
+  name: Create TextFormatter converter hooks
+  target_file: ai_editor/formatters/text/formatter.py
+  operation: create_file
+  priority: 1
+  depends_on: []
+  status: draft
+  concepts:
+  - C-025
+  - C-021
+  - C-063
+  - C-064
+  prompt: |
+    Project: ai_editor. Tactical step: T-003 TextFormatter (C-025). File: ai_editor/formatters/text/formatter.py. Operation: create_file.
+
+    Parent concepts (MRS excerpts):
+    - C-025 TextFormatter: converter-only subclass; document_model root -> paragraph -> line; paragraph_rule split by blank line(s), no blanks => whole file one paragraph; node_kinds paragraph|line; subclass_hooks parse, render, node_from_source, node_to_source; linters none; registered_extensions .txt .log .rst .ini .cfg .toml (.md/.markdown owned by C-052, not this class).
+    - C-021 AbstractFormatter: subclasses implement conversion hooks only; must not assign/read stable_id or override structural ops.
+    - C-063 Tree: in-memory tree with root TreeNode, owned by base.
+    - C-064 TreeNode: stable_id, node_kind, start_line, end_line, display_text, metadata, children.
+
+    Base API inlined (from ai_editor.formatters.tree and ai_editor.formatters.base after G-003/T-001; do not open those modules):
+
+    ```python
+    # ai_editor/formatters/tree.py
+    from dataclasses import dataclass, field
+    from typing import Any
+
+    @dataclass
+    class TreeNode:
+        stable_id: str
+        node_kind: str
+        start_line: int
+        end_line: int
+        display_text: str
+        metadata: dict[str, Any] = field(default_factory=dict)
+        children: list[TreeNode] = field(default_factory=list)
+
+    @dataclass
+    class Tree:
+        root: TreeNode
+
+    # ai_editor/formatters/base.py
+    from abc import ABC, abstractmethod
+    from typing import Protocol
+
+    from ai_editor.contracts.results import ValidationResult
+
+    class Linter(Protocol):
+        def __call__(self, path: str) -> ValidationResult: ...
+
+    class AbstractFormatter(ABC):
+        formatter_name: str
+
+        @abstractmethod
+        def parse(self, raw_content: str) -> TreeNode: ...
+
+        @abstractmethod
+        def render(self, tree: Tree) -> str: ...
+
+        @abstractmethod
+        def node_from_source(self, raw_block: str) -> TreeNode: ...
+
+        @abstractmethod
+        def node_to_source(self, node: TreeNode) -> str: ...
+
+        @abstractmethod
+        def linters(self) -> list[Linter]: ...
+    ```
+
+    Implement exactly one public class TextFormatter(AbstractFormatter). Do NOT override open_tree, export, render_skeleton, normalize_address, get_unit, iter_units, match_unit, compare_units, diagnostics, insert, delete, move, replace_node, mutate_batch, multiple_replace, copy_fragment, cut_fragment, paste_fragment, write, or list_commands.
+
+    Class attributes:
+    - formatter_name = "text"
+    - registered_extensions = [".txt", ".log", ".rst", ".ini", ".cfg", ".toml"]
+
+    Module imports to use:
+    ```python
+    from __future__ import annotations
+
+    from ai_editor.formatters.base import AbstractFormatter, Linter
+    from ai_editor.formatters.tree import Tree, TreeNode
+    ```
+
+    Private helpers (module-level functions, not methods) are allowed for paragraph splitting and line-range indexing.
+
+    Document tree shape (all hook outputs leave stable_id as empty string; base assigns IDs later):
+    - parse/render operate on root node_kind="root" with children node_kind="paragraph".
+    - Each paragraph has children node_kind="line" (one node per source line in that paragraph).
+    - No other node_kind values.
+
+    Paragraph splitting (parse and node_from_source for multi-line blocks):
+    - Split source into physical lines preserving whether the final line ends with "\n" for render round-trip.
+    - A line is blank when strip() is empty.
+    - Paragraphs are maximal contiguous runs of non-blank lines separated by one or more blank lines.
+    - If the file has zero blank separators between non-blank lines, the entire file is exactly one paragraph (even when multiple lines).
+    - Empty file: root with zero paragraph children.
+
+    Line ranges (1-based inclusive on every node):
+    - Each line node covers exactly one source line number.
+    - Each paragraph node start_line = first child line start_line; end_line = last child line end_line.
+    - Root start_line=1; end_line = last line number in file or 0 when empty.
+
+    display_text:
+    - line: stripped line text truncated to 120 chars.
+    - paragraph: first line display_text, or "(empty paragraph)" when no lines.
+    - root: "(text document)" or similar short label.
+
+    metadata:
+    - line nodes: {"text": "<stripped line without trailing newline>"}
+    - paragraph/root: {} unless needed; do not store stable_id in metadata.
+
+    Method requirements:
+
+    def parse(self, raw_content: str) -> TreeNode:
+      Build root TreeNode with node_kind="root", stable_id="", children=paragraph nodes per rules above. Never assign non-empty stable_id on any returned node.
+
+    def render(self, tree: Tree) -> str:
+      Serialize tree.root: for each paragraph child in order, join its line children via node_to_source (each line ends with "\n"), then join paragraphs with "\n\n" (blank line between blocks). If root has zero paragraphs, return "". Preserve a trailing file newline only when the original parse input ended with "\n" — store that flag in root.metadata["trailing_newline"] during parse and read it during render.
+
+    def node_from_source(self, raw_block: str) -> TreeNode:
+      - If raw_block contains no "\n": return single line node (node_kind="line") with start_line=end_line=1 and metadata text from stripped content.
+      - Otherwise: return paragraph node whose line children are built from splitlines() of raw_block (drop a single trailing empty splitline caused by trailing newline).
+      - When raw_block contains blank-line separators (one or more blank lines between non-blank lines): return a single paragraph TreeNode for the FIRST paragraph only; lines belonging to subsequent paragraphs are out of scope for this hook (base insert handles one block at a time).
+      - When every line is non-blank (no blank-line separators): one paragraph with multiple line children.
+      - All returned nodes: stable_id=""; compute provisional start_line=1..n for children sequentially (base reindexes on insert).
+
+    def node_to_source(self, node: TreeNode) -> str:
+      - line: metadata["text"] plus "\n"
+      - paragraph: concatenate child line sources in order (no extra blank between lines inside paragraph)
+      - root: delegate render logic (concatenate paragraphs with "\n\n")
+      - Raise ValueError for unknown node_kind.
+
+    def linters(self) -> list[Linter]:
+      return []
+
+    Module docstring: "Plain-text formatter: paragraph/line tree conversion hooks for ai_editor."
+
+    Constraints: file must stay under 350 lines; no registry registration in this file; no tests in this file; no side effects on import.
+  verification:
+    type: import
+    target: ai_editor.formatters.text.formatter.TextFormatter
+    expected: TextFormatter imports successfully. Its formatter name is text. registered_extensions lists exactly six extensions. linters returns an empty list. Parsing empty content yields a root with zero paragraph children. Parsing a two-line file without blank separators yields one paragraph with two line children.
+- step_id: A-002
+  parent_tactical_step: T-003
+  name: Create text package init
+  target_file: ai_editor/formatters/text/__init__.py
+  operation: create_file
+  priority: 1
+  depends_on:
+  - A-001
+  status: draft
+  concepts:
+  - C-025
+  prompt: |
+    Project: ai_editor. Tactical step: T-003 TextFormatter (C-025). File: ai_editor/formatters/text/__init__.py. Operation: create_file.
+
+    TextFormatter class (complete TextFormatter implementation; self-contained reference):
+    ```python
+    """Plain-text formatter: paragraph/line tree conversion hooks for ai_editor."""
+    from __future__ import annotations
+
+    from ai_editor.formatters.base import AbstractFormatter, Linter
+    from ai_editor.formatters.tree import Tree, TreeNode
+
+    _DISPLAY_MAX = 120
+
+
+    def _truncate_display(text: str) -> str:
+        if len(text) <= _DISPLAY_MAX:
+            return text
+        return text[:_DISPLAY_MAX]
+
+
+    def _is_blank(line: str) -> bool:
+        return not line.strip()
+
+
+    def _physical_lines(raw_content: str) -> tuple[list[str], bool]:
+        trailing = raw_content.endswith("\n")
+        if not raw_content:
+            return [], trailing
+        return raw_content.splitlines(), trailing
+
+
+    def _split_into_paragraphs(lines: list[str]) -> list[list[str]]:
+        paragraphs: list[list[str]] = []
+        current: list[str] = []
+        for line in lines:
+            if _is_blank(line):
+                if current:
+                    paragraphs.append(current)
+                    current = []
+            else:
+                current.append(line)
+        if current:
+            paragraphs.append(current)
+        return paragraphs
+
+
+    def _line_node(line_num: int, line: str) -> TreeNode:
+        stripped = line.strip()
+        return TreeNode(
+            stable_id="",
+            node_kind="line",
+            start_line=line_num,
+            end_line=line_num,
+            display_text=_truncate_display(stripped),
+            metadata={"text": stripped},
+            children=[],
+        )
+
+
+    def _paragraph_node(start: int, lines: list[str]) -> TreeNode:
+        children = [_line_node(start + i, ln) for i, ln in enumerate(lines)]
+        display = children[0].display_text if children else "(empty paragraph)"
+        end = children[-1].end_line if children else start
+        return TreeNode(
+            stable_id="",
+            node_kind="paragraph",
+            start_line=start,
+            end_line=end,
+            display_text=display,
+            metadata={},
+            children=children,
+        )
+
+
+    class TextFormatter(AbstractFormatter):
+        formatter_name = "text"
+        registered_extensions = [".txt", ".log", ".rst", ".ini", ".cfg", ".toml"]
+
+        def parse(self, raw_content: str) -> TreeNode:
+            lines, trailing = _physical_lines(raw_content)
+            paragraphs = _split_into_paragraphs(lines)
+            children: list[TreeNode] = []
+            line_num = 1
+            for para_lines in paragraphs:
+                node = _paragraph_node(line_num, para_lines)
+                children.append(node)
+                line_num = node.end_line + 1
+            end_line = children[-1].end_line if children else 0
+            meta: dict = {}
+            if trailing:
+                meta["trailing_newline"] = True
+            return TreeNode(
+                stable_id="",
+                node_kind="root",
+                start_line=1,
+                end_line=end_line,
+                display_text="(text document)",
+                metadata=meta,
+                children=children,
+            )
+
+        def render(self, tree: Tree) -> str:
+            root = tree.root
+            parts: list[str] = []
+            for para in root.children:
+                if para.node_kind != "paragraph":
+                    continue
+                parts.append(self.node_to_source(para).rstrip("\n"))
+            text = "\n\n".join(parts)
+            if root.metadata.get("trailing_newline"):
+                text += "\n"
+            return text
+
+        def node_from_source(self, raw_block: str) -> TreeNode:
+            if "\n" not in raw_block:
+                stripped = raw_block.strip()
+                return TreeNode(
+                    stable_id="",
+                    node_kind="line",
+                    start_line=1,
+                    end_line=1,
+                    display_text=_truncate_display(stripped),
+                    metadata={"text": stripped},
+                    children=[],
+                )
+            lines = raw_block.splitlines()
+            if raw_block.endswith("\n") and lines and lines[-1] == "":
+                lines = lines[:-1]
+            has_blank = any(_is_blank(ln) for ln in lines)
+            if has_blank:
+                para_lines = _split_into_paragraphs(lines)[0]
+            else:
+                para_lines = lines
+            return _paragraph_node(1, para_lines)
+
+        def node_to_source(self, node: TreeNode) -> str:
+            if node.node_kind == "line":
+                return node.metadata["text"] + "\n"
+            if node.node_kind == "paragraph":
+                return "".join(self.node_to_source(child) for child in node.children)
+            if node.node_kind == "root":
+                parts: list[str] = []
+                for para in node.children:
+                    if para.node_kind == "paragraph":
+                        parts.append(self.node_to_source(para).rstrip("\n"))
+                text = "\n\n".join(parts)
+                if node.metadata.get("trailing_newline"):
+                    text += "\n"
+                return text
+            raise ValueError(f"unknown node_kind: {node.node_kind!r}")
+
+        def linters(self) -> list[Linter]:
+            return []
+    ```
+
+    Create package init that re-exports the formatter:
+
+    ```python
+    """Plain-text formatter package for ai_editor."""
+
+    from ai_editor.formatters.text.formatter import TextFormatter
+
+    __all__ = ["TextFormatter"]
+    ```
+
+    Constraints: only TextFormatter in __all__; no registry side effects; no other imports or classes.
+  verification:
+    type: import
+    target: ai_editor.formatters.text
+    expected: TextFormatter is importable from the text package. The package public export list contains only TextFormatter.
+- step_id: A-003
+  parent_tactical_step: T-003
+  name: Create TextFormatter pytest module
+  target_file: tests/formatters/test_text_formatter.py
+  operation: create_file
+  priority: 1
+  depends_on:
+  - A-001
+  - A-002
+  status: draft
+  concepts:
+  - C-025
+  - C-021
+  - C-063
+  - C-064
+  prompt: |
+    Project: ai_editor. Tactical step: T-003 TextFormatter (C-025). File: tests/formatters/test_text_formatter.py. Operation: create_file.
+
+    Imports:
+    ```python
+    from __future__ import annotations
+
+    import pytest
+
+    from ai_editor.formatters.text import TextFormatter
+    from ai_editor.formatters.tree import Tree
+    ```
+    Tree may also be imported from ai_editor.formatters.
+
+    Instantiate once per test via fixture or local TextFormatter().
+
+    Base types inlined for assertions (do not open base.py or tree.py):
+    - Tree has .root TreeNode
+    - TreeNode: node_kind, children, start_line, end_line, stable_id, metadata
+    - Hook outputs in tests use empty-string stable_id until base assigns IDs
+
+    Required tests (function names may vary but behavior must match):
+
+    1. test_formatter_identity — formatter_name == "text"; registered_extensions sorted match [".cfg", ".ini", ".log", ".rst", ".toml", ".txt"].
+
+    2. test_linters_empty — linters() == [].
+
+    3. test_parse_single_paragraph_multiple_lines — input "line1\nline2\n" => one paragraph child under root, two line children, paragraph start_line 1 end_line 2.
+
+    4. test_parse_two_paragraphs — input "p1a\np1b\n\np2a\n" => root has two paragraph children; first paragraph two lines, second one line; blank line separator consumed between paragraphs.
+
+    5. test_parse_no_internal_blanks_is_one_paragraph — input "a\nb\nc\n" without blank lines => exactly one paragraph with three line children.
+
+    6. test_render_roundtrip_structure — raw = "hello\n\nworld\n"; root = parse(raw); out = render(Tree(root=root)); root2 = parse(out); same paragraph count and line child counts per paragraph as first parse.
+
+    7. test_node_from_source_single_line — node_from_source("only") => node_kind line, metadata text "only".
+
+    8. test_node_from_source_paragraph_block — node_from_source("x\ny\n") => node_kind paragraph with two line children in order.
+
+    9. test_node_from_source_first_paragraph_only — node_from_source("a\nb\n\nc\n") => node_kind paragraph with two line children ("a", "b"); content after the blank-line separator ("c") is not included.
+
+    10. test_node_to_source_line — build line node via node_from_source("z\n"); node_to_source returns "z\n".
+
+    11. test_trailing_newline_flag — parse("a\n") sets root.metadata["trailing_newline"] True; render preserves final newline; parse("a") sets flag False or absent and render has no trailing newline unless content requires it.
+
+    Do not test registry registration, open_tree, write pipeline, or stable_id assignment (base-owned). Do not import hooks_register.
+
+    Constraints: pytest style; no network; file under 350 lines; tests/formatters/ directory may already exist from other steps — only create this file.
+  verification:
+    type: pytest
+    target: tests/formatters/test_text_formatter.py
+    expected: All tests in the module pass when run with project venv active; zero failures.
+cascade_note: changed — formatter paradigm cascade 2026-05-21; tactical-fix hook-only scope 2026-05-21

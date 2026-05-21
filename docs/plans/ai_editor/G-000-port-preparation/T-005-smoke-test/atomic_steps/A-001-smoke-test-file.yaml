@@ -1,0 +1,85 @@
+concepts:
+- C-061
+- C-058
+- C-059
+depends_on: []
+name: Create tests/test_g000_smoke.py — import and text group smoke test
+operation: create_file
+parent_tactical_step: T-005
+priority: 1
+prompt: "Project: ai_editor. File: tests/test_g000_smoke.py. Operation: create_file.\n\
+  \nCreate the file tests/test_g000_smoke.py with the following exact content.\n\n\
+  Preconditions (all prior T-001..T-004 steps completed):\n  - ai_editor/result.py
+  exists (SuccessResult, ErrorResult functions)\n  - ai_editor/project.py exists (BaseMCPCommand
+  shim)\n  - ai_editor/git.py exists (commit_after_write no-op)\n  - ai_editor/ported/__init__.py
+  exists\n  - ai_editor/ported/universal_file_edit/__init__.py exists\n  - ai_editor/ported/file_handlers/__init__.py
+  exists\n  - all ufe/*.py imports rewritten (ai_editor.* namespaces)\n  - ai_editor/ported/file_handlers/python_handler.py
+  guarded\n\nRequired content:\n\n```python\n\"\"\"G-000 smoke tests: import verification
+  and text format group end-to-end.\"\"\"\nfrom __future__ import annotations\n\n\
+  import tempfile\nimport os\nfrom pathlib import Path\n\nimport pytest\n\n\n# ---------------------------------------------------------------------------\n\
+  # Import smoke tests\n# ---------------------------------------------------------------------------\n\
+  \ndef test_result_shim_importable() -> None:\n    \"\"\"ai_editor.result imports
+  and functions work correctly.\"\"\"\n    from ai_editor.result import SuccessResult,
+  ErrorResult\n\n    ok = SuccessResult({\"x\": 1})\n    assert ok == {\"success\"\
+  : True, \"x\": 1}\n\n    err = ErrorResult(\"E_CODE\", \"bad thing\")\n    assert
+  err == {\"success\": False, \"error_code\": \"E_CODE\", \"message\": \"bad thing\"\
+  , \"details\": {}}\n\n\ndef test_project_shim_importable() -> None:\n    \"\"\"\
+  ai_editor.project BaseMCPCommand shim imports and works correctly.\"\"\"\n    from
+  ai_editor.project import BaseMCPCommand\n\n    root = Path(tempfile.mkdtemp())\n\
+  \    BaseMCPCommand.register_project_root(\"test-proj\", root)\n    cmd = BaseMCPCommand()\n\
+  \    assert cmd._resolve_project_root(\"test-proj\") == root\n    assert cmd.validate_params({\"\
+  a\": 1}) == {\"a\": 1}\n\n\ndef test_git_shim_importable() -> None:\n    \"\"\"\
+  ai_editor.git commit_after_write is a no-op.\"\"\"\n    from ai_editor.git import
+  commit_after_write\n\n    result = commit_after_write(Path(\"/tmp/x\"), \"msg\"\
+  )\n    assert result is None\n\n\ndef test_ported_packages_importable() -> None:\n\
+  \    \"\"\"ai_editor.ported sub-packages are importable.\"\"\"\n    import ai_editor.ported\
+  \  # noqa: F401\n    import ai_editor.ported.universal_file_edit  # noqa: F401\n\
+  \    import ai_editor.ported.file_handlers  # noqa: F401\n    import ai_editor.ported.universal_file_edit.errors\
+  \  # noqa: F401\n    import ai_editor.ported.universal_file_edit.format_group  #
+  noqa: F401\n    import ai_editor.ported.universal_file_edit.session  # noqa: F401\n\
+  \    import ai_editor.ported.universal_file_edit.sidecar_cst_apply  # noqa: F401\n\
+  \    import ai_editor.ported.universal_file_edit.tree_temp_edit_batch  # noqa: F401\n\
+  \n\n# ---------------------------------------------------------------------------\n\
+  # Text format group end-to-end\n# ---------------------------------------------------------------------------\n\
+  \ndef test_text_group_open_edit_write_close() -> None:\n    \"\"\"Open, edit, write,
+  close a .txt file via ported universal_file_edit commands.\"\"\"\n    from ai_editor.project
+  import BaseMCPCommand\n    from ai_editor.ported.universal_file_edit.open_command
+  import UniversalFileOpenCommand\n    from ai_editor.ported.universal_file_edit.edit_command
+  import UniversalFileEditCommand\n    from ai_editor.ported.universal_file_edit.write_command
+  import UniversalFileWriteCommand\n    from ai_editor.ported.universal_file_edit.close_command
+  import UniversalFileCloseCommand\n    import asyncio\n\n    # Set up a temp project
+  root with a test file\n    with tempfile.TemporaryDirectory() as tmpdir:\n     \
+  \   root = Path(tmpdir)\n        project_id = \"smoke-test-proj\"\n        BaseMCPCommand.register_project_root(project_id,
+  root)\n\n        test_file = root / \"hello.txt\"\n        test_file.write_text(\"\
+  line one\\nline two\\nline three\\n\", encoding=\"utf-8\")\n\n        # Open\n \
+  \       open_cmd = UniversalFileOpenCommand()\n        open_result = asyncio.get_event_loop().run_until_complete(\n\
+  \            open_cmd.execute(project_id=project_id, file_path=\"hello.txt\")\n\
+  \        )\n        assert open_result.get(\"success\") is True, f\"Open failed:
+  {open_result}\"\n        session_id = open_result[\"session_id\"]\n        assert
+  open_result[\"format_group\"] == \"text\"\n\n        # Edit: replace line 2\n  \
+  \      edit_cmd = UniversalFileEditCommand()\n        edit_result = asyncio.get_event_loop().run_until_complete(\n\
+  \            edit_cmd.execute(\n                project_id=project_id,\n       \
+  \         session_id=session_id,\n                operations=[{\"type\": \"replace\"\
+  , \"start_line\": 2, \"end_line\": 2, \"content\": \"line TWO\"}],\n           \
+  \ )\n        )\n        assert edit_result.get(\"success\") is True, f\"Edit failed:
+  {edit_result}\"\n\n        # Write (commit)\n        write_cmd = UniversalFileWriteCommand()\n\
+  \        write_result = asyncio.get_event_loop().run_until_complete(\n         \
+  \   write_cmd.execute(\n                project_id=project_id,\n               \
+  \ session_id=session_id,\n                write_mode=\"commit\",\n            )\n\
+  \        )\n        assert write_result.get(\"success\") is True, f\"Write failed:
+  {write_result}\"\n\n        # Close\n        close_cmd = UniversalFileCloseCommand()\n\
+  \        close_result = asyncio.get_event_loop().run_until_complete(\n         \
+  \   close_cmd.execute(project_id=project_id, session_id=session_id)\n        )\n\
+  \        assert close_result.get(\"success\") is True, f\"Close failed: {close_result}\"\
+  \n\n        # Verify file content\n        content = test_file.read_text(encoding=\"\
+  utf-8\")\n        assert \"line TWO\" in content, f\"Expected edited content; got:
+  {content!r}\"\n        assert \"line two\" not in content, f\"Old content still
+  present: {content!r}\"\n```"
+status: draft
+step_id: A-001
+target_file: tests/test_g000_smoke.py
+verification:
+  expected: pytest tests/test_g000_smoke.py passes with 5 tests collected; all 
+    pass under .venv with ai_editor installed in editable mode.
+  target: tests/test_g000_smoke.py
+  type: pytest

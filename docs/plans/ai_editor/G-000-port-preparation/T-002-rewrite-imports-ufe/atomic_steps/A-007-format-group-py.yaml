@@ -1,0 +1,21 @@
+concepts:
+- C-060
+depends_on: []
+name: Rewrite imports in ai_editor/ported/universal_file_edit/format_group.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 7
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/format_group.py.
+  Operation: modify_file.\n\nApply exactly one change. Do not alter any other lines.\n\
+  \nCurrent external import (line 15):\n  from code_analysis.core.file_handlers.registry
+  import RegistryError, resolve_handler\n\nCHANGE 1:\n  from code_analysis.core.file_handlers.registry
+  import RegistryError, resolve_handler\n→ from ai_editor.ported.file_handlers.registry
+  import RegistryError, resolve_handler\n\nNo other changes."
+status: draft
+step_id: A-007
+target_file: ai_editor/ported/universal_file_edit/format_group.py
+verification:
+  expected: No references to code_analysis remain. File is importable with 
+    ai_editor.ported.file_handlers.registry on path.
+  target: ai_editor/ported/universal_file_edit/format_group.py
+  type: static_analysis

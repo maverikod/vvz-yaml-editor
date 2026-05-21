@@ -1,1 +1,36 @@
-{}
+step_id: T-001
+parent_global_step: G-000
+name: Write shim modules (project, result, git)
+status: draft
+description: 'Create three thin shim modules that replace code-analysis-server and
+  mcp_proxy_adapter infrastructure so that ai_editor/ported/ is importable standalone.
+  Modules created: ai_editor/result.py — SuccessResult/ErrorResult factories; ai_editor/project.py
+  — BaseMCPCommand shim with _resolve_project_root; ai_editor/git.py — commit_after_write
+  no-op stub. No business logic. No imports from ported/.'
+concepts:
+- C-059
+- C-060
+inputs:
+- name: shim_contracts
+  type: specification
+  description: "Contracts from G-000 usage_analysis.shims_required: SuccessResult(data:dict)->dict{success:True,**data};
+    ErrorResult(code,message,details={})->dict{success:False,error_code,message,details};
+    BaseMCPCommand._resolve_project_root(project_id)->Path; commit_after_write(path,message='')->None
+    no-op."
+outputs:
+- name: ai_editor/result.py
+  type: file
+  description: SuccessResult and ErrorResult factory functions matching 
+    mcp_proxy_adapter contract.
+- name: ai_editor/project.py
+  type: file
+  description: BaseMCPCommand shim class with _resolve_project_root resolving 
+    project root path.
+- name: ai_editor/git.py
+  type: file
+  description: commit_after_write no-op stub; real implementation wired in G-005
+    SessionGit.
+atomic_steps:
+- A-001
+- A-002
+- A-003

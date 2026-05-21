@@ -1,0 +1,23 @@
+concepts:
+- C-060
+depends_on: []
+name: Guard ai_editor/ported/universal_file_edit/tree_temp_edit_nodes.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 11
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/tree_temp_edit_nodes.py.
+  Operation: modify_file.\n\nThis file imports json_pointer + tree_node stack not
+  ported in G-000. Guard entire module.\n\nReplace ALL content with:\n\n```python\n\
+  \"\"\"\ntree_temp_edit_nodes.py — tree-temp node-level editing.\n\nGuarded in G-000:
+  depends on json_pointer + tree_node; deferred to G-003.\n\"\"\"\nfrom __future__
+  import annotations\n\ntry:\n    from ai_editor.ported.universal_file_edit._tree_temp_edit_nodes_impl
+  import *  # noqa: F401,F403\nexcept ImportError:\n    pass  # All symbols unavailable;
+  callers guard against None\n```"
+status: draft
+step_id: A-011
+target_file: ai_editor/ported/universal_file_edit/tree_temp_edit_nodes.py
+verification:
+  expected: import ai_editor.ported.universal_file_edit.tree_temp_edit_nodes 
+    succeeds without ImportError.
+  target: ai_editor.ported.universal_file_edit.tree_temp_edit_nodes
+  type: import

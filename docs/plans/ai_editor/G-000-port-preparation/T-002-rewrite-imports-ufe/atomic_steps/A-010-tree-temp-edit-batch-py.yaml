@@ -1,0 +1,25 @@
+concepts:
+- C-060
+depends_on: []
+name: Guard ai_editor/ported/universal_file_edit/tree_temp_edit_batch.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 10
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/tree_temp_edit_batch.py.
+  Operation: modify_file.\n\nThis file imports code_analysis.core.yaml_tree / json_tree
+  / tree_temp.* which are not ported in G-000. Guard the entire module.\n\nReplace
+  ALL content of the file with:\n\n```python\n\"\"\"\ntree_temp_edit_batch.py — tree-temp
+  batch mutation.\n\nGuarded in G-000: yaml_tree/json_tree stack not ported. Wired
+  in G-003.\n\"\"\"\nfrom __future__ import annotations\n\ntry:\n    from ai_editor.ported.universal_file_edit._tree_temp_edit_batch_impl
+  import (  # noqa: F401\n        apply_tree_temp_mutations,\n    )\nexcept ImportError:\n\
+  \    def apply_tree_temp_mutations(*args, **kwargs):  # type: ignore[misc]\n   \
+  \     raise NotImplementedError('tree_temp_edit_batch not available in G-000; wired
+  in G-003')\n\n__all__ = ['apply_tree_temp_mutations']\n```"
+status: draft
+step_id: A-010
+target_file: ai_editor/ported/universal_file_edit/tree_temp_edit_batch.py
+verification:
+  expected: import ai_editor.ported.universal_file_edit.tree_temp_edit_batch 
+    succeeds. apply_tree_temp_mutations raises NotImplementedError when called.
+  target: ai_editor.ported.universal_file_edit.tree_temp_edit_batch
+  type: import

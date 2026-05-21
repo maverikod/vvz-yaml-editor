@@ -1,0 +1,62 @@
+concepts:
+- C-018
+depends_on: []
+name: Create ai_editor/config/config_validator.py — AiEditorConfigValidator
+operation: create_file
+parent_tactical_step: T-003
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/config/config_validator.py. Operation:
+  create_file.\n\nMRS concept C-018 AiEditorConfigValidator: Validator that extends
+  adapter\nBaseValidator; validates ai_editor and code_analysis_server config sections\n\
+  inside the adapter's validation pipeline. Properties: extends BaseValidator\n(mcp_proxy_adapter),
+  calls_super: SimpleConfigValidator first, validates:\nai_editor section + code_analysis_server
+  section.\n\nPreconditions:\n  - ai_editor/config/config_section.py exists (AiEditorConfig,
+  CodeAnalysisServerConfig)\n\nCreate the file ai_editor/config/config_validator.py
+  with the following exact content:\n\n```python\n\"\"\"AiEditorConfigValidator —
+  validates ai_editor and code_analysis_server config sections.\"\"\"\nfrom __future__
+  import annotations\n\nfrom typing import Any\n\ntry:\n    from mcp_proxy_adapter.core.config.simple_config
+  import SimpleConfigValidator\n    _BaseValidator = SimpleConfigValidator\nexcept
+  ImportError:\n    class SimpleConfigValidator:  # type: ignore[no-redef]\n     \
+  \   \"\"\"Fallback when mcp_proxy_adapter is not available.\"\"\"\n        def validate(self,
+  config: dict[str, Any]) -> None:  # noqa: D102\n            pass\n    _BaseValidator
+  = SimpleConfigValidator\n\nfrom ai_editor.config.config_section import AiEditorConfig,
+  CodeAnalysisServerConfig\n\n\nclass AiEditorConfigValidator(_BaseValidator):  #
+  type: ignore[misc]\n    \"\"\"Validates ai_editor and code_analysis_server sections
+  of config.json.\n\n    Extends the adapter BaseValidator (SimpleConfigValidator).
+  Called during\n    the adapter's validation pipeline. Calls super().validate() first,
+  then\n    validates the ai_editor and code_analysis_server sections.\n    \"\"\"\
+  \n\n    def validate(self, config: dict[str, Any]) -> None:\n        \"\"\"Validate
+  the full config dict.\n\n        Calls super().validate() first (adapter base validation),
+  then\n        constructs AiEditorConfig and CodeAnalysisServerConfig from the config\n\
+  \        to validate their sections. Raises ValueError with a descriptive\n    \
+  \    message on any validation failure.\n\n        Args:\n            config: Full
+  config.json dict.\n\n        Raises:\n            ValueError: If any required config
+  field is missing or invalid.\n        \"\"\"\n        super().validate(config) \
+  \ # type: ignore[misc]\n        self._validate_ai_editor(config)\n        self._validate_ca_server(config)\n\
+  \n    def _validate_ai_editor(self, config: dict[str, Any]) -> None:\n        \"\
+  \"\"Validate the 'ai_editor' section.\n\n        Args:\n            config: Full
+  config.json dict.\n\n        Raises:\n            ValueError: If the ai_editor section
+  is malformed.\n        \"\"\"\n        try:\n            ae = AiEditorConfig.from_config_json(config)\n\
+  \        except Exception as exc:\n            raise ValueError(f\"Invalid ai_editor
+  config: {exc}\") from exc\n        if not ae.sessions.base_dir:\n            raise
+  ValueError(\"ai_editor.sessions.base_dir must not be empty\")\n\n    def _validate_ca_server(self,
+  config: dict[str, Any]) -> None:\n        \"\"\"Validate the 'code_analysis_server'
+  section.\n\n        Args:\n            config: Full config.json dict.\n\n      \
+  \  Raises:\n            ValueError: If the code_analysis_server section is malformed.\n\
+  \        \"\"\"\n        try:\n            ca = CodeAnalysisServerConfig.from_config_json(config)\n\
+  \        except Exception as exc:\n            raise ValueError(\n             \
+  \   f\"Invalid code_analysis_server config: {exc}\"\n            ) from exc\n  \
+  \      if ca.protocol not in (\"https\", \"mtls\"):\n            raise ValueError(\n\
+  \                f\"code_analysis_server.protocol must be 'https' or 'mtls', \"\n\
+  \                f\"got {ca.protocol!r}\"\n            )\n        if ca.port < 1
+  or ca.port > 65535:\n            raise ValueError(\n                f\"code_analysis_server.port
+  must be 1-65535, got {ca.port}\"\n            )\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/config/config_validator.py
+verification:
+  expected: from ai_editor.config.config_validator import 
+    AiEditorConfigValidator; v = AiEditorConfigValidator(); v.validate({}) does 
+    not raise (defaults are valid).
+  target: ai_editor.config.config_validator
+  type: import

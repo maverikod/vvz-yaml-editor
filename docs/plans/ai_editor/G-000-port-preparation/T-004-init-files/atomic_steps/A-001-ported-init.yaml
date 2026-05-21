@@ -1,0 +1,20 @@
+concepts:
+- C-058
+- C-061
+depends_on: []
+name: Create ai_editor/ported/__init__.py
+operation: create_file
+parent_tactical_step: T-004
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/ported/__init__.py. Operation: create_file.\n\
+  \nCreate the file ai_editor/ported/__init__.py with the following exact content:\n\
+  \n```python\n\"\"\"Ported code from code-analysis-server, adapted for standalone
+  use.\"\"\"\n```\n\nThis makes ai_editor/ported/ a proper Python package importable
+  as ai_editor.ported.\nNo imports, no exports, no logic. Just the module docstring."
+status: draft
+step_id: A-001
+target_file: ai_editor/ported/__init__.py
+verification:
+  expected: import ai_editor.ported succeeds without ImportError.
+  target: ai_editor.ported
+  type: import

@@ -1,0 +1,56 @@
+concepts:
+- C-015
+depends_on: []
+name: Create ai_editor/editor_core/writer.py — Writer
+operation: create_file
+parent_tactical_step: T-005
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/editor_core/writer.py. Operation: create_file.\n\
+  \nMRS concept C-015 Writer: Local disk write utilities with two distinct\nresponsibilities:\n\
+  \  write_buf(content, path) -> atomic write, no backup. Used for session buf files.\n\
+  \  write_result(content, path) -> backup + atomic write + read-back. Used for local\n\
+  \    derived artifacts only.\n  project_files: written only via CodeAnalysisClient.upload_file.
+  Writer never\n    writes project files.\n\nCreate the file ai_editor/editor_core/writer.py
+  with the following exact content:\n\n```python\n\"\"\"Writer — local disk write
+  utilities for session buf files and derived artifacts.\n\nWriter has two distinct
+  responsibilities:\n  write_buf: atomic write for session buf files only; no backup.\n\
+  \  write_result: backup + atomic write + read-back for local derived artifacts only.\n\
+  \nNeither method writes project files. Project files are written only via\nCodeAnalysisClient.upload_content.\n\
+  \"\"\"\nfrom __future__ import annotations\n\nimport os\nimport shutil\nimport tempfile\n\
+  from pathlib import Path\nfrom typing import Any\n\n\nclass Writer:\n    \"\"\"\
+  Local disk write utilities for session buf files and derived artifacts.\n\n    Neither
+  write_buf nor write_result writes project files. Project files\n    are written
+  only via CodeAnalysisClient.upload_content.\n    \"\"\"\n\n    def write_buf(self,
+  content: str | bytes, path: Path) -> None:\n        \"\"\"Atomically write content
+  to a session buf file.\n\n        No backup is created. Uses a temp file + os.replace
+  for atomicity.\n\n        Args:\n            content: String or bytes to write.\n\
+  \            path: Absolute path to the destination buf file.\n        \"\"\"\n\
+  \        path.parent.mkdir(parents=True, exist_ok=True)\n        encoded = content.encode(\"\
+  utf-8\") if isinstance(content, str) else content\n        fd, tmp = tempfile.mkstemp(dir=path.parent,
+  suffix=\".tmp\")\n        try:\n            os.write(fd, encoded)\n            os.fsync(fd)\n\
+  \        finally:\n            os.close(fd)\n        os.replace(tmp, path)\n\n \
+  \   def write_result(\n        self,\n        content: str | bytes,\n        path:
+  Path,\n        backup_suffix: str = \".bak\",\n    ) -> str:\n        \"\"\"Backup,
+  atomically write, and read back content to a local derived artifact.\n\n       \
+  \ Steps:\n          1. If path exists, copy it to path + backup_suffix (overwriting
+  any prior bak).\n          2. Write content atomically via temp file + os.replace.\n\
+  \          3. Read back the written file and return its text content.\n\n      \
+  \  Args:\n            content: String or bytes to write.\n            path: Absolute
+  path to the destination artifact file.\n            backup_suffix: Suffix for the
+  backup copy. Default '.bak'.\n\n        Returns:\n            The text content read
+  back from path after writing.\n        \"\"\"\n        path.parent.mkdir(parents=True,
+  exist_ok=True)\n        backup = path.with_suffix(path.suffix + backup_suffix)\n\
+  \        if path.exists():\n            shutil.copy2(path, backup)\n        encoded
+  = content.encode(\"utf-8\") if isinstance(content, str) else content\n        fd,
+  tmp = tempfile.mkstemp(dir=path.parent, suffix=\".tmp\")\n        try:\n       \
+  \     os.write(fd, encoded)\n            os.fsync(fd)\n        finally:\n      \
+  \      os.close(fd)\n        os.replace(tmp, path)\n        return path.read_text(encoding=\"\
+  utf-8\")\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/editor_core/writer.py
+verification:
+  expected: from ai_editor.editor_core.writer import Writer; w = Writer(); (tmp 
+    write_buf and write_result work on a temp dir without raising).
+  target: ai_editor.editor_core.writer
+  type: import

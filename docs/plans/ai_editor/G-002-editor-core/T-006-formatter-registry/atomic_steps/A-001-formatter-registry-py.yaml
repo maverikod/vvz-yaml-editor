@@ -1,0 +1,59 @@
+concepts:
+- C-012
+depends_on: []
+name: Create ai_editor/editor_core/formatter_registry.py — FormatterRegistry 
+  singleton
+operation: create_file
+parent_tactical_step: T-006
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/editor_core/formatter_registry.py. Operation:
+  create_file.\n\nMRS concept C-012 FormatterRegistry: Singleton registry mapping
+  file extensions\nand formatter names to formatter classes.\nInvariant: one extension
+  maps to exactly one formatter.\nMethods:\n  register(formatter_name, extensions,
+  formatter_class) -> void\n  get_by_extension(ext) -> formatter_class | None\n  get_by_name(name)
+  -> formatter_class | None\n  list_formatters() -> list[str]\n\nCreate the file ai_editor/editor_core/formatter_registry.py
+  with the following exact content:\n\n```python\n\"\"\"FormatterRegistry — singleton
+  mapping extensions and names to formatter classes.\"\"\"\nfrom __future__ import
+  annotations\n\nfrom typing import Any, Type\n\n\nclass FormatterRegistry:\n    \"\
+  \"\"Singleton registry mapping file extensions and formatter names to classes.\n\
+  \n    Invariant: one extension maps to exactly one formatter. Registering an\n \
+  \   extension that already exists overwrites the previous mapping.\n    \"\"\"\n\
+  \n    _instance: FormatterRegistry | None = None\n\n    def __init__(self) -> None:\n\
+  \        \"\"\"Initialise an empty registry. Use get_instance() for the singleton.\"\
+  \"\"\n        self._by_name: dict[str, type] = {}\n        self._by_extension: dict[str,
+  type] = {}\n\n    @classmethod\n    def get_instance(cls) -> FormatterRegistry:\n\
+  \        \"\"\"Return the global singleton FormatterRegistry instance.\"\"\"\n \
+  \       if cls._instance is None:\n            cls._instance = cls()\n        return
+  cls._instance\n\n    @classmethod\n    def reset(cls) -> None:\n        \"\"\"Reset
+  the singleton (for testing only).\"\"\"\n        cls._instance = None\n\n    def
+  register(\n        self,\n        formatter_name: str,\n        extensions: list[str],\n\
+  \        formatter_class: type,\n    ) -> None:\n        \"\"\"Register a formatter
+  class under a name and a list of file extensions.\n\n        Invariant: one extension
+  maps to exactly one formatter. Overwrites any\n        prior mapping for the same
+  extension.\n\n        Args:\n            formatter_name: Unique formatter identifier
+  (e.g. 'yaml', 'text').\n            extensions: File extensions this formatter handles
+  (e.g. ['.yaml', '.yml']).\n            formatter_class: The formatter class to register.\n\
+  \        \"\"\"\n        self._by_name[formatter_name] = formatter_class\n     \
+  \   for ext in extensions:\n            self._by_extension[ext.lower()] = formatter_class\n\
+  \n    def get_by_extension(self, ext: str) -> type | None:\n        \"\"\"Return
+  the formatter class for a file extension, or None.\n\n        Args:\n          \
+  \  ext: File extension including leading dot (e.g. '.yaml').\n\n        Returns:\n\
+  \            Formatter class or None if no formatter handles this extension.\n \
+  \       \"\"\"\n        return self._by_extension.get(ext.lower())\n\n    def get_by_name(self,
+  name: str) -> type | None:\n        \"\"\"Return the formatter class for a formatter
+  name, or None.\n\n        Args:\n            name: Formatter name (e.g. 'yaml',
+  'text').\n\n        Returns:\n            Formatter class or None if the name is
+  not registered.\n        \"\"\"\n        return self._by_name.get(name)\n\n    def
+  list_formatters(self) -> list[str]:\n        \"\"\"Return all registered formatter
+  names in registration order.\n\n        Returns:\n            List of formatter
+  name strings.\n        \"\"\"\n        return list(self._by_name.keys())\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/editor_core/formatter_registry.py
+verification:
+  expected: from ai_editor.editor_core.formatter_registry import 
+    FormatterRegistry; r = FormatterRegistry(); r.register('yaml', ['.yaml'], 
+    object); r.get_by_extension('.yaml') is object; r.list_formatters() == 
+    ['yaml'].
+  target: ai_editor.editor_core.formatter_registry
+  type: import

@@ -1,13 +1,11 @@
 step_id: T-004
 parent_global_step: G-001
-name: Result envelope contracts — ResultEnvelope, ValidationResult, OperationResult,
-  WriteAllResult
+name: Result envelope contracts — ResultEnvelope, ValidationResult, 
+  OperationResult, WriteAllResult
 status: draft
-description: 'Create four result envelope dataclasses used by every ai_editor operation.
+description: "Create four result envelope dataclasses used by every ai_editor operation.
   All embed list[Diagnostic]. ResultEnvelope and OperationResult reference ErrorCode.
-  Not frozen (mutable for incremental population in write_all loops).
-
-  '
+  Not frozen (mutable for incremental population in write_all loops).\n"
 concepts:
 - C-001
 - C-004
@@ -23,46 +21,7 @@ inputs:
 outputs:
 - name: ai_editor/contracts/results.py
   type: file
-  description: Four dataclasses (ResultEnvelope, ValidationResult, OperationResult,
-    WriteAllResult).
-- name: ai_editor/contracts/__init__.py
-  type: file
-  description: Updated to export all four types.
+  description: Four dataclasses (ResultEnvelope, ValidationResult, 
+    OperationResult, WriteAllResult).
 atomic_steps:
-- step_id: A-001
-  parent_tactical_step: T-004
-  name: Create results.py
-  target_file: ai_editor/contracts/results.py
-  operation: create_file
-  priority: 1
-  depends_on: []
-  concepts:
-  - C-001
-  - C-004
-  - C-005
-  - C-006
-  prompt: "Project: ai_editor. File: ai_editor/contracts/results.py. Operation: create_file.\
-    \ Existing files: ai_editor/contracts/error_codes.py (ErrorCode), ai_editor/contracts/diagnostic.py\
-    \ (Diagnostic).\n\n  from __future__ import annotations\n  from dataclasses import\
-    \ dataclass, field\n  from typing import Optional\n  from ai_editor.contracts.error_codes\
-    \ import ErrorCode\n  from ai_editor.contracts.diagnostic import Diagnostic\n\n\
-    \  @dataclass\n  class ResultEnvelope:\n      \"\"\"Generic result envelope for\
-    \ ai_editor operations.\"\"\"\n      success: bool\n      error_code: Optional[ErrorCode]\
-    \ = None\n      message: str = \"\"\n      details: dict = field(default_factory=dict)\n\
-    \      diagnostics: list[Diagnostic] = field(default_factory=list)\n\n  @dataclass\n\
-    \  class ValidationResult:\n      \"\"\"Result of a validation operation.\"\"\"\
-    \n      success: bool\n      diagnostics: list[Diagnostic] = field(default_factory=list)\n\
-    \n  @dataclass\n  class OperationResult:\n      \"\"\"Result of a single editor\
-    \ operation.\"\"\"\n      success: bool\n      error_code: Optional[ErrorCode]\
-    \ = None\n      message: str = \"\"\n      diagnostics: list[Diagnostic] = field(default_factory=list)\n\
-    \n  @dataclass\n  class WriteAllResult:\n      \"\"\"Result of a write_all operation\
-    \ across multiple buffers.\"\"\"\n      success: bool\n      written_buffers:\
-    \ list[str] = field(default_factory=list)\n      failed_buffers: list[dict] =\
-    \ field(default_factory=list)\n      skipped_buffers: list[str] = field(default_factory=list)\n\
-    \      diagnostics: list[Diagnostic] = field(default_factory=list)\n\nModule docstring:\
-    \ \"Result envelope contracts for ai_editor.\" Add all four to ai_editor/contracts/__init__.py.\
-    \ Constraints: no frozen=True; all list/dict fields use field(default_factory=...).\n"
-  verification:
-    type: import
-    target: ai_editor.contracts.results
-    expected: all four types importable; mutable defaults isolated per instance
+- A-001

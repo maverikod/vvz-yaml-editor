@@ -1,0 +1,26 @@
+atomic_steps:
+- A-001
+concepts:
+- C-060
+- C-058
+description: 'Audit and rewrite imports in ai_editor/ported/file_handlers/*.py. Per
+  G-000 usage_analysis.import_rewrite.file_handler_files: base.py, registry.py, text_handler.py,
+  yaml_handler.py, json_handler.py, diff_support.py, text_ranges.py, path_utils.py
+  are all clean (no external deps) — no changes needed. python_handler.py imports
+  code_analysis.core.cst_tree.* — guard entire module with lazy-import stub (CST stack
+  deferred to G-003/T-008). Verify all clean files import correctly after T-001 shims
+  exist.'
+inputs:
+- description: ai_editor/ported/file_handlers/*.py files with external imports 
+    per G-000 usage_analysis.
+  name: ported_handler_files
+  type: file_set
+name: Rewrite imports in file_handlers files
+outputs:
+- description: ai_editor/ported/file_handlers/python_handler.py guarded; all 
+    other handler files confirmed clean.
+  name: ai_editor/ported/file_handlers/*.py (audited/modified)
+  type: file_set
+parent_global_step: G-000
+status: draft
+step_id: T-003

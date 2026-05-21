@@ -1,0 +1,47 @@
+concepts:
+- C-019
+depends_on: []
+name: Create ai_editor/config/config_generator.py — AiEditorConfigGenerator
+operation: create_file
+parent_tactical_step: T-004
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/config/config_generator.py. Operation:
+  create_file.\n\nMRS concept C-019 AiEditorConfigGenerator: Config generator that
+  extends adapter\nSimpleConfigGenerator; calls super first, then appends ai_editor
+  and\ncode_analysis_server sections to produced config.json.\nProperties: extends
+  SimpleConfigGenerator (mcp_proxy_adapter), calls_super:\ngenerates base adapter
+  config first, appends: ai_editor section +\ncode_analysis_server section.\n\nCreate
+  the file ai_editor/config/config_generator.py with the following exact content:\n\
+  \n```python\n\"\"\"AiEditorConfigGenerator — appends ai_editor and CA server sections
+  to config.json.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import
+  Any\n\ntry:\n    from mcp_proxy_adapter.core.config.simple_config import SimpleConfigGenerator\n\
+  \    _BaseGenerator = SimpleConfigGenerator\nexcept ImportError:\n    class SimpleConfigGenerator:\
+  \  # type: ignore[no-redef]\n        \"\"\"Fallback when mcp_proxy_adapter is not
+  available.\"\"\"\n        def generate(self) -> dict[str, Any]:  # noqa: D102\n\
+  \            return {}\n    _BaseGenerator = SimpleConfigGenerator\n\n\nclass AiEditorConfigGenerator(_BaseGenerator):\
+  \  # type: ignore[misc]\n    \"\"\"Appends ai_editor and code_analysis_server sections
+  to the generated config.\n\n    Extends the adapter SimpleConfigGenerator. Calls
+  super().generate() first\n    to produce the base adapter config, then appends the
+  ai_editor and\n    code_analysis_server sections.\n    \"\"\"\n\n    def generate(self)
+  -> dict[str, Any]:\n        \"\"\"Generate the full config.json dict.\n\n      \
+  \  Calls super().generate() to produce the adapter base config, then\n        merges
+  in the ai_editor and code_analysis_server sections.\n\n        Returns:\n      \
+  \      Complete config dict ready to write to config.json.\n        \"\"\"\n   \
+  \     config: dict[str, Any] = super().generate()  # type: ignore[misc]\n      \
+  \  config.setdefault(\"ai_editor\", {\n            \"formatter\": {\n          \
+  \      \"small_file_threshold\": \"50kb\",\n                \"small_file_formatter\"\
+  : \"text\",\n            },\n            \"sessions\": {\n                \"base_dir\"\
+  : \"/tmp/ai_editor_sessions\",\n            },\n        })\n        config.setdefault(\"\
+  code_analysis_server\", {\n            \"host\": \"localhost\",\n            \"\
+  port\": 15000,\n            \"protocol\": \"https\",\n            \"auth\": {\n\
+  \                \"use_token\": False,\n                \"token_env\": None,\n \
+  \           },\n        })\n        return config\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/config/config_generator.py
+verification:
+  expected: from ai_editor.config.config_generator import 
+    AiEditorConfigGenerator; g = AiEditorConfigGenerator(); cfg = g.generate(); 
+    'ai_editor' in cfg; 'code_analysis_server' in cfg.
+  target: ai_editor.config.config_generator
+  type: import

@@ -1,0 +1,35 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Create ai_editor/result.py — SuccessResult and ErrorResult shims
+target_file: ai_editor/result.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-059
+prompt: "Project: ai_editor. File: ai_editor/result.py. Operation: create_file.\n\n\
+  Create the file ai_editor/result.py with the following exact content.\n\nThis shim
+  replaces mcp_proxy_adapter.commands.result.SuccessResult and ErrorResult\nso that
+  ai_editor/ported/ modules can be imported without mcp_proxy_adapter on the\nPython
+  path.\n\nRequired content:\n\n```python\n\"\"\"Shim replacing mcp_proxy_adapter
+  SuccessResult/ErrorResult for standalone use.\"\"\"\nfrom __future__ import annotations\n\
+  from typing import Any\n\n\ndef SuccessResult(data: dict[str, Any]) -> dict[str,
+  Any]:\n    \"\"\"Return a success envelope dict matching mcp_proxy_adapter contract.\n\
+  \n    Args:\n        data: Payload fields to merge into the result.\n\n    Returns:\n\
+  \        dict with success=True and all keys from data.\n    \"\"\"\n    return
+  {\"success\": True, **data}\n\n\ndef ErrorResult(\n    code: str,\n    message:
+  str,\n    details: dict[str, Any] | None = None,\n) -> dict[str, Any]:\n    \"\"\
+  \"Return an error envelope dict matching mcp_proxy_adapter contract.\n\n    Args:\n\
+  \        code: Stable error code string.\n        message: Human-readable error
+  message.\n        details: Optional additional diagnostic fields.\n\n    Returns:\n\
+  \        dict with success=False, error_code, message, details.\n    \"\"\"\n  \
+  \  return {\n        \"success\": False,\n        \"error_code\": code,\n      \
+  \  \"message\": message,\n        \"details\": details or {},\n    }\n```\n\nNo
+  other content. No imports beyond those shown. No classes."
+verification:
+  type: import
+  target: ai_editor.result
+  expected: "Module imports without error; SuccessResult({'x': 1}) returns {'success':
+    True, 'x': 1}; ErrorResult('E', 'msg') returns {'success': False, 'error_code':
+    'E', 'message': 'msg', 'details': {}}."
+status: draft

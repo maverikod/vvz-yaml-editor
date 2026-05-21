@@ -1,31 +1,70 @@
-step_id: T-001
-parent_global_step: G-003
-name: AbstractFormatter base class and FormatterUnit
-status: needs_review
-description: 'Implement AbstractFormatter base class with tree ownership and structural ops. Base implements: open_tree, export, render_skeleton, normalize_address, get_unit, iter_units, match_unit, compare_units, diagnostics, insert/delete/move/replace_node, mutate_batch, multiple_replace, copy/cut/paste_fragment, write (WritePipeline). Subclass abstract hooks: parse, render, node_from_source, node_to_source, linters. stable_id assigned and preserved by base only. FormatterUnit address = stable_id.'
+atomic_steps: []
+cascade_note: changed — formatter paradigm cascade 2026-05-21; tactical-fix 
+  Sidecar list_commands init ownership 2026-05-21
 concepts:
 - C-021
+- C-022
 - C-023
 - C-024
+- C-031
+- C-032
 - C-063
 - C-064
-- C-031
 - C-068
+- C-066
+- C-067
+description: 'Implement AbstractFormatter base class (C-021) owning in-memory Tree
+  (C-063) of TreeNode (C-064), stable_id assignment and integrity (C-031), all structural
+  and fragment operations, navigation, generic Sidecar production (C-032), WritePipeline
+  orchestration (C-068), and list_commands() returning FormatterCommandCatalog (C-022;
+  catalog datatypes from ai_editor.formatters.catalog). Base implements: open_tree
+  (subclass parse, base assigns stable_ids, build or update session-side generic sidecar),
+  export, render_skeleton, normalize_address, get_unit, iter_units, match_unit, compare_units,
+  diagnostics, insert/delete/move/replace_node, mutate_batch, multiple_replace, copy/cut/paste_fragment,
+  write (export, diff preview, temp file, subclass linters, atomic rename). Subclass
+  abstract hooks only: parse, render, node_from_source, node_to_source, linters. stable_id
+  assigned and preserved by base only; subclasses never assign, read, or depend on
+  stable_ids. FormatterUnit address = stable_id. Generic Sidecar (C-032): session-side
+  <session_dir>/<buffer_id>.tree after every mutation; project-side <dir>/.tree/<stem>.tree
+  on save; header TREE_V1 fmt=<formatter_name> sha256=<source_sha256> tree_sha256=<tree_body_sha256>;
+  JSON body serialising stable_id node map; atomic write; load validates source_sha256
+  (mismatch rebuilds from source). list_commands() assembles FormatterCommandCatalog
+  using FormatterCommandMetadata from catalog module. C-066 SourceOfTruth and C-067
+  AutoCreateTree are owned by G-005 session layer, not this tactical step.'
 inputs:
-- name: G-001 contracts
+- description: ValidationResult, Diagnostic importable from ai_editor.contracts.
+  name: G-001 contracts
   type: ai_editor.contracts
-  description: ValidationResult, Diagnostic importable from ai_editor.contracts.
-- name: T-005 G-002 output
+- description: write_result from ai_editor.writer used by WritePipeline and 
+    generic sidecar atomic writes.
+  name: G-002 Writer module
   type: ai_editor.writer
-  description: write_result from ai_editor.writer used as default write() implementation.
+- description: FormatterCommandCatalog and FormatterCommandMetadata datatypes; 
+    T-002 catalog.py optional until populated — base.py inlines minimal stub 
+    dataclasses so list_commands() is self-sufficient at runtime.
+  name: Formatter command catalog types
+  type: ai_editor.formatters.catalog
+name: AbstractFormatter base class and FormatterUnit
 outputs:
-- name: ai_editor/formatters/base.py
+- description: 'FormatterUnit, ComparisonResult, SkeletonOptions dataclasses. AbstractFormatter
+    ABC owning Tree (C-063) and TreeNode (C-064), stable_id protocol (C-031), structural
+    and fragment ops, navigation, diagnostics, WritePipeline write() (C-068), list_commands()
+    -> FormatterCommandCatalog (C-022). Abstract hooks: parse, render, node_from_source,
+    node_to_source, linters. Tree/TreeNode may split to ai_editor/formatters/tree.py
+    per file-size constraint.'
+  name: ai_editor/formatters/base.py
   type: file
-  description: 'FormatterUnit dataclass (frozen=False, metadata default_factory=dict): address: Any, unit_kind: str, display_text: str, metadata: dict. ComparisonResult dataclass (frozen=False, details default_factory=dict): equal: bool, score: float, details: dict. SkeletonOptions dataclass: depth: int = 2, hint_fields: list[str], collapse_threshold: int = 3, string_preview_len: int = 60, offset: int = 0. AbstractFormatter ABC with all abstractmethod methods listed in description.
-
-    '
-- name: ai_editor/formatters/__init__.py
+- description: 'Generic Sidecar (C-032): load_sidecar, save_sidecar, sidecar_matches_source
+    for session path <session_dir>/<buffer_id>.tree and project path <dir>/.tree/<stem>.tree;
+    header TREE_V1; atomic write. CST .cst paths and CST_TREE_V1 are T-008 specialisation
+    only.'
+  name: ai_editor/formatters/sidecar.py
   type: file
-  description: Exports AbstractFormatter, FormatterUnit, ComparisonResult.
-atomic_steps: []
-cascade_note: changed — formatter paradigm cascade 2026-05-21
+- description: Sole owner of ai_editor/formatters/__init__.py — no other G-003 
+    tactical step modifies this file. Exports AbstractFormatter, FormatterUnit, 
+    ComparisonResult, SkeletonOptions from base.
+  name: ai_editor/formatters/__init__.py
+  type: file
+parent_global_step: G-003
+status: needs_review
+step_id: T-001

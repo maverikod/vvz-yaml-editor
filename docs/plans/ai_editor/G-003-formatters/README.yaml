@@ -1,7 +1,16 @@
 step_id: G-003
-name: Formatters — AbstractFormatter base, unified tree, Text/YAML/JSON/CST backends
-status: needs_review
-description: 'Defines AbstractFormatter as the base class owning the in-memory Tree, all structural operations, stable_id identity, Sidecar production, and WritePipeline orchestration. Subclasses (Text, YAML, JSON, CST) implement conversion hooks only: parse, render, node_from_source, node_to_source, linters. Every format uses the unified TreeNode model and Sidecar (.tree session-side, .tree/<stem>.tree project-side; CST specialisation uses .cst paths). SourceOfTruth: source file at open; tree file after first mutation (modified=True). AutoCreateTree on preview-without-tree and after CA fetch. CSTFormatter is a specialisation, not a separate structural paradigm. Display-quirk reference: code_analysis docs/plans/ai_editor/viewer_features.yaml.'
+name: Formatters — AbstractFormatter base, unified tree, Text/YAML/JSON/CST 
+  backends
+status: ready_for_review
+description: 'Defines AbstractFormatter as the base class owning the in-memory Tree,
+  all structural operations, stable_id identity, Sidecar production, and WritePipeline
+  orchestration. Subclasses (Text, YAML, JSON, CST) implement conversion hooks only:
+  parse, render, node_from_source, node_to_source, linters. Every format uses the
+  unified TreeNode model and Sidecar (.tree session-side, .tree/<stem>.tree project-side;
+  CST specialisation uses .cst paths). SourceOfTruth: source file at open; tree file
+  after first mutation (modified=True). AutoCreateTree on preview-without-tree and
+  after CA fetch. CSTFormatter is a specialisation, not a separate structural paradigm.
+  Display-quirk reference: code_analysis docs/plans/ai_editor/viewer_features.yaml.'
 concepts:
 - C-021
 - C-022
@@ -114,9 +123,11 @@ executor_brief:
   base_class_owns:
   - in-memory Tree (C-063) of TreeNode (C-064)
   - stable_id assignment and integrity (subclasses never assign or read ids)
-  - structural ops: insert, delete, move, replace_node, mutate_batch, multiple_replace
+  - structural ops: insert, delete, move, replace_node, mutate_batch, 
+      multiple_replace
   - fragment ops: copy_fragment, cut_fragment, paste_fragment
-  - navigation/search hooks: normalize_address, get_unit, iter_units, match_unit, compare_units, diagnostics
+  - navigation/search hooks: normalize_address, get_unit, iter_units, 
+      match_unit, compare_units, diagnostics
   - Sidecar (C-032) production and WritePipeline (C-068) orchestration
   subclass_hooks_only:
   - parse(raw_content) -> tree_nodes
@@ -124,8 +135,10 @@ executor_brief:
   - node_from_source(raw_block) -> node
   - node_to_source(node) -> raw_block
   - linters() -> list[Linter]
-  insert_position: first | last | 0-based sibling index; content is raw block source converted via node_from_source
-  replace_node: swaps node body via node_from_source; preserves existing stable_id
+  insert_position: first | last | 0-based sibling index; content is raw block 
+    source converted via node_from_source
+  replace_node: swaps node body via node_from_source; preserves existing 
+    stable_id
   write_pipeline_steps:
   - export via subclass render
   - diff preview to caller
@@ -133,14 +146,18 @@ executor_brief:
   - subclass linters on temp
   - atomic rename on success; abort and return errors on lint failure
   sidecar_locations:
-    session: '<session_dir>/<buffer_id>.tree'
-    project: '<dir>/.tree/<stem>.tree'
-    header: 'TREE_V1 fmt=<formatter> sha256=<source> tree_sha256=<body>'
+    session: <session_dir>/<buffer_id>.tree
+    project: <dir>/.tree/<stem>.tree
+    header: TREE_V1 fmt=<formatter> sha256=<source> tree_sha256=<body>
   formatter_backends:
     TextFormatter: paragraph/line TreeNode kinds; converter-only
     YamlFormatter: structural TreeNode; stable_id address
     JsonFormatter: structural TreeNode; stable_id address
-    CSTFormatter: CSTTree extends Tree; Sidecar .cst paths; PythonFileHandler integration
-  validation_chain: formatter.validate_document -> buffer.validate -> session.write_all; write rejected on failure
+    CSTFormatter: CSTTree extends Tree; Sidecar .cst paths; PythonFileHandler 
+      integration
+  validation_chain: formatter.validate_document -> buffer.validate -> 
+    session.write_all; write rejected on failure
   display_quirks_ref: code_analysis docs/plans/ai_editor/viewer_features.yaml
-cascade_note: changed — AbstractFormatter paradigm cascade 2026-05-21; cycle_2 triple-autonomy 2026-05-21
+cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; 
+  AbstractFormatter paradigm cascade applied and rechecked 2026-05-21; I1c 
+  source_ranges audited 2026-05-21

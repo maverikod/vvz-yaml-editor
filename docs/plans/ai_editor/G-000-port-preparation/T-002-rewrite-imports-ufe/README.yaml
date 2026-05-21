@@ -1,0 +1,39 @@
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
+- A-005
+- A-006
+- A-007
+- A-008
+- A-009
+- A-010
+- A-011
+- A-012
+- A-013
+- A-014
+concepts:
+- C-060
+description: 'Rewrite all imports in the universal_file_edit files listed in G-000
+  usage_analysis.import_rewrite.universal_file_edit_files. Operations per file: replace
+  mcp_proxy_adapter.commands.result with ai_editor.result; replace code_analysis.commands.base_mcp_command
+  with ai_editor.project; replace code_analysis.commands.universal_file_edit.* namespaces
+  with ai_editor.ported.universal_file_edit.*; rename ValidationError->ValueError;
+  remove metadata imports; inline universal_file_replace logic in text_draft_apply.py;
+  guard entire modules (sidecar_cst_apply, tree_temp_*.py) with lazy-import stubs.
+  No logic changes.'
+inputs:
+- description: Files under ai_editor/ported/universal_file_edit/ with external 
+    imports per G-000 usage_analysis.import_rewrite.universal_file_edit_files.
+  name: ported_ufe_files
+  type: file_set
+name: Rewrite imports in universal_file_edit files
+outputs:
+- description: All ai_editor/ported/universal_file_edit/*.py files with 
+    rewritten imports and guarded CST/tree_temp modules.
+  name: ai_editor/ported/universal_file_edit/*.py (modified)
+  type: file_set
+parent_global_step: G-000
+status: draft
+step_id: T-002

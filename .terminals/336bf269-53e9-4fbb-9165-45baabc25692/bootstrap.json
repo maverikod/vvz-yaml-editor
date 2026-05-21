@@ -1,0 +1,9 @@
+{
+  "runtime_image": {
+    "status": "completed",
+    "success": true,
+    "skipped_build": true,
+    "exit_code": 0,
+    "detail": "no_requirements_txt"
+  }
+}

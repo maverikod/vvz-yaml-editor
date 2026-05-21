@@ -1,0 +1,33 @@
+concepts:
+- C-003
+depends_on: []
+name: Create ai_editor/contracts/diagnostic.py — Diagnostic dataclass
+operation: create_file
+parent_tactical_step: T-003
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/contracts/diagnostic.py. Operation: create_file.\n\
+  \nMRS concept C-003 (Diagnostic): Structured diagnostic message produced by validation\n\
+  or error handling, carrying a code, human message, optional path, and detail dict.\n\
+  Fields: code: str, message: str, path: str | None, details: dict.\n\nPrecondition:
+  ai_editor/contracts/ directory exists (created by T-002/A-001).\n\nCreate the file
+  ai_editor/contracts/diagnostic.py with the following exact content:\n\n```python\n\
+  \"\"\"Diagnostic dataclass for structured validation and error messages.\"\"\"\n\
+  from __future__ import annotations\n\nfrom dataclasses import dataclass, field\n\
+  from typing import Any\n\n\n@dataclass(frozen=True)\nclass Diagnostic:\n    \"\"\
+  \"Structured diagnostic message from validation or error handling.\n\n    Attributes:\n\
+  \        code: Stable error code string identifying the diagnostic type.\n     \
+  \   message: Human-readable description of the diagnostic.\n        path: Optional
+  dot-separated or slash-separated location within\n            the document where
+  the diagnostic applies. None if not applicable.\n        details: Additional key-value
+  diagnostic fields. Empty dict by default.\n    \"\"\"\n\n    code: str\n    message:
+  str\n    path: str | None = None\n    details: dict[str, Any] = field(default_factory=dict)\n\
+  ```"
+status: draft
+step_id: A-001
+target_file: ai_editor/contracts/diagnostic.py
+verification:
+  expected: from ai_editor.contracts.diagnostic import Diagnostic; d = 
+    Diagnostic(code='X', message='m'); d.code == 'X'; d.path is None; d.details 
+    == {}; is frozen (AttributeError on d.code = 'Y').
+  target: ai_editor.contracts.diagnostic
+  type: import

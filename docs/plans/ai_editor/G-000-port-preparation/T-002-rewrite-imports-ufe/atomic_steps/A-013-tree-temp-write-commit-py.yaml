@@ -1,0 +1,23 @@
+concepts:
+- C-060
+depends_on: []
+name: Guard ai_editor/ported/universal_file_edit/tree_temp_write_commit.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 13
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/tree_temp_write_commit.py.
+  Operation: modify_file.\n\nThis file imports tree_temp write/commit stack not ported
+  in G-000. Guard entire module.\n\nReplace ALL content with:\n\n```python\n\"\"\"\
+  \ntree_temp_write_commit.py — tree-temp write and commit.\n\nGuarded in G-000: tree_temp
+  group deferred to G-003.\n\"\"\"\nfrom __future__ import annotations\n\ntry:\n \
+  \   from ai_editor.ported.universal_file_edit._tree_temp_write_commit_impl import
+  *  # noqa: F401,F403\nexcept ImportError:\n    pass  # All symbols unavailable;
+  callers guard via try/except\n```"
+status: draft
+step_id: A-013
+target_file: ai_editor/ported/universal_file_edit/tree_temp_write_commit.py
+verification:
+  expected: import ai_editor.ported.universal_file_edit.tree_temp_write_commit 
+    succeeds without ImportError.
+  target: ai_editor.ported.universal_file_edit.tree_temp_write_commit
+  type: import

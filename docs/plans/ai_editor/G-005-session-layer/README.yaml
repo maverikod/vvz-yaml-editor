@@ -1,7 +1,13 @@
 step_id: G-005
-name: Session layer — infrastructure, buffer lifecycle, clipboard, recovery, and public API
-status: needs_review
-description: 'Session infrastructure and full buffer lifecycle. SourceOfTruth rule applies to all formats: source file at open; tree Sidecar becomes authoritative once buffer.modified=True. AutoCreateTree builds tree on CA fetch and when preview finds no tree file. Sidecar session file written after every mutation. Operates under external CASession (ca_session_id); never calls session_create/delete. startup_sweep policy B for stale locks and orphaned dirs. Canonical id: session_key.'
+name: Session layer — infrastructure, buffer lifecycle, clipboard, recovery, and
+  public API
+status: ready_for_review
+description: 'Session infrastructure and full buffer lifecycle. SourceOfTruth rule
+  applies to all formats: source file at open; tree Sidecar becomes authoritative
+  once buffer.modified=True. AutoCreateTree builds tree on CA fetch and when preview
+  finds no tree file. Sidecar session file written after every mutation. Operates
+  under external CASession (ca_session_id); never calls session_create/delete. startup_sweep
+  policy B for stale locks and orphaned dirs. Canonical id: session_key.'
 concepts:
 - C-038
 - C-039
@@ -95,24 +101,35 @@ executor_brief:
   - tests/sessions/
   source_of_truth:
     at_open: source file on CA server (or local buf for new buffers)
-    after_first_mutation: tree Sidecar file becomes authoritative once buffer.modified=True
+    after_first_mutation: tree Sidecar file becomes authoritative once 
+      buffer.modified=True
     applies_to: all formats uniformly (not CST-only)
   sidecar_for_all_formats:
-    session_path: '<session_dir>/<buffer_id>.tree — written after every mutation'
-    project_path: '<dir>/.tree/<stem>.tree — written on save next to source'
-    cst_specialisation: '.cst session/project paths remain valid aliases for CSTFormatter'
-    producer: AbstractFormatter base (C-021 produces C-032); session layer persists Sidecar on each mutation commit
+    session_path: <session_dir>/<buffer_id>.tree — written after every mutation
+    project_path: <dir>/.tree/<stem>.tree — written on save next to source
+    cst_specialisation: .cst session/project paths remain valid aliases for 
+      CSTFormatter
+    producer: AbstractFormatter base (C-021 produces C-032); session layer 
+      persists Sidecar on each mutation commit
   auto_create_tree:
-    on_preview_missing_tree: formatter.open_tree/build tree, then preview from tree
-    after_ca_fetch: build tree immediately after download_content in open flow (before returning skeleton)
+    on_preview_missing_tree: formatter.open_tree/build tree, then preview from 
+      tree
+    after_ca_fetch: build tree immediately after download_content in open flow 
+      (before returning skeleton)
   startup_sweep:
-    policy: B — delete orphaned session dirs (missing/corrupt ses_settings.json); release stale session_close_file locks for valid dirs; no TTL
+    policy: B — delete orphaned session dirs (missing/corrupt 
+      ses_settings.json); release stale session_close_file locks for valid dirs;
+      no TTL
   ca_session:
-    external: ca_session_id supplied at connect; stored in ses_settings.json; never session_create/delete
+    external: ca_session_id supplied at connect; stored in ses_settings.json; 
+      never session_create/delete
   buffer_lifecycle_ops:
   - open (remote CA fetch + lock + parse + buf write + git commit)
   - new (local unsaved, modified=True from start)
-  - mutation (formatter op + buf write + modified=True + sidecar write + git commit)
+  - mutation (formatter op + buf write + modified=True + sidecar write + git 
+    commit)
   - save (validate + render + upload; lock kept unless close=True)
   - reload / close / close_session / write_all / undo / redo / clipboard
-cascade_note: changed — source-of-truth + sidecar-for-all + auto-create; I1c source_ranges audited 2026-05-21; cycle_2 triple-autonomy 2026-05-21
+cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; 
+  source-of-truth + sidecar-for-all + auto-create cascade rechecked; I1c 
+  source_ranges audited 2026-05-21

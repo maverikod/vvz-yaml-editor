@@ -2,12 +2,10 @@ step_id: T-001
 parent_global_step: G-001
 name: Package skeleton — pyproject.toml, __init__.py, py.typed
 status: draft
-description: 'Create the minimal installable Python package skeleton for ai_editor.
+description: "Create the minimal installable Python package skeleton for ai_editor.
   After this step the package can be installed with pip and imported. All runtime
   dependencies declared. CLI entry point registered but not implemented. Zero business
-  logic. Zero contracts. Only three files created.
-
-  '
+  logic. Zero contracts. Only three files created.\n"
 concepts: []
 inputs:
 - name: none
@@ -16,16 +14,17 @@ inputs:
 outputs:
 - name: pyproject.toml
   type: file
-  description: '[build-system] hatchling. [project] name=vvz-ai-editor, version=0.1.0,
+  description: "[build-system] hatchling. [project] name=vvz-ai-editor, version=0.1.0,
     python_requires>=3.11, dependencies=[mcp-proxy-adapter, ruamel.yaml>=0.18.0, jsonpath-ng>=1.6.0,
     jsonschema>=4.0.0, libcst>=1.1.0, lark>=1.1.0, gitpython>=3.1.0, cryptography>=41.0.0].
-    [project.scripts] ai-editor=ai_editor.interfaces.cli:main.
-
-    '
+    [project.scripts] ai-editor=ai_editor.interfaces.cli:main.\n"
 - name: ai_editor/__init__.py
   type: file
   description: Minimal package init. Exports __version__ = "0.1.0" only.
 - name: ai_editor/py.typed
   type: file
   description: Empty PEP 561 marker file.
-atomic_steps: []
+atomic_steps:
+- A-001
+- A-002
+- A-003

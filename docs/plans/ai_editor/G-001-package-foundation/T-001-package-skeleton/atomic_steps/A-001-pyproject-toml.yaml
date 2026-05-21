@@ -1,0 +1,26 @@
+concepts: []
+depends_on: []
+name: Create pyproject.toml
+operation: create_file
+parent_tactical_step: T-001
+priority: 1
+prompt: "Project: ai_editor. File: pyproject.toml. Operation: create_file.\n\nCreate
+  the file pyproject.toml with the following exact content:\n\n```toml\n[build-system]\n\
+  requires = [\"hatchling\"]\nbuild-backend = \"hatchling.build\"\n\n[project]\nname
+  = \"vvz-ai-editor\"\nversion = \"0.1.0\"\ndescription = \"Universal document editor
+  for AI models and MCP servers.\"\nrequires-python = \">=3.11\"\ndependencies = [\n\
+  \    \"mcp-proxy-adapter\",\n    \"ruamel.yaml>=0.18.0\",\n    \"jsonpath-ng>=1.6.0\"\
+  ,\n    \"jsonschema>=4.0.0\",\n    \"libcst>=1.1.0\",\n    \"lark>=1.1.0\",\n  \
+  \  \"gitpython>=3.1.0\",\n    \"cryptography>=41.0.0\",\n    \"mistune>=3.0.0\"\
+  ,\n    \"lxml>=5.0.0\",\n    \"beautifulsoup4>=4.12.0\",\n]\n\n[project.scripts]\n\
+  ai-editor = \"ai_editor.interfaces.cli:main\"\naiedmgr = \"ai_editor.interfaces.service_manager:main\"\
+  \n\n[tool.hatch.build.targets.wheel]\npackages = [\"ai_editor\"]\n```\n\nIf pyproject.toml
+  already exists, overwrite it entirely with the content above."
+status: draft
+step_id: A-001
+target_file: pyproject.toml
+verification:
+  expected: pip install -e . succeeds under .venv; import ai_editor succeeds; 
+    ai-editor entry point is registered.
+  target: pyproject.toml
+  type: manual

@@ -2,11 +2,9 @@ step_id: T-003
 parent_global_step: G-001
 name: Diagnostic dataclass
 status: draft
-description: 'Create Diagnostic frozen dataclass. Atomic unit carried inside every
+description: "Create Diagnostic frozen dataclass. Atomic unit carried inside every
   result type. Must be defined before result envelopes (T-004) which embed list[Diagnostic].
-  No business logic. No ErrorCode import (uses plain str for code field).
-
-  '
+  No business logic. No ErrorCode import (uses plain str for code field).\n"
 concepts:
 - C-003
 inputs:
@@ -16,31 +14,7 @@ inputs:
 outputs:
 - name: ai_editor/contracts/diagnostic.py
   type: file
-  description: Diagnostic frozen dataclass with fields code(str), message(str), path(str|None),
-    details(dict).
-- name: ai_editor/contracts/__init__.py
-  type: file
-  description: Updated to export Diagnostic.
+  description: Diagnostic frozen dataclass with fields code(str), message(str), 
+    path(str|None), details(dict).
 atomic_steps:
-- step_id: A-001
-  parent_tactical_step: T-003
-  name: Create diagnostic.py
-  target_file: ai_editor/contracts/diagnostic.py
-  operation: create_file
-  priority: 1
-  depends_on: []
-  concepts:
-  - C-003
-  prompt: "Project: ai_editor. File: ai_editor/contracts/diagnostic.py. Operation:\
-    \ create_file.\n\n  from __future__ import annotations\n  from dataclasses import\
-    \ dataclass, field\n\n  @dataclass(frozen=True)\n  class Diagnostic:\n      \"\
-    \"\"A single diagnostic message produced by an ai_editor operation.\"\"\"\n  \
-    \    code: str\n      message: str\n      path: str | None = None\n      details:\
-    \ dict = field(default_factory=dict)\n\nModule docstring: \"Diagnostic dataclass\
-    \ for ai_editor operations.\" No other classes or functions. Add to ai_editor/contracts/__init__.py:\n\
-    \  from ai_editor.contracts.diagnostic import Diagnostic\n  # add Diagnostic to\
-    \ __all__\nConstraints: frozen=True; details uses field(default_factory=dict).\n"
-  verification:
-    type: import
-    target: ai_editor.contracts.diagnostic
-    expected: Diagnostic importable; frozen=True enforced; details defaults to {}
+- A-001

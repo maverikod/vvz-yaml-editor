@@ -1,0 +1,41 @@
+concepts:
+- C-060
+depends_on: []
+name: Rewrite imports in 
+  ai_editor/ported/universal_file_edit/text_draft_apply.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 8
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/text_draft_apply.py.
+  Operation: modify_file.\n\nApply exactly these changes. Do not alter function bodies
+  or other lines.\n\nCurrent external imports (lines 12-26 approx):\n  from mcp_proxy_adapter.commands.result
+  import ErrorResult, SuccessResult\n  from code_analysis.commands.universal_file_edit.edit_draft_path_utils
+  import (...)\n  from code_analysis.commands.universal_file_edit.errors import (...)\n\
+  \  from code_analysis.commands.universal_file_replace_command import (apply_text_ranges,
+  ...)\n  from code_analysis.commands.universal_file_edit.session import EditSession\n\
+  \  from code_analysis.core.backup_manager import BackupManager\n\nCHANGE 1:\n  from
+  mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult\n→ from ai_editor.result
+  import ErrorResult, SuccessResult\n\nCHANGE 2:\n  from code_analysis.commands.universal_file_edit.edit_draft_path_utils
+  import (...)\n→ from ai_editor.ported.universal_file_edit.edit_draft_path_utils
+  import (...)\n(keep imported names unchanged)\n\nCHANGE 3:\n  from code_analysis.commands.universal_file_edit.errors
+  import (...)\n→ from ai_editor.ported.universal_file_edit.errors import (...)\n\
+  (keep imported names unchanged)\n\nCHANGE 4 — the import of universal_file_replace_command
+  does NOT exist in ported/.\nDelete the import block:\n  from code_analysis.commands.universal_file_replace_command
+  import (...)\nIdentify the symbols imported (e.g. apply_text_ranges or similar).
+  Inline the logic\ndirectly in run_text_draft_apply: a text-range replace applies
+  each operation\n{start_line, end_line, content} to the draft file bottom-up (descending
+  start_line\norder). Implement this logic inline as a local helper _apply_text_ranges(lines,
+  ops)\nreturning the modified lines list.\n\nCHANGE 5:\n  from code_analysis.commands.universal_file_edit.session
+  import EditSession\n→ from ai_editor.ported.universal_file_edit.session import EditSession\n\
+  \nCHANGE 6:\n  from code_analysis.core.backup_manager import BackupManager\n→ from
+  ai_editor.ported.backup_manager import BackupManager\n\nAlso: return type annotations
+  using SuccessResult|ErrorResult as class types change to dict."
+status: draft
+step_id: A-008
+target_file: ai_editor/ported/universal_file_edit/text_draft_apply.py
+verification:
+  expected: No references to mcp_proxy_adapter or code_analysis remain. 
+    universal_file_replace_command logic is inlined. File is importable with 
+    ai_editor shims on path.
+  target: ai_editor/ported/universal_file_edit/text_draft_apply.py
+  type: static_analysis

@@ -1,0 +1,26 @@
+concepts:
+- C-060
+depends_on: []
+name: Rewrite imports in ai_editor/ported/universal_file_edit/session.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 6
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/session.py.
+  Operation: modify_file.\n\nApply exactly these changes. Do not alter class definitions,
+  function bodies, or other lines.\n\nCurrent external imports (lines 15-16):\n  from
+  code_analysis.commands.universal_file_edit.format_group import FormatDescriptor\n\
+  \  from code_analysis.core.tree_temp.tree_node import TreeNode\n\nCHANGE 1:\n  from
+  code_analysis.commands.universal_file_edit.format_group import FormatDescriptor\n\
+  → from ai_editor.ported.universal_file_edit.format_group import FormatDescriptor\n\
+  \nCHANGE 2 — replace tree_temp.tree_node import with lazy guard:\n  from code_analysis.core.tree_temp.tree_node
+  import TreeNode\n→\n  try:\n      from ai_editor.ported.universal_file_edit.tree_temp_open_support
+  import TreeNode\n  except ImportError:\n      TreeNode = object  # type: ignore[assignment,misc]\
+  \  # tree-temp deferred to G-003\n\nNo other changes."
+status: draft
+step_id: A-006
+target_file: ai_editor/ported/universal_file_edit/session.py
+verification:
+  expected: No references to code_analysis remain. File is importable with 
+    ai_editor.ported.universal_file_edit.format_group on path.
+  target: ai_editor/ported/universal_file_edit/session.py
+  type: static_analysis

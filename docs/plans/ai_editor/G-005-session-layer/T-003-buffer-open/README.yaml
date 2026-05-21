@@ -2,7 +2,8 @@ step_id: T-003
 parent_global_step: G-005
 name: Buffer open — file download, formatter init, initial git commit
 status: needs_review
-description: 'Buffer open: formatter.open_tree(content) builds Tree + Sidecar. AutoCreateTree after CA fetch. SourceOfTruth is source file until first mutation.'
+description: 'Buffer open: formatter.open_tree(content) builds Tree + Sidecar. AutoCreateTree
+  after CA fetch. SourceOfTruth is source file until first mutation.'
 concepts:
 - C-010
 - C-038
@@ -10,6 +11,7 @@ concepts:
 - C-067
 - C-021
 - C-032
+- C-062
 inputs:
 - name: G-005/T-001 output
   type: ai_editor.sessions.session_dir
@@ -32,8 +34,8 @@ inputs:
 outputs:
 - name: ai_editor/sessions/buffer_open.py
   type: file
-  description: 'open_buffer(session_dir, session_key, project_id, file_path, ca_client, formatter_registry, repo, config, formatter=''auto'', open_as_text=False, readonly=False) -> dict. Returns buf_dict or error dict.
-
-    '
+  description: "open_buffer(session_dir, session_key, project_id, file_path, ca_client,
+    formatter_registry, repo, config, formatter='auto', open_as_text=False, readonly=False)
+    -> dict. Returns buf_dict or error dict.\n"
 atomic_steps: []
 cascade_note: changed — formatter paradigm cascade 2026-05-21

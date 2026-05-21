@@ -1,0 +1,119 @@
+concepts:
+- C-010
+- C-011
+- C-020
+depends_on: []
+name: Create ai_editor/editor_core/buffer.py — BufferState dataclass and 
+  AbstractBuffer ABC
+operation: create_file
+parent_tactical_step: T-007
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/editor_core/buffer.py. Operation: create_file.\n\
+  \nMRS concepts:\n  C-010 Buffer: Binding of exactly one file (or unsaved content)
+  to exactly one\n    formatter for the buffer lifetime. Both formatter and buffer_id
+  are immutable\n    after open. Fields: buffer_id (UUID4), project_id (UUID4), file_id
+  (UUID|None),\n    filename (str), relative_path (str|None), formatter (str), modified
+  (bool),\n    readonly (bool), locked (bool), buf_file_path (str).\n  C-011 BufferState:
+  Snapshot of buffer's current state returned by get_state,\n    including a formatter-rendered
+  skeleton preview. Fields: buffer_id (str),\n    formatter (str), preview (str),
+  modified (bool), readonly (bool),\n    relative_path (str|None).\n  C-020 BufferAddress:
+  Opaque pair of buffer_id and formatter-specific address.\n    address content never
+  interpreted by editor core. Fields: buffer_id (str),\n    address (Any).\n\nAbstractBuffer
+  defines the full public buffer contract (ABC). Concrete\nimplementations live in
+  G-005 (Session layer).\n\nPreconditions:\n  - ai_editor/contracts/__init__.py exists
+  (OperationResult, ValidationResult,\n    WriteAllResult, BufferAddress importable
+  from ai_editor.contracts)\n\nCreate the file ai_editor/editor_core/buffer.py with
+  the following exact content:\n\n```python\n\"\"\"AbstractBuffer ABC and BufferState
+  snapshot contract.\"\"\"\nfrom __future__ import annotations\n\nfrom abc import
+  ABC, abstractmethod\nfrom dataclasses import dataclass\nfrom typing import Any\n\
+  \nfrom ai_editor.contracts import (\n    BufferAddress,\n    OperationResult,\n\
+  \    ValidationResult,\n    WriteAllResult,\n)\n\n\n@dataclass\nclass BufferState:\n\
+  \    \"\"\"Point-in-time snapshot of a buffer's current state.\n\n    Returned by
+  AbstractBuffer.get_state(). Contains a formatter-rendered\n    skeleton preview
+  of the current document.\n\n    Attributes:\n        buffer_id: Stable UUID4 string
+  for this buffer.\n        formatter: Formatter name (e.g. 'yaml', 'text', 'cst').\n\
+  \        preview: Formatter-rendered skeleton or key listing of the document.\n\
+  \        modified: True if the buffer has unsaved mutations.\n        readonly:
+  True if the buffer was opened read-only.\n        file_path: Project-relative path,
+  or None for unsaved buffers.\n        relative_path: Same as file_path; kept for
+  API symmetry.\n    \"\"\"\n\n    buffer_id: str\n    formatter: str\n    preview:
+  str\n    modified: bool\n    readonly: bool\n    file_path: str | None = None\n\
+  \    relative_path: str | None = None\n\n\nclass AbstractBuffer(ABC):\n    \"\"\"\
+  Abstract interface for all buffer implementations.\n\n    Defines the full public
+  contract that the session layer (G-005) implements.\n    Formatters and editor core
+  use this interface; no concrete buffer logic\n    lives here.\n\n    Invariant:
+  formatter and buffer_id are immutable after open.\n    \"\"\"\n\n    @abstractmethod\n\
+  \    def open(\n        self,\n        session_key: str,\n        project_id: str,\n\
+  \        file_path: str,\n        formatter: str = \"auto\",\n        open_as_text:
+  bool = False,\n        readonly: bool = False,\n    ) -> str:\n        \"\"\"Open
+  a project file and return the buffer_id.\n\n        Args:\n            session_key:
+  UUID4 of the owning session.\n            project_id: UUID4 of the project.\n  \
+  \          file_path: Project-relative path to the file.\n            formatter:
+  Formatter name or 'auto' for automatic selection.\n            open_as_text: If
+  True, force text formatter regardless of extension.\n            readonly: If True,
+  open without acquiring a file lock.\n\n        Returns:\n            buffer_id UUID4
+  string for subsequent operations.\n        \"\"\"\n\n    @abstractmethod\n    def
+  new(\n        self,\n        session_key: str,\n        formatter_name: str,\n \
+  \       initial_content: str,\n        display_name: str | None = None,\n    ) ->
+  str:\n        \"\"\"Create a new unsaved buffer and return its buffer_id.\n\n  \
+  \      Args:\n            session_key: UUID4 of the owning session.\n          \
+  \  formatter_name: Formatter to use for the new buffer.\n            initial_content:
+  Initial document content.\n            display_name: Optional display name for the
+  unsaved buffer.\n\n        Returns:\n            buffer_id UUID4 string.\n     \
+  \   \"\"\"\n\n    @abstractmethod\n    def save(\n        self,\n        session_key:
+  str,\n        buffer_id: str,\n        close: bool = False,\n    ) -> OperationResult:\n\
+  \        \"\"\"Save the buffer to its project file.\n\n        Args:\n         \
+  \   session_key: UUID4 of the owning session.\n            buffer_id: Buffer to
+  save.\n            close: If True, close the buffer after saving.\n\n        Returns:\n\
+  \            OperationResult with success flag and any diagnostics.\n        \"\"\
+  \"\n\n    @abstractmethod\n    def save_as(\n        self,\n        session_key:
+  str,\n        buffer_id: str,\n        relative_path: str,\n        overwrite: bool
+  = False,\n        close: bool = False,\n    ) -> OperationResult:\n        \"\"\"\
+  Save the buffer to a new project-relative path.\n\n        Args:\n            session_key:
+  UUID4 of the owning session.\n            buffer_id: Buffer to save.\n         \
+  \   relative_path: New project-relative destination path.\n            overwrite:
+  If True, overwrite an existing file at that path.\n            close: If True, close
+  the buffer after saving.\n\n        Returns:\n            OperationResult with success
+  flag and any diagnostics.\n        \"\"\"\n\n    @abstractmethod\n    def close(\n\
+  \        self,\n        session_key: str,\n        buffer_id: str,\n        force:
+  bool = False,\n    ) -> OperationResult:\n        \"\"\"Close the buffer, releasing
+  any file lock.\n\n        Args:\n            session_key: UUID4 of the owning session.\n\
+  \            buffer_id: Buffer to close.\n            force: If True, close even
+  if the buffer has unsaved changes.\n\n        Returns:\n            OperationResult
+  with success flag.\n        \"\"\"\n\n    @abstractmethod\n    def reload(\n   \
+  \     self,\n        session_key: str,\n        buffer_id: str,\n    ) -> OperationResult:\n\
+  \        \"\"\"Reload the buffer content from the project file, discarding mutations.\n\
+  \n        Args:\n            session_key: UUID4 of the owning session.\n       \
+  \     buffer_id: Buffer to reload.\n\n        Returns:\n            OperationResult
+  with success flag.\n        \"\"\"\n\n    @abstractmethod\n    def get_state(\n\
+  \        self,\n        session_key: str,\n        buffer_id: str,\n    ) -> BufferState:\n\
+  \        \"\"\"Return a point-in-time snapshot of the buffer state.\n\n        Args:\n\
+  \            session_key: UUID4 of the owning session.\n            buffer_id: Buffer
+  to inspect.\n\n        Returns:\n            BufferState snapshot including formatter-rendered
+  preview.\n        \"\"\"\n\n    @abstractmethod\n    def get_formatter(\n      \
+  \  self,\n        session_key: str,\n        buffer_id: str,\n    ) -> Any:\n  \
+  \      \"\"\"Return the formatter instance for this buffer.\n\n        Args:\n \
+  \           session_key: UUID4 of the owning session.\n            buffer_id: Buffer
+  to inspect.\n\n        Returns:\n            The formatter instance (concrete type
+  depends on implementation).\n        \"\"\"\n\n    @abstractmethod\n    def validate(\n\
+  \        self,\n        session_key: str,\n        buffer_id: str,\n    ) -> ValidationResult:\n\
+  \        \"\"\"Validate the current buffer content using the formatter's linters.\n\
+  \n        Args:\n            session_key: UUID4 of the owning session.\n       \
+  \     buffer_id: Buffer to validate.\n\n        Returns:\n            ValidationResult
+  with success flag and any diagnostic messages.\n        \"\"\"\n\n    @abstractmethod\n\
+  \    def write_all(\n        self,\n        session_key: str,\n        force: bool
+  = False,\n    ) -> WriteAllResult:\n        \"\"\"Save all modified buffers in the
+  session.\n\n        Args:\n            session_key: UUID4 of the owning session.\n\
+  \            force: If True, save even buffers with validation errors.\n\n     \
+  \   Returns:\n            WriteAllResult listing written, failed, and skipped buffer
+  IDs.\n        \"\"\"\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/editor_core/buffer.py
+verification:
+  expected: from ai_editor.editor_core.buffer import AbstractBuffer, 
+    BufferState; BufferState(buffer_id='x', formatter='text', preview='', 
+    modified=False, readonly=False) constructed without error; AbstractBuffer is
+    abstract (cannot be instantiated directly).
+  target: ai_editor.editor_core.buffer
+  type: import

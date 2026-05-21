@@ -1,0 +1,50 @@
+concepts:
+- C-060
+depends_on: []
+name: Rewrite imports in ai_editor/ported/universal_file_edit/errors.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/errors.py.
+  Operation: modify_file.\n\nCurrent full content of the file:\n\n```python\n\"\"\"\
+  \nErrorCodes constants and error-construction helper for universal_file_edit commands.\n\
+  \nAuthor: Vasiliy Zdanovskiy\nemail: vasilyvz@gmail.com\n\"\"\"\n\nfrom __future__
+  import annotations\n\nfrom typing import Any, Dict, Optional, cast\n\nfrom mcp_proxy_adapter.commands.result
+  import ErrorResult\n\nSESSION_NOT_FOUND = \"SESSION_NOT_FOUND\"\nDRAFT_NOT_FOUND
+  = \"DRAFT_NOT_FOUND\"\nNESTED_BATCH_FORBIDDEN = \"NESTED_BATCH_FORBIDDEN\"\nWRITE_FAILED
+  = \"WRITE_FAILED\"\nUNKNOWN_FORMAT = \"UNKNOWN_FORMAT\"\nPARSE_ERROR = \"PARSE_ERROR\"\
+  \n\n\ndef make_error(\n    code: str,\n    message: str,\n    details: Optional[Dict[str,
+  Any]] = None,\n) -> Dict[str, Any]:\n    \"\"\"Build a structured error dict for
+  MCP command responses.\n\n    Args:\n        code: One of the ErrorCodes string
+  constants.\n        message: Human-readable description of the error.\n        details:
+  Optional mapping of additional diagnostic fields.\n\n    Returns:\n        Dict
+  with keys success=False, code, message, and optional details.\n    \"\"\"\n    result:
+  Dict[str, Any] = {\"success\": False, \"code\": code, \"message\": message}\n  \
+  \  if details:\n        result[\"details\"] = details\n    return result\n\n\ndef
+  error_result_for_edit(\n    message: str,\n    code: str,\n    details: Optional[Dict[str,
+  Any]] = None,\n) -> ErrorResult:\n    \"\"\"Build ``ErrorResult`` with a string
+  application error code.\n\n    ``mcp_proxy_adapter`` types ``ErrorResult.code``
+  as int (JSON-RPC numeric\n    codes); this codebase uses string codes for application
+  errors.\n    \"\"\"\n    return ErrorResult(message=message, code=cast(Any, code),
+  details=details)\n\n\ndef error_result_from_make_error(err: Dict[str, Any]) -> ErrorResult:\n\
+  \    \"\"\"Convert a ``make_error()`` dict into an ``ErrorResult``.\"\"\"\n    return
+  ErrorResult(\n        message=str(err[\"message\"]),\n        code=cast(Any, err[\"\
+  code\"]),\n        details=err.get(\"details\"),\n    )\n```\n\nApply the following
+  changes:\n\n1. Replace:\n     from mcp_proxy_adapter.commands.result import ErrorResult\n\
+  \   With:\n     from ai_editor.result import ErrorResult\n\n2. Replace the return
+  type annotation `-> ErrorResult:` with `-> dict:` in both\n   `error_result_for_edit`
+  and `error_result_from_make_error` functions.\n   (After the shim change, ErrorResult
+  is a plain function returning dict, not a class;\n   using it as a type annotation
+  would require TYPE_CHECKING guard which is unnecessary.)\n\n3. Remove the `cast`
+  import from the `from typing import` line if it is no longer\n   needed, OR keep
+  it if `cast(Any, code)` calls remain. Since we are keeping the\n   cast calls, keep
+  the import as-is.\n\nNo other changes. Preserve all docstrings, comments, and constant
+  definitions."
+status: draft
+step_id: A-001
+target_file: ai_editor/ported/universal_file_edit/errors.py
+verification:
+  expected: File imports ai_editor.result instead of 
+    mcp_proxy_adapter.commands.result. No other lines changed.
+  target: ai_editor/ported/universal_file_edit/errors.py
+  type: static_analysis

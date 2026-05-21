@@ -1,0 +1,30 @@
+concepts:
+- C-060
+depends_on: []
+name: Guard ai_editor/ported/universal_file_edit/sidecar_cst_apply.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 9
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/sidecar_cst_apply.py.
+  Operation: modify_file.\n\nThis file imports code_analysis.core.cst_tree.* which
+  is not ported in G-000.\nGuard the entire module so it is importable without the
+  CST stack.\n\nReplace ALL content of the file with the following:\n\n```python\n\
+  \"\"\"\nsidecar_cst_apply.py — CST sidecar editing.\n\nGuarded in G-000: CST stack
+  is not ported. Real implementation wired in G-003/T-008.\nImporting this module
+  succeeds but all public names are None stubs.\n\"\"\"\nfrom __future__ import annotations\n\
+  \ntry:\n    from ai_editor.ported.universal_file_edit._sidecar_cst_apply_impl import
+  (  # noqa: F401\n        run_sidecar_cst_edit_batch,\n        validate_sidecar_nested_batch,\n\
+  \    )\nexcept ImportError:\n    run_sidecar_cst_edit_batch = None  # type: ignore[assignment]\n\
+  \    validate_sidecar_nested_batch = None  # type: ignore[assignment]\n\n__all__
+  = [\"run_sidecar_cst_edit_batch\", \"validate_sidecar_nested_batch\"]\n```\n\nThe
+  original file content is preserved in G-003/T-008 where the real CST implementation
+  is wired."
+status: draft
+step_id: A-009
+target_file: ai_editor/ported/universal_file_edit/sidecar_cst_apply.py
+verification:
+  expected: import ai_editor.ported.universal_file_edit.sidecar_cst_apply 
+    succeeds without ImportError. run_sidecar_cst_edit_batch and 
+    validate_sidecar_nested_batch are accessible (as None in G-000).
+  target: ai_editor.ported.universal_file_edit.sidecar_cst_apply
+  type: import

@@ -1,0 +1,24 @@
+atomic_steps:
+- A-001
+- A-002
+- A-003
+concepts:
+- C-058
+- C-061
+description: 'Add __init__.py files to all ported sub-packages that lack them, making
+  them importable as Python packages. Packages: ai_editor/ported/, ai_editor/ported/universal_file_edit/,
+  ai_editor/ported/file_handlers/. Each __init__.py is empty (zero-byte) or contains
+  only a module docstring. Does not change any existing logic.'
+inputs:
+- description: ai_editor/ported/ directory tree after T-001, T-002, T-003.
+  name: ported_directory_tree
+  type: directory
+name: Add __init__.py files to ported packages
+outputs:
+- description: Empty __init__.py in ai_editor/ported/, 
+    ai_editor/ported/universal_file_edit/, ai_editor/ported/file_handlers/.
+  name: __init__.py files
+  type: file_set
+parent_global_step: G-000
+status: draft
+step_id: T-004

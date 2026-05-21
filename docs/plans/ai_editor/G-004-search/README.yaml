@@ -1,7 +1,10 @@
 step_id: G-004
 name: Universal search
-status: needs_review
-description: Search interface over the unified formatter Tree. Calls base-class iter_units, match_unit, compare_units on the in-memory tree. SearchMatch.address is node stable_id for all formatters. Does not open/write files or fetch documents. session_key is diagnostic only.
+status: ready_for_review
+description: Search interface over the unified formatter Tree. Calls base-class 
+  iter_units, match_unit, compare_units on the in-memory tree. 
+  SearchMatch.address is node stable_id for all formatters. Does not open/write 
+  files or fetch documents. session_key is diagnostic only.
 concepts:
 - C-035
 - C-036
@@ -38,9 +41,13 @@ executor_brief:
   - ai_editor/search/
   - tests/search/
   unified_tree_search:
-    engine: AbstractSearch (C-035) delegates to formatter base iter_units, match_unit, compare_units on in-memory Tree
-    address_model: SearchMatch.address is node stable_id (UUID) for every formatter; legacy HRS per-format address examples (yaml path, text line range) are superseded by this unified model
-    buffer_address: returned stable_id addresses are directly usable in copy/cut/paste BufferAddress
+    engine: AbstractSearch (C-035) delegates to formatter base iter_units, 
+      match_unit, compare_units on in-memory Tree
+    address_model: SearchMatch.address is node stable_id (UUID) for every 
+      formatter; legacy HRS per-format address examples (yaml path, text line 
+      range) are superseded by this unified model
+    buffer_address: returned stable_id addresses are directly usable in 
+      copy/cut/paste BufferAddress
   operations:
   - find(session_key, buffer_id, query, scope) -> list[SearchMatch]
   - find_one(...) -> SearchMatch | SEARCH_NO_MATCH | SEARCH_NOT_UNIQUE
@@ -50,4 +57,6 @@ executor_brief:
     yaml: field_equals, node_type
     cst: xpath, stable_id
   explicit_non_scope: does not open/write files; session_key diagnostic only
-cascade_note: changed — search runs over unified tree; stable_id addresses; I1c source_ranges audited 2026-05-21; cycle_2 triple-autonomy 2026-05-21
+cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; search runs
+  over unified tree with stable_id addresses; I1c source_ranges audited 
+  2026-05-21

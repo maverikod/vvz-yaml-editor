@@ -1,0 +1,139 @@
+concepts:
+- C-013
+- C-014
+depends_on: []
+name: Create ai_editor/editor_core/ca_client.py — CodeAnalysisClient
+operation: create_file
+parent_tactical_step: T-001
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/editor_core/ca_client.py. Operation:
+  create_file.\n\nMRS concepts:\n  C-013 CodeAnalysisClient: Single gateway for all
+  project file I/O via the CA\n    server API. Invariant: ai_editor never reads or
+  writes project files directly\n    from disk. Auth modes: mTLS or HTTPS+token.\n\
+  \    Methods:\n      download_content(project_id, file_path, readonly) -> (bytes,
+  file_id)\n        — transfer download, no lock side-effect\n      upload_content(project_id,
+  file_id, content: bytes) -> void\n        — writes file content only; never releases
+  the lock\n      unlock_file(ca_session_id, project_id, file_id) -> void\n      \
+  \  — wraps session_close_file (releases the file lock)\n      lock_file(ca_session_id,
+  project_id, file_id) -> void\n        — wraps session_open_file (acquires file lock;
+  BUFFER_LOCKED if held)\n      list_project_files(project_id) -> list\n      list_backup_versions(project_id,
+  file_path) -> list\n      restore_backup_file(project_id, file_path, backup_uuid)
+  -> void\n      list_file_locks(ca_session_id, project_id) -> list\n        — wraps
+  session_list_file_locks (pre-check before acquiring)\n  C-014 FileLock: server-side
+  cooperative lock keyed by\n    (ca_session_id, project_id, file_id). Readonly buffers
+  acquire no lock.\n\nCreate the file ai_editor/editor_core/ca_client.py with the
+  following exact content:\n\n```python\n\"\"\"CodeAnalysisClient — single gateway
+  for all project file I/O via CA server API.\n\nai_editor never reads or writes project
+  files directly from disk.\nAll file access goes through this client.\n\"\"\"\nfrom
+  __future__ import annotations\n\nimport ssl\nfrom dataclasses import dataclass\n\
+  from pathlib import Path\nfrom typing import Any\n\nimport httpx\n\n\n@dataclass\n\
+  class CAClientConfig:\n    \"\"\"Connection configuration for the CA server.\n\n\
+  \    Attributes:\n        host: CA server hostname.\n        port: CA server port.\n\
+  \        protocol: 'https' or 'mtls'.\n        ssl_context: SSL context for mTLS;
+  None for plain HTTPS+token.\n        auth_token: Bearer token for HTTPS+token auth;
+  None for mTLS.\n    \"\"\"\n\n    host: str\n    port: int\n    protocol: str  #
+  'https' | 'mtls'\n    ssl_context: ssl.SSLContext | None = None\n    auth_token:
+  str | None = None\n\n    @property\n    def base_url(self) -> str:\n        \"\"\
+  \"Return the base URL for the CA server.\"\"\"\n        return f\"https://{self.host}:{self.port}\"\
+  \n\n\nclass CodeAnalysisClient:\n    \"\"\"Single gateway for all project file I/O
+  via the CA server API.\n\n    ai_editor never reads or writes project files directly
+  from disk.\n    All file access goes through this client.\n\n    Invariant: upload_content
+  writes content only and never releases\n    the file lock. Lock release is always
+  a separate explicit unlock_file call.\n    \"\"\"\n\n    def __init__(self, config:
+  CAClientConfig) -> None:\n        \"\"\"Initialise the client with the given connection
+  configuration.\n\n        Args:\n            config: CA server connection configuration.\n\
+  \        \"\"\"\n        self._config = config\n        self._client = httpx.Client(\n\
+  \            base_url=config.base_url,\n            verify=config.ssl_context or
+  True,\n            headers=(\n                {\"Authorization\": f\"Bearer {config.auth_token}\"\
+  }\n                if config.auth_token\n                else {}\n            ),\n\
+  \            timeout=60.0,\n        )\n\n    # ------------------------------------------------------------------\n\
+  \    # File content I/O\n    # ------------------------------------------------------------------\n\
+  \n    def download_content(\n        self,\n        project_id: str,\n        file_path:
+  str,\n        readonly: bool = False,\n    ) -> tuple[bytes, str | None]:\n    \
+  \    \"\"\"Download file content from the CA server.\n\n        Transfer download
+  with no lock side-effect. The caller is responsible\n        for acquiring the lock
+  separately via lock_file if a write is intended.\n\n        Args:\n            project_id:
+  UUID of the project.\n            file_path: Project-relative path to the file.\n\
+  \            readonly: True if the buffer will be opened read-only (advisory).\n\
+  \n        Returns:\n            Tuple of (content_bytes, file_id). file_id is None
+  if the server\n            does not return it.\n        \"\"\"\n        resp = self._client.get(\n\
+  \            \"/commands/download_file\",\n            params={\"project_id\": project_id,
+  \"file_path\": file_path},\n        )\n        resp.raise_for_status()\n       \
+  \ data = resp.json()\n        return data[\"content\"].encode(\"utf-8\"), data.get(\"\
+  file_id\")\n\n    def upload_content(\n        self,\n        project_id: str,\n\
+  \        file_id: str,\n        content: bytes,\n    ) -> None:\n        \"\"\"\
+  Upload file content to the CA server.\n\n        Writes file content only. Never
+  releases the file lock.\n        Lock release requires a separate explicit unlock_file
+  call.\n\n        Args:\n            project_id: UUID of the project.\n         \
+  \   file_id: UUID of the file on the CA server.\n            content: Raw bytes
+  to write.\n        \"\"\"\n        resp = self._client.post(\n            \"/commands/upload_file\"\
+  ,\n            json={\n                \"project_id\": project_id,\n           \
+  \     \"file_id\": file_id,\n                \"content\": content.decode(\"utf-8\"\
+  ),\n            },\n        )\n        resp.raise_for_status()\n\n    # ------------------------------------------------------------------\n\
+  \    # Lock management\n    # ------------------------------------------------------------------\n\
+  \n    def lock_file(\n        self,\n        ca_session_id: str,\n        project_id:
+  str,\n        file_id: str,\n    ) -> None:\n        \"\"\"Acquire a cooperative
+  file lock via session_open_file.\n\n        Raises BUFFER_LOCKED error if the file
+  is already held by another\n        CA session. Idempotent if the same session already
+  holds the lock.\n\n        Args:\n            ca_session_id: External CA session
+  UUID.\n            project_id: UUID of the project.\n            file_id: UUID of
+  the file.\n        \"\"\"\n        resp = self._client.post(\n            \"/commands/session_open_file\"\
+  ,\n            json={\n                \"session_id\": ca_session_id,\n        \
+  \        \"project_id\": project_id,\n                \"file_id\": file_id,\n  \
+  \          },\n        )\n        resp.raise_for_status()\n\n    def unlock_file(\n\
+  \        self,\n        ca_session_id: str,\n        project_id: str,\n        file_id:
+  str,\n    ) -> None:\n        \"\"\"Release a cooperative file lock via session_close_file.\n\
+  \n        Args:\n            ca_session_id: External CA session UUID.\n        \
+  \    project_id: UUID of the project.\n            file_id: UUID of the file.\n\
+  \        \"\"\"\n        resp = self._client.post(\n            \"/commands/session_close_file\"\
+  ,\n            json={\n                \"session_id\": ca_session_id,\n        \
+  \        \"project_id\": project_id,\n                \"file_id\": file_id,\n  \
+  \          },\n        )\n        resp.raise_for_status()\n\n    def list_file_locks(\n\
+  \        self,\n        ca_session_id: str,\n        project_id: str,\n    ) ->
+  list[dict[str, Any]]:\n        \"\"\"List all file locks held under the given CA
+  session.\n\n        Used as a pre-check before acquiring a new lock to detect conflicts.\n\
+  \n        Args:\n            ca_session_id: External CA session UUID.\n        \
+  \    project_id: UUID of the project.\n\n        Returns:\n            List of lock
+  descriptor dicts from session_list_file_locks.\n        \"\"\"\n        resp = self._client.get(\n\
+  \            \"/commands/session_list_file_locks\",\n            params={\"session_id\"\
+  : ca_session_id, \"project_id\": project_id},\n        )\n        resp.raise_for_status()\n\
+  \        return resp.json().get(\"locks\", [])\n\n    # ------------------------------------------------------------------\n\
+  \    # Project file listing\n    # ------------------------------------------------------------------\n\
+  \n    def list_project_files(self, project_id: str) -> list[dict[str, Any]]:\n \
+  \       \"\"\"List all files in the project.\n\n        Args:\n            project_id:
+  UUID of the project.\n\n        Returns:\n            List of file descriptor dicts.\n\
+  \        \"\"\"\n        resp = self._client.get(\n            \"/commands/list_project_files\"\
+  ,\n            params={\"project_id\": project_id},\n        )\n        resp.raise_for_status()\n\
+  \        return resp.json().get(\"files\", [])\n\n    # ------------------------------------------------------------------\n\
+  \    # Backup management\n    # ------------------------------------------------------------------\n\
+  \n    def list_backup_versions(\n        self,\n        project_id: str,\n     \
+  \   file_path: str,\n    ) -> list[dict[str, Any]]:\n        \"\"\"List available
+  backup versions for a file.\n\n        Args:\n            project_id: UUID of the
+  project.\n            file_path: Project-relative path to the file.\n\n        Returns:\n\
+  \            List of backup version dicts (backup_uuid, created_at, etc.).\n   \
+  \     \"\"\"\n        resp = self._client.get(\n            \"/commands/list_backup_versions\"\
+  ,\n            params={\"project_id\": project_id, \"file_path\": file_path},\n\
+  \        )\n        resp.raise_for_status()\n        return resp.json().get(\"versions\"\
+  , [])\n\n    def restore_backup_file(\n        self,\n        project_id: str,\n\
+  \        file_path: str,\n        backup_uuid: str,\n    ) -> None:\n        \"\"\
+  \"Restore a file from a backup version.\n\n        Args:\n            project_id:
+  UUID of the project.\n            file_path: Project-relative path to the file.\n\
+  \            backup_uuid: UUID of the backup version to restore.\n        \"\"\"\
+  \n        resp = self._client.post(\n            \"/commands/restore_backup_file\"\
+  ,\n            json={\n                \"project_id\": project_id,\n           \
+  \     \"file_path\": file_path,\n                \"backup_uuid\": backup_uuid,\n\
+  \            },\n        )\n        resp.raise_for_status()\n\n    def close(self)
+  -> None:\n        \"\"\"Close the underlying HTTP client.\"\"\"\n        self._client.close()\n\
+  \n    def __enter__(self) -> CodeAnalysisClient:\n        \"\"\"Return self for
+  use as a context manager.\"\"\"\n        return self\n\n    def __exit__(self, *args:
+  object) -> None:\n        \"\"\"Close the client on context manager exit.\"\"\"\n\
+  \        self.close()\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/editor_core/ca_client.py
+verification:
+  expected: from ai_editor.editor_core.ca_client import CodeAnalysisClient, 
+    CAClientConfig; both import without error; CAClientConfig(host='h', 
+    port=8000, protocol='https').base_url == 'https://h:8000'.
+  target: ai_editor.editor_core.ca_client
+  type: import

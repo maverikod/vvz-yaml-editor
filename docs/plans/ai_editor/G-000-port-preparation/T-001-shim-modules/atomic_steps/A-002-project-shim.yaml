@@ -1,0 +1,46 @@
+concepts:
+- C-059
+depends_on: []
+name: Create ai_editor/project.py — BaseMCPCommand shim
+operation: create_file
+parent_tactical_step: T-001
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/project.py. Operation: create_file.\n\
+  \nCreate the file ai_editor/project.py with the following exact content.\n\nThis
+  shim replaces code_analysis.commands.base_mcp_command.BaseMCPCommand so that\nai_editor/ported/universal_file_edit/
+  commands can be imported and called without\nthe code_analysis package on the Python
+  path.\n\nThe shim is used as a base class only. The concrete command classes in
+  ported/ call\nself._resolve_project_root(project_id) to get the project root Path,
+  and\nself.validate_params(params) to pass params through unchanged.\n\nRequired
+  content:\n\n```python\n\"\"\"Shim replacing code_analysis BaseMCPCommand for standalone
+  use.\"\"\"\nfrom __future__ import annotations\nfrom pathlib import Path\nfrom typing
+  import Any\n\n\nclass BaseMCPCommand:\n    \"\"\"Minimal BaseMCPCommand shim for
+  ai_editor/ported/ standalone operation.\n\n    Replaces code_analysis.commands.base_mcp_command.BaseMCPCommand.\n\
+  \    Subclasses in ported/ call _resolve_project_root to get the project\n    root
+  directory and validate_params to pass params through unchanged.\n    \"\"\"\n\n\
+  \    name: str = \"\"\n    version: str = \"1.0\"\n    descr: str = \"\"\n\n   \
+  \ # Injected at runtime by Session layer before calling ported commands.\n    _project_roots:
+  dict[str, Path] = {}\n\n    @classmethod\n    def register_project_root(cls, project_id:
+  str, root: Path) -> None:\n        \"\"\"Register a project root path for a given
+  project_id.\n\n        Args:\n            project_id: UUID4 string identifying the
+  project.\n            root: Filesystem path to the project root directory.\n   \
+  \     \"\"\"\n        cls._project_roots[project_id] = root\n\n    def _resolve_project_root(self,
+  project_id: str) -> Path:\n        \"\"\"Return the registered project root for
+  project_id.\n\n        Args:\n            project_id: UUID4 string identifying the
+  project.\n\n        Returns:\n            Path to the project root directory.\n\n\
+  \        Raises:\n            KeyError: If project_id has not been registered.\n\
+  \        \"\"\"\n        return self._project_roots[project_id]\n\n    def validate_params(self,
+  params: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Pass params through unchanged
+  (no validation in shim).\n\n        Args:\n            params: Raw parameter dict
+  from the caller.\n\n        Returns:\n            The same params dict unmodified.\n\
+  \        \"\"\"\n        return params\n```\n\nNo other content. No imports beyond
+  those shown."
+status: draft
+step_id: A-002
+target_file: ai_editor/project.py
+verification:
+  expected: Module imports without error; BaseMCPCommand can be instantiated; 
+    register_project_root and _resolve_project_root work correctly; 
+    validate_params returns its argument unchanged.
+  target: ai_editor.project
+  type: import

@@ -1,0 +1,65 @@
+concepts:
+- C-007
+- C-008
+- C-009
+- C-020
+depends_on: []
+name: Create ai_editor/contracts/descriptors.py — SessionKey, BufferDescriptor, 
+  SessionDescriptor, BufferAddress
+operation: create_file
+parent_tactical_step: T-005
+priority: 1
+prompt: "Project: ai_editor. File: ai_editor/contracts/descriptors.py. Operation:
+  create_file.\n\nMRS concepts:\n  C-007 SessionKey: UUID4 string uniquely identifying
+  one session. Invariant: never\n    reused after session close. type: str (UUID4),
+  reuse: never.\n  C-008 SessionDescriptor: Point-in-time snapshot of session state
+  returned by\n    connect/status operations. Fields: session_key (SessionKey), open_buffers\n\
+  \    (list[BufferDescriptor]), diagnostics (list[Diagnostic]).\n  C-009 BufferDescriptor:
+  Point-in-time snapshot of buffer metadata included in\n    SessionDescriptor. Fields:
+  buffer_id (str), session_key (str), filename (str),\n    relative_path (str|None),
+  formatter (str), project_id (str), modified (bool),\n    readonly (bool), buf_file_path
+  (str).\n  C-020 BufferAddress: Opaque pair of buffer_id and formatter-specific address.\n\
+  \    Invariant: address content is never interpreted by editor core, only by the\n\
+  \    owning formatter. Fields: buffer_id (str), address (Any).\n\nPreconditions:\n\
+  \  - ai_editor/contracts/diagnostic.py exists (Diagnostic importable).\n\nCreate
+  the file ai_editor/contracts/descriptors.py with the following exact content:\n\n\
+  ```python\n\"\"\"Session and buffer descriptor contracts for ai_editor public API.\"\
+  \"\"\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field\n\
+  from typing import Any\n\nfrom ai_editor.contracts.diagnostic import Diagnostic\n\
+  \n# SessionKey is a UUID4 string. Defined as a type alias for documentation.\n#
+  Invariant: never reused after session close.\nSessionKey = str\n\n\n@dataclass\n\
+  class BufferDescriptor:\n    \"\"\"Point-in-time snapshot of buffer metadata.\n\n\
+  \    Returned as part of SessionDescriptor. This is the public API contract,\n \
+  \   NOT the internal buf_meta stored in ses_settings.json.\n\n    Attributes:\n\
+  \        buffer_id: Stable UUID4 string for the buffer lifetime.\n        session_key:
+  UUID4 string of the owning session.\n        filename: Base filename without directory.\n\
+  \        relative_path: Project-relative path, or None for unsaved buffers.\n  \
+  \      formatter: Formatter name (e.g. 'yaml', 'text', 'cst').\n        project_id:
+  UUID4 of the project this buffer belongs to.\n        modified: True if the buffer
+  has unsaved mutations.\n        readonly: True if the buffer was opened read-only.\n\
+  \        buf_file_path: Absolute path to the local session buffer file.\n    \"\"\
+  \"\n\n    buffer_id: str\n    session_key: str\n    filename: str\n    relative_path:
+  str | None\n    formatter: str\n    project_id: str\n    modified: bool\n    readonly:
+  bool\n    buf_file_path: str\n\n\n@dataclass\nclass SessionDescriptor:\n    \"\"\
+  \"Point-in-time snapshot of session state.\n\n    Returned by connect and session_status
+  operations.\n\n    Attributes:\n        session_key: UUID4 string identifying the
+  session.\n        open_buffers: Descriptors of all currently open buffers.\n   \
+  \     diagnostics: Any diagnostics produced during status collection.\n    \"\"\"\
+  \n\n    session_key: SessionKey\n    open_buffers: list[BufferDescriptor] = field(default_factory=list)\n\
+  \    diagnostics: list[Diagnostic] = field(default_factory=list)\n\n\n@dataclass\n\
+  class BufferAddress:\n    \"\"\"Opaque address within a buffer for navigation and
+  mutation.\n\n    The address field is formatter-specific and must never be interpreted\n\
+  \    by editor core. Only the owning formatter may read or produce addresses.\n\n\
+  \    Attributes:\n        buffer_id: Buffer this address belongs to.\n        address:
+  Formatter-specific address (stable_id UUID, XPath, CSS selector, etc.).\n    \"\"\
+  \"\n\n    buffer_id: str\n    address: Any\n```"
+status: draft
+step_id: A-001
+target_file: ai_editor/contracts/descriptors.py
+verification:
+  expected: from ai_editor.contracts.descriptors import SessionKey, 
+    BufferDescriptor, SessionDescriptor, BufferAddress; all import without 
+    error; BufferAddress(buffer_id='x', address=None).address is None; 
+    SessionDescriptor(session_key='k').open_buffers == [].
+  target: ai_editor.contracts.descriptors
+  type: import

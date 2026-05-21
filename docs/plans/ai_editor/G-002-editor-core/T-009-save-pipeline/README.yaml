@@ -2,7 +2,8 @@ step_id: T-009
 parent_global_step: G-002
 name: Save and save_as pipeline — validate, render, upload via CA client
 status: needs_review
-description: 'Save pipeline delegates to formatter WritePipeline: export, temp, linters, atomic rename.'
+description: 'Save pipeline delegates to formatter WritePipeline: export, temp, linters,
+  atomic rename.'
 concepts:
 - C-013
 - C-014
@@ -16,6 +17,12 @@ inputs:
 outputs:
 - name: ai_editor/editor_core/save_pipeline.py
   type: file
-  description: "run_validate(formatter, document) -> ValidationResult. run_save_pipeline(formatter, document, relative_path: str, ca_client,\n  project_id: str, commit_message: str) -> OperationResult.\nrun_save_as_pipeline(formatter, document, new_relative_path: str, ca_client,\n  project_id: str, overwrite: bool, commit_message: str) -> OperationResult.\nInternal _source_bytes(formatter, document) -> bytes. upload_file in run_save_pipeline always unlock_after_write=False. upload_file in run_save_as_pipeline always unlock_after_write=False.\n"
-atomic_steps: []
+  description: "run_validate(formatter, document) -> ValidationResult. run_save_pipeline(formatter,
+    document, relative_path: str, ca_client,\n  project_id: str, commit_message: str)
+    -> OperationResult.\nrun_save_as_pipeline(formatter, document, new_relative_path:
+    str, ca_client,\n  project_id: str, overwrite: bool, commit_message: str) -> OperationResult.\n\
+    Internal _source_bytes(formatter, document) -> bytes. upload_file in run_save_pipeline
+    always unlock_after_write=False. upload_file in run_save_as_pipeline always unlock_after_write=False.\n"
+atomic_steps:
+- A-001
 cascade_note: changed — write orchestration via base WritePipeline

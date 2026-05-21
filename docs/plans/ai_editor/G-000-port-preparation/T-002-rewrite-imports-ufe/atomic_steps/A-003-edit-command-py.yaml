@@ -1,0 +1,46 @@
+concepts:
+- C-060
+depends_on: []
+name: Rewrite imports in ai_editor/ported/universal_file_edit/edit_command.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 3
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/edit_command.py.
+  Operation: modify_file.\n\nApply exactly these changes. Do not alter function bodies,
+  class definitions, or other lines.\n\nCHANGE 1:\n  from mcp_proxy_adapter.commands.result
+  import ErrorResult, SuccessResult\n→ from ai_editor.result import ErrorResult, SuccessResult\n\
+  \nCHANGE 2:\n  from code_analysis.commands.base_mcp_command import BaseMCPCommand\n\
+  → from ai_editor.project import BaseMCPCommand\n\nCHANGE 3 — delete entirely:\n\
+  \  from code_analysis.commands.universal_file_edit.edit_command_metadata import
+  (\n      get_universal_file_edit_metadata,\n  )\nAlso replace metadata() body with:
+  return {}\n\nCHANGE 4:\n  from code_analysis.commands.universal_file_edit.errors
+  import (\n→ from ai_editor.ported.universal_file_edit.errors import (\n(keep imported
+  names SESSION_NOT_FOUND, error_result_from_make_error, make_error)\n\nCHANGE 5:\n\
+  \  from code_analysis.commands.universal_file_edit.format_group import (\n→ from
+  ai_editor.ported.universal_file_edit.format_group import (\n(keep imported names
+  FORMAT_SIDECAR, FORMAT_TREE_TEMP)\n\nCHANGE 6:\n  from code_analysis.commands.universal_file_edit.session
+  import EditSession, get_session\n→ from ai_editor.ported.universal_file_edit.session
+  import EditSession, get_session\n\nCHANGE 7 — replace sidecar_cst_apply import with
+  lazy guard:\n  from code_analysis.commands.universal_file_edit.sidecar_cst_apply
+  import (\n      run_sidecar_cst_edit_batch,\n      validate_sidecar_nested_batch,\n\
+  \  )\n→\n  try:\n      from ai_editor.ported.universal_file_edit.sidecar_cst_apply
+  import (\n          run_sidecar_cst_edit_batch,\n          validate_sidecar_nested_batch,\n\
+  \      )\n  except ImportError:\n      run_sidecar_cst_edit_batch = None  # type:
+  ignore[assignment]\n      validate_sidecar_nested_batch = None  # type: ignore[assignment]\n\
+  \nCHANGE 8:\n  from code_analysis.commands.universal_file_edit.text_draft_apply
+  import (\n      run_text_draft_apply,\n  )\n→ from ai_editor.ported.universal_file_edit.text_draft_apply
+  import (\n      run_text_draft_apply,\n  )\n\nCHANGE 9 — replace tree_temp_edit_batch
+  import with lazy guard:\n  from code_analysis.commands.universal_file_edit import
+  tree_temp_edit_batch\n→\n  try:\n      from ai_editor.ported.universal_file_edit
+  import tree_temp_edit_batch\n  except ImportError:\n      tree_temp_edit_batch =
+  None  # type: ignore[assignment]\n\nAlso: return type annotations '-> SuccessResult
+  | ErrorResult:' change to '-> dict:'."
+status: draft
+step_id: A-003
+target_file: ai_editor/ported/universal_file_edit/edit_command.py
+verification:
+  expected: No references to mcp_proxy_adapter or code_analysis remain in 
+    top-level imports. CST and tree_temp imports are guarded. File is importable
+    with ai_editor shims on path.
+  target: ai_editor/ported/universal_file_edit/edit_command.py
+  type: static_analysis

@@ -1,0 +1,23 @@
+concepts:
+- C-060
+depends_on: []
+name: Guard ai_editor/ported/universal_file_edit/tree_temp_legacy_apply.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 14
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/tree_temp_legacy_apply.py.
+  Operation: modify_file.\n\nThis file imports tree_temp legacy stack not ported in
+  G-000. Guard entire module.\n\nReplace ALL content with:\n\n```python\n\"\"\"\n\
+  tree_temp_legacy_apply.py — legacy tree-temp apply path.\n\nGuarded in G-000: tree_temp
+  group deferred to G-003.\n\"\"\"\nfrom __future__ import annotations\n\ntry:\n \
+  \   from ai_editor.ported.universal_file_edit._tree_temp_legacy_apply_impl import
+  *  # noqa: F401,F403\nexcept ImportError:\n    pass  # All symbols unavailable;
+  callers guard via try/except\n```"
+status: draft
+step_id: A-014
+target_file: ai_editor/ported/universal_file_edit/tree_temp_legacy_apply.py
+verification:
+  expected: import ai_editor.ported.universal_file_edit.tree_temp_legacy_apply 
+    succeeds without ImportError.
+  target: ai_editor.ported.universal_file_edit.tree_temp_legacy_apply
+  type: import

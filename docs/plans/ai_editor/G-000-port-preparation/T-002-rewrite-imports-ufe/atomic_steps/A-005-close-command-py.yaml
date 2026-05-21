@@ -1,0 +1,36 @@
+concepts:
+- C-060
+depends_on: []
+name: Rewrite imports in ai_editor/ported/universal_file_edit/close_command.py
+operation: modify_file
+parent_tactical_step: T-002
+priority: 5
+prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/close_command.py.
+  Operation: modify_file.\n\nApply exactly these changes. Do not alter function bodies,
+  class definitions, or other lines.\n\nCurrent external imports (lines 13-35 approx):\n\
+  \  from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult\n  from
+  code_analysis.commands.base_mcp_command import BaseMCPCommand\n  from code_analysis.commands.universal_file_edit.errors
+  import (...)\n  from code_analysis.commands.universal_file_edit.format_group import
+  (...)\n  from code_analysis.commands.universal_file_edit.session import (...)\n\
+  \  from code_analysis.commands.universal_file_edit.close_command_metadata import
+  (...)\n\nCHANGE 1:\n  from mcp_proxy_adapter.commands.result import ErrorResult,
+  SuccessResult\n→ from ai_editor.result import ErrorResult, SuccessResult\n\nCHANGE
+  2:\n  from code_analysis.commands.base_mcp_command import BaseMCPCommand\n→ from
+  ai_editor.project import BaseMCPCommand\n\nCHANGE 3:\n  from code_analysis.commands.universal_file_edit.errors
+  import (\n→ from ai_editor.ported.universal_file_edit.errors import (\n(keep imported
+  names unchanged)\n\nCHANGE 4:\n  from code_analysis.commands.universal_file_edit.format_group
+  import (\n→ from ai_editor.ported.universal_file_edit.format_group import (\n(keep
+  imported names unchanged)\n\nCHANGE 5:\n  from code_analysis.commands.universal_file_edit.session
+  import (\n→ from ai_editor.ported.universal_file_edit.session import (\n(keep imported
+  names unchanged)\n\nCHANGE 6 — delete entirely:\n  from code_analysis.commands.universal_file_edit.close_command_metadata
+  import (...)\nAlso replace metadata() body with: return {}\n\nAlso: return type
+  annotations '-> SuccessResult | ErrorResult:' or '-> Union[SuccessResult, ErrorResult]:'
+  change to '-> dict:'."
+status: draft
+step_id: A-005
+target_file: ai_editor/ported/universal_file_edit/close_command.py
+verification:
+  expected: No references to mcp_proxy_adapter or code_analysis remain. File is 
+    importable with ai_editor shims on path.
+  target: ai_editor/ported/universal_file_edit/close_command.py
+  type: static_analysis

@@ -2,7 +2,7 @@ step_id: T-007
 parent_global_step: G-002
 name: AbstractBuffer and BufferState
 status: draft
-description: 'Create AbstractBuffer (ABC defining the full public buffer contract)
+description: "Create AbstractBuffer (ABC defining the full public buffer contract)
   and BufferState (dataclass returned by get_state()). AbstractBuffer is the interface
   the session layer (G-005) calls; concrete implementations in G-005. Buffer fields
   (all immutable after open except modified): buffer_id (UUID4), project_id, file_id
@@ -13,9 +13,7 @@ description: 'Create AbstractBuffer (ABC defining the full public buffer contrac
   close, reload, get_state, get_formatter, validate, write_all. Open rules (enforced
   in concrete impl): one file_path per session; formatter auto-resolved via FormatterRegistry;
   open_as_text overrides; small_file threshold fallback; parse-error text fallback;
-  acquire advisory lock on open.
-
-  '
+  acquire advisory lock on open.\n"
 concepts:
 - C-010
 - C-011
@@ -23,22 +21,21 @@ concepts:
 inputs:
 - name: G-001 contracts
   type: ai_editor.contracts
-  description: OperationResult, ValidationResult, WriteAllResult, BufferAddress importable
-    from ai_editor.contracts.
+  description: OperationResult, ValidationResult, WriteAllResult, BufferAddress 
+    importable from ai_editor.contracts.
 outputs:
 - name: ai_editor/editor_core/buffer.py
   type: file
-  description: 'BufferState dataclass (not frozen) with fields: buffer_id: str, formatter:
+  description: "BufferState dataclass (not frozen) with fields: buffer_id: str, formatter:
     str, preview: str, modified: bool, readonly: bool, file_path: str|None, relative_path:
     str|None. AbstractBuffer ABC with ten @abstractmethod methods: open(session_key,
-    project_id, file_path, formatter="auto", open_as_text=False, readonly=False) ->
-    str; new(session_key, formatter_name, initial_content, display_name=None) -> str;
-    save(session_key, buffer_id, close=False) -> OperationResult; save_as(session_key,
+    project_id, file_path, formatter=\"auto\", open_as_text=False, readonly=False)
+    -> str; new(session_key, formatter_name, initial_content, display_name=None) ->
+    str; save(session_key, buffer_id, close=False) -> OperationResult; save_as(session_key,
     buffer_id, relative_path, overwrite=False, close=False) -> OperationResult; close(session_key,
     buffer_id, force=False) -> OperationResult; reload(session_key, buffer_id) ->
     OperationResult; get_state(session_key, buffer_id) -> BufferState; get_formatter(session_key,
     buffer_id) -> Any; validate(session_key, buffer_id) -> ValidationResult; write_all(session_key,
-    force=False) -> WriteAllResult.
-
-    '
-atomic_steps: []
+    force=False) -> WriteAllResult.\n"
+atomic_steps:
+- A-001
