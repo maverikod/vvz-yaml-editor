@@ -1,7 +1,8 @@
 step_id: G-003
 name: Formatters — AbstractFormatter base, unified tree, Text/YAML/JSON/CST 
   backends
-status: ready_for_review
+status: frozen
+cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings; yaml/formatter a8 chain fixed"
 description: 'Defines AbstractFormatter as the base class owning the in-memory Tree,
   all structural operations, stable_id identity, Sidecar production, and WritePipeline
   orchestration. Subclasses (Text, YAML, JSON, CST) implement conversion hooks only:
