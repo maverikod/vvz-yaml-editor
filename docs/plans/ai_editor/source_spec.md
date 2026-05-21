@@ -384,153 +384,57 @@ Config reader: `SimpleConfig.load()` from adapter. `ai_editor` does not implemen
 Owns: `ai_editor/formatters/`, `ai_editor/schemas/`, `tests/formatters/`.
 
 ### AbstractFormatter required contract
-AbstractFormatter is the **base class for every format**. It owns the tree and
-all operations over the tree. Subclasses own ONLY the conversion between the
-tree representation and the concrete file format. The editor works with the
-tree, not with the format: all structural editing is done by the base class.
+
+Every formatter must implement:
 
 ```
-# ---- Base class: tree ownership and structural operations (NOT overridden) ----
+# Document lifecycle
+parse(raw_content) -> document
+render(document) -> raw_content
+render_skeleton(document, options=None) -> str
+write(content, path) -> None
 
-# Document lifecycle (delegates conversion to subclass hooks)
-open_tree(raw_content) -> tree        # parse via subclass, assign stable_ids, build sidecar
-export(tree) -> raw_content           # render whole tree via subclass
-render_skeleton(tree, selector=None, options=None) -> str   # unified preview/navigation
+# Validation
+validate_document(document, *, schema=None, options=None) -> ValidationResult
+validate(document) -> ValidationResult   # alias
+# NOTE: validate_content does not exist. File validation = parse + validate_document.
 
-# Navigation / search (uniform across all formats; address = node stable_id)
+# Mutation
+mutate_set(document, address, value) -> document
+mutate_replace_block(document, address, value) -> document
+mutate_append(document, address, value, *, dedupe=False) -> document
+mutate_delete(document, address) -> document
+mutate_move(document, address, target_address) -> document
+mutate_batch(document, operations) -> document  # atomic list of ops
+
+# Fragment operations
+copy_fragment(document, source_address) -> fragment
+cut_fragment(document, source_address) -> (document, fragment, changed_addresses)
+paste_fragment(document, target_address, fragment, mode) -> (document, changed_addresses)
+to_string(fragment) -> str       # serialize for clipboard.json
+from_string(body) -> fragment    # deserialize from clipboard.json
+
+# Search
 normalize_address(address) -> normalized_address
-get_unit(tree, address) -> unit
-iter_units(tree, scope=None) -> Iterator[unit]
+get_unit(document, address) -> unit
+iter_units(document, scope) -> Iterator[unit]
 match_unit(unit, query) -> bool | score
 compare_units(unit_a, unit_b, options) -> ComparisonResult
-diagnostics(tree) -> list[Diagnostic]
-
-# Structural mutations over the tree (base class moves/deletes/inserts nodes)
-insert(tree, parent_address, position, content) -> tree
-  # position: first | last | <0-based index among siblings>
-  # content is raw block source; base calls node_from_source() to build the node,
-  # then inserts the returned node under parent_address at position.
-delete(tree, address) -> tree
-move(tree, address, target_parent_address, position) -> tree
-replace_node(tree, address, content) -> tree
-  # edits node content in place: base calls node_from_source(content),
-  # swaps the node body, and PRESERVES the existing stable_id of that node.
-mutate_batch(tree, operations) -> tree    # atomic ordered list of structural ops
-multiple_replace(tree, [(address, content), ...]) -> tree   # many replace_node in one call
-
-# Fragments / clipboard (structure handled by base; body via subclass converters)
-copy_fragment(tree, source_address) -> fragment
-cut_fragment(tree, source_address) -> (tree, fragment, changed_addresses)
-paste_fragment(tree, target_parent_address, position, fragment) -> (tree, changed_addresses)
-
-# Identity (owned entirely by the base class)
-#  - stable_id is assigned by the base class to every node.
-#  - editing a node's content via replace_node preserves its stable_id.
-#  - structural ops (insert/delete/move) maintain stable_id integrity.
-#  - subclasses never assign, read, or depend on stable_ids.
-
-# Write orchestration (base class; uniform for all formats)
-write(tree, path) -> WriteResult
-  # 1. raw = export(tree) via subclass render
-  # 2. show diff to caller (preview phase)
-  # 3. on confirm: write raw to a temp file
-  # 4. run all subclass-provided linters/validators on the temp file
-  # 5. no errors  -> atomic rename temp -> target (commit)
-  #    errors     -> abort, temp discarded, errors returned to caller
+diagnostics(document) -> list[Diagnostic]
+delete(buf_file_path) -> None   # remove buf file + any derived artifacts
 
 # Discovery
 list_commands() -> FormatterCommandCatalog
 ```
 
-```
-# ---- Subclass: conversion hooks ONLY (each new format implements these) ----
+Required class attributes: `formatter_name`, `supported_payload_kinds`, `supported_address_kinds`,
+`supported_paste_modes`, `can_render_to_text`, `can_parse_from_text`.
 
-parse(raw_content) -> tree_nodes        # whole file source -> tree nodes (no ids)
-render(tree) -> raw_content             # whole tree -> file source
-node_from_source(raw_block) -> node     # block source -> one tree node/subtree (no id)
-node_to_source(node) -> raw_block       # one tree node -> block source
-linters() -> list[Linter]               # validators run by base over the temp file on write
-```
-
-The base class never knows the concrete syntax; the subclass never moves,
-deletes, inserts, or identifies nodes. Editing flow: caller passes block
-source -> base calls subclass node_from_source -> base performs the structural
-operation on the tree -> on write, base calls subclass render and runs subclass
-linters before the atomic rename.
-
-The base class (via the session/buffer layer) does NOT:
-
+**Forbidden in formatters:**
 - Open, save, or close files for buffer lifecycle.
 - Own buffer registry or stale disk checks.
 - Perform git operations.
 - Know about `session_key`, `.buf` files, or session directory.
-
-### Unified tree model and sidecar for every format
-
-The parsed document of EVERY format is a tree of nodes. A sidecar tree file is
-built next to the source file (the same way it was originally done only for
-`.py`/CST). Preview and navigation work identically for all formats over this
-tree. The format-specific part is only the conversion between tree nodes and
-the concrete source (the subclass converters above).
-
-```
-TreeNode:
-  stable_id      UUID assigned by the base class
-  node_kind      str   — format-defined node category
-  start_line     int   — line range in source (1-based, inclusive)
-  end_line       int
-  display_text   str    — representation shown in skeleton/preview
-  metadata       dict
-  children       list[TreeNode]
-```
-
-Sidecar locations (generalised from CST to all formats):
-
-```
-Session-side:  <session_dir>/<buffer_id>.tree    — written after every mutation
-Project-side:  <dir>/.tree/<stem>.tree           — written on save, next to source
-
-TREE_V1 fmt=<formatter_name> sha256=<source_sha256> tree_sha256=<tree_body_sha256>
-<JSON body: serialised node map {stable_id -> {node_kind, start_line, end_line,
-            display_text, metadata, children}}>
-```
-
-The `source_sha256` in the header is the freshness check of the tree against
-the source file. stable_id identity survives mutations via the base-class
-protocol: snapshot previous node map -> apply mutation -> reindex -> match new
-nodes to old by object identity, so ids do not drift.
-
-### Source of truth and auto-create
-
-- **At open time** the source of truth is the **source file**.
-- **After open, once editing begins** the source of truth is the **tree file**.
-- The necessary condition for the tree file to become the source of truth is
-  the buffer's **`modified` flag being set** (set on the first mutation).
-- This rule previously applied only to CST; it now applies to **every format**.
-
-Auto-create of the tree:
-
-- If the **preview command does not find a tree file**, it first creates the
-  tree automatically, then works with the tree.
-- The same happens **immediately after a file is fetched from the analysis
-  server**: the tree is built right away.
-
-### Display-quirk reference (analysis server)
-
-Format display and preview behaviour has known quirks that are discovered
-during real use of the analysis-server project. The reference list is the live
-file below; it is updated regularly and MUST be consulted when implementing or
-changing any format's parse/render/skeleton behaviour, especially display:
-
-```
-project:    code_analysis
-project_id: 8772a086-688d-4198-a0c4-f03817cc0e6c
-file_path:  docs/plans/ai_editor/viewer_features.yaml
-sections:   /bugs, /yaml_write_quirks, /feature_gaps
-```
-
-See also the non-binding "Code Analysis Server — Known Quirks and Feature Gaps"
-section at the end of this document.
 
 ### render_skeleton
 
@@ -588,67 +492,87 @@ metadata      dict
 ```
 
 ### Text formatter
-Text is a tree, not a flat line list. Two node levels only:
 
 ```
-tree model:
-  root
-   └─ paragraph        — block of lines separated from neighbours by blank line(s)
-        └─ line         — a single line node inside a paragraph
-
-rule: paragraphs are split by blank line(s) between blocks.
-      if there are NO blank lines between blocks, the whole file is ONE paragraph.
-
-node_kind:      paragraph | line
-address:        node stable_id (uniform with all formats)
-converters (subclass):
-  parse(raw)            -> paragraph/line tree
-  render(tree)          -> text (paragraphs rejoined with blank lines, lines with newlines)
-  node_from_source(raw) -> paragraph node (or line node) from raw block text
-  node_to_source(node)  -> raw block text of the paragraph/line
-linters:        none (plain text always valid)
+document model: list[str]
+address model:  int (line index) | tuple[int,int] (inclusive range) | None (whole doc)
+payload kinds:  text_lines, text_block
+paste modes:    insert, replace_range, append, prepend
+render_skeleton: lines[offset : offset + collapse_threshold*10] (sliding window)
+validate_document: always success=True
 Registered extensions: .txt .log .rst .ini .cfg .toml
 ```
+
 ### YAML formatter
-Tree of mapping/sequence/scalar nodes with round-trip preservation (comments,
-key order, formatting via ruamel). Structure, navigation, mutation, and
-identity are owned by the base class (uniform with all formats). The subclass
-provides only the converters.
 
 ```
-node_kind:      mapping | sequence | scalar
-address:        node stable_id (uniform with all formats)
-converters (subclass):
-  parse(raw)            -> tree (ruamel round-trip load; CommentedMap/Seq -> nodes)
-  render(tree)          -> YAML text; round-trip: render(parse(x)) preserves x
-                           (comments, key order, formatting)
-  node_from_source(raw) -> node/subtree from a raw YAML fragment
-  node_to_source(node)  -> raw YAML fragment of the node
-linters:        YAML parse; optional jsonschema; plan_task_v1 semantic checks
-                (format==plan_task_v1; kind in [spec,global,tactical,atomic];
-                 depends_on is list[str]; commands[].name unique;
-                 commands[].schema.required references existing properties;
-                 verification non-empty; status in
-                 [draft,ready_for_review,ready_for_implementation,blocked])
-Write quirks (initial_content before parse): unquoted ': ' in a value and an
-  inline comment on a bare value break parsing — see Display-quirk reference
-  and viewer_features.yaml /yaml_write_quirks. Quote such values.
-Registered extensions: .yaml .yml
+document model: ruamel.yaml CommentedMap / CommentedSeq (round-trip)
+address model:  structural YAML path string
+  top_level_key
+  dotted.path.to.key
+  list[0]
+  commands[name=buf_diff]
+  commands[name=buf_diff].metadata.best_practices[1]
+payload kinds:  yaml_node, yaml_block, rendered_text
+paste modes:    set, replace_block, append, insert_before, insert_after
 ```
+
+Invariants:
+- `render(parse(render(doc))) == render(doc)` (deterministic)
+- Mapping order and comments preserved where ruamel.yaml allows
+- Empty path: `mutate_replace_block` only
+- Non-existent path: `PATH_NOT_FOUND`
+- Non-unique filter match: `PATH_NOT_UNIQUE`
+
+`validate_document`: YAML parse + optional JSON schema + `plan_task_v1` semantic checks + render determinism check.
+
+plan_task_v1 semantic checks:
+- `format == plan_task_v1`
+- `kind` in `[spec, global, tactical, atomic]`
+- `depends_on` is list of strings
+- `commands[].name` values unique
+- `commands[].schema.required` references only existing properties
+- `verification` is non-empty list
+- `status` in `[draft, ready_for_review, ready_for_implementation, blocked]`
+
+Clipboard compatibility:
+- yaml → yaml: allowed
+- yaml → text: allowed only with `rendered_text` mode
+- text → yaml: rejected by default; allowed with `parse_as_yaml` mode
+- other: `CLIPBOARD_FORMAT_MISMATCH`
+
+Emergency fallback (not normal workflow):
+- `yaml_read_lines` — read by line range (diagnostic only)
+- `yaml_write_lines_unsafe` — write by line range (emergency repair only)
+
+Compatibility wrappers (legacy names → new architecture):
+```
+yaml_load          → buffer.open + formatter.parse
+yaml_write_checked → buffer.save / buffer.save_as
+yaml_validate      → buffer.validate
+yaml_get           → search.find_one or formatter.get_unit
+yaml_set           → formatter.paste_fragment(mode=set)
+yaml_replace_block → formatter.paste_fragment(mode=replace_block)
+yaml_append        → formatter.paste_fragment(mode=append)
+yaml_delete        → formatter.cut_fragment + discard
+yaml_move          → formatter.cut_fragment + formatter.paste_fragment
+```
+
+Registered extensions: `.yaml`, `.yml`
+
 ### JSON formatter
-Tree of mapping/sequence/scalar nodes. Structure, navigation, mutation, and
-identity are owned by the base class (uniform with all formats). The subclass
-provides only the converters.
 
 ```
-node_kind:      mapping | sequence | scalar
-address:        node stable_id (uniform with all formats)
-converters (subclass):
-  parse(raw)            -> tree (stdlib json; dict/list/scalar -> nodes)
-  render(tree)          -> json.dumps(indent=2, ensure_ascii=False)
-  node_from_source(raw) -> node/subtree from a raw JSON fragment
-  node_to_source(node)  -> raw JSON fragment of the node
-linters:        JSON parse (+ optional jsonschema)
+document model: dict | list | scalar (stdlib json, Python natives)
+address model:  JQ-style dot-path string
+  server.host
+  commands[0]
+  commands[name=buf_open]
+  commands[1].metadata.tags[0]
+payload kinds:  json_node, json_block, rendered_text
+paste modes:    set, replace_block, append, insert_before, insert_after
+render: json.dumps(document, indent=2, ensure_ascii=False)
+validate_document: JSON parse + optional jsonschema
 NOTE: no comment preservation. Key order = Python dict insertion order.
 Registered extensions: .json
 ```
