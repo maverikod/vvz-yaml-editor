@@ -1,0 +1,36 @@
+step_id: G-004
+name: Universal search
+status: needs_review
+description: Search interface over the unified formatter Tree. Calls base-class iter_units, match_unit, compare_units on the in-memory tree. SearchMatch.address is node stable_id for all formatters. Does not open/write files or fetch documents. session_key is diagnostic only.
+concepts:
+- C-035
+- C-036
+- C-037
+relations:
+- from_concept: C-035
+  to_concept: C-021
+  type: uses
+- from_concept: C-035
+  to_concept: C-036
+  type: produces
+- from_concept: C-035
+  to_concept: C-037
+  type: consumes
+- from_concept: C-036
+  to_concept: C-020
+  type: produces
+- from_concept: C-036
+  to_concept: C-023
+  type: consumes
+source_ranges:
+- start: 976
+  end: 1040
+depends_on:
+- G-001
+- G-002
+- G-003
+tactical_steps:
+- T-001
+- T-002
+- T-003
+cascade_note: changed — search runs over unified tree; stable_id addresses

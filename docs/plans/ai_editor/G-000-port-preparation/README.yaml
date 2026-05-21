@@ -1,0 +1,312 @@
+step_id: G-000
+name: Port preparation - adapt ported code for standalone use
+status: frozen
+description: 'Adapts code copied verbatim from code-analysis-server (ai_editor/ported/)
+
+  for standalone use without DB, mcp_proxy_adapter, or code_analysis on the
+
+  Python path. Produces three thin shim modules and rewrites all internal
+
+  imports. Invariant on completion: ai_editor/ported/ is importable standalone;
+
+  text format group (md, txt, rst, adoc) is fully functional end-to-end.
+
+  Does not implement any editor business logic - purely mechanical adaptation.
+
+  '
+owns:
+- ai_editor/ported/
+- ai_editor/project.py
+- ai_editor/result.py
+- ai_editor/git.py
+concepts:
+- C-058
+- C-059
+- C-060
+- C-061
+relations:
+- from_concept: C-059
+  to_concept: C-058
+  type: uses
+- from_concept: C-060
+  to_concept: C-058
+  type: uses
+- from_concept: C-059
+  to_concept: C-060
+  type: produces
+- from_concept: C-061
+  to_concept: C-058
+  type: depends_on
+- from_concept: C-061
+  to_concept: C-059
+  type: depends_on
+source_ranges:
+- start: 1776
+  end: 1816
+depends_on: []
+tactical_steps:
+- step_id: T-001
+  name: Write shim modules (project, result, git)
+- step_id: T-002
+  name: Rewrite imports in universal_file_edit files
+- step_id: T-003
+  name: Rewrite imports in file_handlers files
+- step_id: T-004
+  name: Add __init__.py files to ported packages
+- step_id: T-005
+  name: Smoke test - import and text group end-to-end
+usage_analysis:
+  shims_required:
+  - path: ai_editor/result.py
+    replaces: mcp_proxy_adapter.commands.result.ErrorResult / SuccessResult
+    used_by:
+    - universal_file_edit/errors.py
+    - universal_file_edit/open_command.py
+    - universal_file_edit/edit_command.py
+    - universal_file_edit/write_command.py
+    - universal_file_edit/close_command.py
+    - universal_file_edit/text_draft_apply.py
+    - universal_file_edit/sidecar_cst_apply.py
+    - universal_file_edit/tree_temp_edit_batch.py
+    - universal_file_edit/tree_temp_legacy_apply.py
+    - file_handlers/python_handler.py
+    contract: 'SuccessResult(data: dict) -> dict with {success: True, **data}. ErrorResult(code: str, message: str, details: dict = {}) -> dict with {success: False, error_code: code, message: message, details: details}.'
+  - path: ai_editor/project.py
+    replaces: code_analysis.commands.base_mcp_command.BaseMCPCommand
+    used_by:
+    - universal_file_edit/open_command.py
+    - universal_file_edit/edit_command.py
+    - universal_file_edit/write_command.py
+    - universal_file_edit/close_command.py
+    contract: Shim class BaseMCPCommand with class-level name/version/descr and instance method _resolve_project_root(project_id) -> Path. validate_params(params) -> params passthrough.
+  - path: ai_editor/git.py
+    replaces: code_analysis.core.git_integration.commit_after_write
+    used_by:
+    - universal_file_edit/write_command.py
+    contract: 'commit_after_write(path: Path, message: str = '''') -> None. No-op stub in G-000; real git integration wired in G-005 (SessionGit).'
+  import_rewrite:
+    description: Mechanical substitution of code_analysis.* and mcp_proxy_adapter.* import paths. No logic changes.
+    universal_file_edit_files:
+    - filename: errors.py
+      rewrites:
+      - old: mcp_proxy_adapter.commands.result
+        new: ai_editor.result
+    - filename: open_command.py
+      rewrites:
+      - old: mcp_proxy_adapter.commands.result
+        new: ai_editor.result
+      - old: code_analysis.commands.base_mcp_command
+        new: ai_editor.project
+      - old: code_analysis.core.exceptions.ValidationError
+        new: builtins.ValueError
+        action: rename_symbol
+      - old: code_analysis.commands.universal_file_edit
+        new: ai_editor.ported.universal_file_edit
+      - old: code_analysis.commands.universal_file_edit.open_command_metadata
+        new: null
+        action: remove_import
+    - filename: edit_command.py
+      rewrites:
+      - old: mcp_proxy_adapter.commands.result
+        new: ai_editor.result
+      - old: code_analysis.commands.base_mcp_command
+        new: ai_editor.project
+      - old: code_analysis.commands.universal_file_edit
+        new: ai_editor.ported.universal_file_edit
+      - old: code_analysis.commands.universal_file_edit.edit_command_metadata
+        new: null
+        action: remove_import
+    - filename: write_command.py
+      rewrites:
+      - old: mcp_proxy_adapter.commands.result
+        new: ai_editor.result
+      - old: code_analysis.commands.base_mcp_command
+        new: ai_editor.project
+      - old: code_analysis.commands.universal_file_edit
+        new: ai_editor.ported.universal_file_edit
+      - old: code_analysis.commands.universal_file_edit.write_command_metadata
+        new: null
+        action: remove_import
+      - old: code_analysis.core.backup_manager
+        new: ai_editor.ported.backup_manager
+      - old: code_analysis.core.cst_tree
+        new: null
+        action: guard_lazy_import
+      - old: code_analysis.core.exceptions.ValidationError
+        new: builtins.ValueError
+        action: rename_symbol
+      - old: code_analysis.core.file_handlers.diff_support
+        new: ai_editor.ported.file_handlers.diff_support
+      - old: code_analysis.core.git_integration
+        new: ai_editor.git
+    - filename: close_command.py
+      rewrites:
+      - old: mcp_proxy_adapter.commands.result
+        new: ai_editor.result
+      - old: code_analysis.commands.base_mcp_command
+        new: ai_editor.project
+      - old: code_analysis.commands.universal_file_edit
+        new: ai_editor.ported.universal_file_edit
+      - old: code_analysis.commands.universal_file_edit.close_command_metadata
+        new: null
+        action: remove_import
+    - filename: session.py
+      rewrites:
+      - old: code_analysis.commands.universal_file_edit.format_group
+        new: ai_editor.ported.universal_file_edit.format_group
+      - old: code_analysis.core.tree_temp.tree_node
+        new: null
+        action: guard_lazy_import
+    - filename: format_group.py
+      rewrites:
+      - old: code_analysis.core.file_handlers.registry
+        new: ai_editor.ported.file_handlers.registry
+    - filename: text_draft_apply.py
+      rewrites:
+      - old: mcp_proxy_adapter.commands.result
+        new: ai_editor.result
+      - old: code_analysis.commands.universal_file_edit.edit_draft_path_utils
+        new: ai_editor.ported.universal_file_edit.edit_draft_path_utils
+      - old: code_analysis.commands.universal_file_edit.errors
+        new: ai_editor.ported.universal_file_edit.errors
+      - old: code_analysis.commands.universal_file_replace_command
+        new: null
+        action: inline_replace_logic
+      - old: code_analysis.commands.universal_file_edit.session
+        new: ai_editor.ported.universal_file_edit.session
+      - old: code_analysis.core.backup_manager
+        new: ai_editor.ported.backup_manager
+    - filename: sidecar_cst_apply.py
+      action: guard_entire_module
+      note: CST stack not ported in G-000; revisit in G-003/T-008
+    - filename: tree_temp_edit_batch.py
+      action: guard_entire_module
+      note: yaml/json tree stack deferred; revisit in G-003/T-004
+    - filename: tree_temp_edit_nodes.py
+      action: guard_entire_module
+      note: depends on json_pointer + tree_node; deferred
+    - filename: tree_temp_open_support.py
+      action: guard_entire_module
+      note: tree-temp group deferred to G-003
+    - filename: tree_temp_write_commit.py
+      action: guard_entire_module
+      note: tree-temp group deferred to G-003
+    - filename: tree_temp_legacy_apply.py
+      action: guard_entire_module
+      note: tree-temp group deferred to G-003
+    file_handler_files:
+    - filename: base.py
+      rewrites: []
+      note: clean — no external deps
+    - filename: registry.py
+      rewrites: []
+      note: clean — no external deps
+    - filename: text_handler.py
+      rewrites: []
+      note: clean — all internal imports
+    - filename: yaml_handler.py
+      rewrites: []
+      note: clean — all internal imports
+    - filename: json_handler.py
+      rewrites: []
+      note: clean — all internal imports
+    - filename: diff_support.py
+      rewrites: []
+      note: clean
+    - filename: text_ranges.py
+      rewrites: []
+      note: clean
+    - filename: path_utils.py
+      rewrites: []
+      note: clean
+    - filename: python_handler.py
+      action: guard_entire_module
+      note: CST stack (cst_tree.*) not ported in G-000; lazy import only; revisit in G-003/T-008
+  file_usage_by_g_step:
+    G-000:
+      owns:
+      - ai_editor/ported/
+      - ai_editor/result.py
+      - ai_editor/project.py
+      - ai_editor/git.py
+      invariant: ai_editor.ported importable standalone; text group smoke test passes
+    G-001:
+      uses_from_ported: []
+      note: Package foundation creates new types (ErrorCode, Diagnostic, ResultEnvelope) from scratch. Does not import from ported/.
+    G-002:
+      uses_from_ported:
+      - file: universal_file_edit/session.py
+        via: AbstractBuffer wraps EditSession — one EditSession per open file
+      - file: backup_manager.py
+        via: Writer.write_result uses BackupManager internally
+      note: G-002 defines contracts (AbstractBuffer, Writer) that G-005 implements. G-002 does not call open/edit/write/close commands.
+    G-003:
+      uses_from_ported:
+      - file: file_handlers/text_handler.py
+        via: TextFormatter delegates read/replace/insert/delete to TextFileHandler
+      - file: file_handlers/yaml_handler.py
+        via: YamlFormatter delegates YAML path ops to YamlFileHandler
+      - file: file_handlers/json_handler.py
+        via: JsonFormatter delegates JSON ops to JsonFileHandler
+      - file: file_handlers/registry.py
+        via: FormatterRegistry uses resolve_handler for extension lookup
+      - file: file_handlers/python_handler.py
+        via: CSTFormatter wraps PythonFileHandler; lazy import, deferred to G-003/T-008+
+      - file: universal_file_edit/format_group.py
+        via: FormatterRegistry.get_by_extension calls resolve_format_group
+      note: Formatters call file_handler methods directly on Path objects. They do NOT call open/edit/write/close commands. Handlers are storage layer; commands are MCP API layer.
+    G-004:
+      uses_from_ported:
+      - file: universal_file_edit/format_group.py
+        via: classify file extension before dispatching search
+      - file: file_handlers/text_handler.py
+        via: TextSearch iterates lines via handler read()
+      - file: file_handlers/yaml_handler.py
+        via: YamlSearch uses get_at_path / _collect_paths
+      note: AbstractSearch implementations call handler methods directly; no command layer involvement.
+    G-005:
+      uses_from_ported:
+      - file: universal_file_edit/open_command.py
+        via: Session.open_buffer() calls UniversalFileOpenCommand.execute()
+      - file: universal_file_edit/edit_command.py
+        via: Buffer.apply_mutation() calls UniversalFileEditCommand.execute()
+      - file: universal_file_edit/write_command.py
+        via: Buffer.save() and Session.close_buffer() call UniversalFileWriteCommand.execute()
+      - file: universal_file_edit/close_command.py
+        via: Session.close_buffer() calls UniversalFileCloseCommand.execute()
+      - file: universal_file_edit/session.py
+        via: one EditSession maintained per open Buffer
+      - file: universal_file_edit/format_group.py
+        via: open_buffer resolves format group from file extension
+      - file: universal_file_edit/errors.py
+        via: error codes propagated up to OperationResult / ResultEnvelope
+      - file: backup_manager.py
+        via: write_command uses BackupManager before committing to disk
+      call_pattern: G-005 calls ported commands as plain Python function calls, not HTTP. UniversalFileOpenCommand is instantiated with a shim BaseMCPCommand that resolves project_root from AiEditorConfig.sessions_base_dir.
+    G-006:
+      uses_from_ported: []
+      note: EditorCommand classes delegate entirely to G-005 Session API. No direct contact with ported/.
+    G-007:
+      uses_from_ported: []
+      note: Adapter integration; no ported/ contact.
+    G-008:
+      uses_from_ported: []
+      note: Extended formatters (Markdown, XML, HTML) built from scratch on new AbstractFormatter.
+  problem_files:
+  - file: universal_file_edit/text_draft_apply.py
+    issue: Imports code_analysis.commands.universal_file_replace_command — not in ported/. Must inline the line-range replace logic (~10 lines).
+    severity: medium
+    action: inline_replace_logic in G-000/T-002
+  - file: universal_file_edit/sidecar_cst_apply.py
+    issue: Imports code_analysis.core.cst_tree.* (5+ modules, full CST stack). Not needed for text group.
+    severity: low_for_G000
+    action: guard_entire_module; revisit in G-003/T-008
+  - file: universal_file_edit/tree_temp_*.py (5 files)
+    issue: Import code_analysis.core.yaml_tree / json_tree / tree_temp.*. Not needed for text group. YamlFormatter (G-003) uses YamlFileHandler directly, not tree_temp.
+    severity: low_for_G000
+    action: guard_entire_module; assess in G-003 whether tree_temp API is needed at all
+  - file: file_handlers/python_handler.py
+    issue: Imports code_analysis.core.cst_tree.tree_builder and code_analysis.commands.compose_cst_ops_flow. CST stack not ported.
+    severity: low_for_G000
+    action: guard_entire_module; revisit in G-003/T-008 (CSTFormatter)
+cascade_note: unchanged

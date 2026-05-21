@@ -1,0 +1,48 @@
+step_id: G-001
+name: Package foundation and shared contracts
+status: frozen
+description: 'Creates the installable package skeleton and defines all shared data contracts used by every subsystem. Contains zero business logic. All subsystems import types exclusively from ai_editor/contracts/. No subsystem patches .venv, venv, or site-packages. No subsystem edits another subsystem''s owned paths.
+
+  '
+concepts:
+- C-001
+- C-002
+- C-003
+- C-004
+- C-005
+- C-006
+- C-007
+- C-008
+- C-009
+relations:
+- from_concept: C-001
+  to_concept: C-003
+  type: consumes
+- from_concept: C-004
+  to_concept: C-003
+  type: consumes
+- from_concept: C-005
+  to_concept: C-003
+  type: consumes
+- from_concept: C-006
+  to_concept: C-003
+  type: consumes
+- from_concept: C-008
+  to_concept: C-009
+  type: consumes
+- from_concept: C-008
+  to_concept: C-007
+  type: consumes
+source_ranges:
+- end: 99
+  start: 68
+- end: 1777
+  start: 1728
+depends_on: []
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+cascade_note: unchanged

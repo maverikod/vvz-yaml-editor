@@ -1,0 +1,55 @@
+step_id: G-006
+name: Command layer and public interfaces
+status: frozen
+description: 'Defines all EditorCommand units following metadatastd.md, the HooksRegister that wires commands and formatters at startup, the ApiFacade thin wrapper over the session layer, and the CLI diagnostic interface. ai_editor never implements HTTP routes or JSON-RPC handlers manually — mcp_proxy_adapter auto-generates the entire external API surface from command schemas and metadata.
+
+  '
+concepts:
+- C-045
+- C-046
+- C-047
+- C-048
+relations:
+- from_concept: C-045
+  to_concept: C-047
+  type: uses
+- from_concept: C-046
+  to_concept: C-045
+  type: owns
+- from_concept: C-046
+  to_concept: C-012
+  type: uses
+- from_concept: C-046
+  to_concept: C-056
+  type: uses
+- from_concept: C-047
+  to_concept: C-038
+  type: uses
+- from_concept: C-047
+  to_concept: C-010
+  type: uses
+- from_concept: C-048
+  to_concept: C-047
+  type: uses
+source_ranges:
+- end: 1322
+  start: 1181
+depends_on:
+- G-001
+- G-002
+- G-003
+- G-004
+- G-005
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+- T-006
+- T-007
+- T-008
+- T-009
+- T-010
+- T-011
+cascade_note: unchanged

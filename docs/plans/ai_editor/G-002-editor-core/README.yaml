@@ -1,0 +1,76 @@
+step_id: G-002
+name: Editor core — buffer contracts, CA client, config, and infrastructure
+status: needs_review
+description: Defines shared buffer abstractions and editor infrastructure. Buffer and Writer sit on AbstractFormatter tree ownership and WritePipeline (export -> temp -> linters -> atomic rename). Zero session lifecycle logic. Owns AbstractBuffer, BufferState, CodeAnalysisClient, FileLock, Writer, FormatterRegistry, config components. Buffer open/close/save belong to G-005. T-008 permanently retired; next new step is T-010.
+concepts:
+- C-010
+- C-011
+- C-012
+- C-013
+- C-014
+- C-015
+- C-016
+- C-017
+- C-018
+- C-019
+- C-020
+relations:
+- from_concept: C-010
+  to_concept: C-021
+  type: uses
+- from_concept: C-010
+  to_concept: C-043
+  type: uses
+- from_concept: C-010
+  to_concept: C-014
+  type: uses
+- from_concept: C-010
+  to_concept: C-013
+  type: depends_on
+- from_concept: C-011
+  to_concept: C-020
+  type: consumes
+- from_concept: C-012
+  to_concept: C-021
+  type: owns
+- from_concept: C-013
+  to_concept: C-014
+  type: owns
+- from_concept: C-014
+  to_concept: C-013
+  type: uses
+- from_concept: C-018
+  to_concept: C-016
+  type: uses
+- from_concept: C-018
+  to_concept: C-017
+  type: uses
+- from_concept: C-019
+  to_concept: C-016
+  type: produces
+- from_concept: C-019
+  to_concept: C-017
+  type: produces
+- from_concept: C-020
+  to_concept: C-021
+  type: uses
+- from_concept: C-014
+  to_concept: C-062
+  type: uses
+source_ranges:
+- end: 154
+  start: 103
+- end: 415
+  start: 179
+depends_on:
+- G-001
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+- T-006
+- T-007
+- T-009
+cascade_note: changed — recheck for base-class tree ownership + write orchestration

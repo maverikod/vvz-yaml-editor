@@ -1,0 +1,50 @@
+step_id: G-008
+name: Extended formatter backends and cross-formatter conversion matrix
+status: needs_review
+description: Extended formatter backends (Markdown, XML, HTML) as converter-only AbstractFormatter subclasses using the unified Tree model. ConversionRegistry enables cross-format clipboard paste. Markdown/XML/HTML provide parse/render/node_from_source/node_to_source/linters only; structural ops and stable_id owned by base class.
+concepts:
+- C-052
+- C-053
+- C-054
+- C-055
+- C-056
+- C-057
+relations:
+- from_concept: C-052
+  to_concept: C-021
+  type: extends
+- from_concept: C-052
+  to_concept: C-053
+  type: produces
+- from_concept: C-054
+  to_concept: C-021
+  type: extends
+- from_concept: C-055
+  to_concept: C-021
+  type: extends
+- from_concept: C-056
+  to_concept: C-057
+  type: owns
+- from_concept: C-056
+  to_concept: C-021
+  type: uses
+- from_concept: C-057
+  to_concept: C-021
+  type: uses
+source_ranges:
+- start: 1441
+  end: 1739
+depends_on:
+- G-001
+- G-002
+- G-003
+- G-005
+- G-006
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+future_plan_note: FUTURE PLAN — G-008 is planned but NOT scheduled for implementation. All tactical steps are draft with no atomic steps written. Implementation begins only after G-001..G-007 are fully done and explicitly approved in chat.
+cascade_note: changed — md/xml/html as converter-only subclasses

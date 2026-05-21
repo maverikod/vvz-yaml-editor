@@ -1,0 +1,99 @@
+step_id: G-005
+name: Session layer — infrastructure, buffer lifecycle, clipboard, recovery, and public API
+status: needs_review
+description: 'Session infrastructure and full buffer lifecycle. SourceOfTruth rule applies to all formats: source file at open; tree Sidecar becomes authoritative once buffer.modified=True. AutoCreateTree builds tree on CA fetch and when preview finds no tree file. Sidecar session file written after every mutation. Operates under external CASession (ca_session_id); never calls session_create/delete. startup_sweep policy B for stale locks and orphaned dirs. Canonical id: session_key.'
+concepts:
+- C-038
+- C-039
+- C-040
+- C-041
+- C-042
+- C-043
+- C-044
+- C-062
+- C-066
+- C-067
+- C-032
+relations:
+- from_concept: C-038
+  to_concept: C-039
+  type: owns
+- from_concept: C-038
+  to_concept: C-040
+  type: owns
+- from_concept: C-038
+  to_concept: C-041
+  type: owns
+- from_concept: C-038
+  to_concept: C-042
+  type: owns
+- from_concept: C-038
+  to_concept: C-010
+  type: owns
+- from_concept: C-040
+  to_concept: C-038
+  type: uses
+- from_concept: C-041
+  to_concept: C-021
+  type: uses
+- from_concept: C-041
+  to_concept: C-056
+  type: uses
+- from_concept: C-043
+  to_concept: C-039
+  type: uses
+- from_concept: C-044
+  to_concept: C-013
+  type: uses
+- from_concept: C-044
+  to_concept: C-039
+  type: uses
+- from_concept: C-010
+  to_concept: C-040
+  type: uses
+- from_concept: C-010
+  to_concept: C-015
+  type: uses
+- from_concept: C-038
+  to_concept: C-008
+  type: produces
+- from_concept: C-038
+  to_concept: C-062
+  type: uses
+- from_concept: C-038
+  to_concept: C-066
+  type: uses
+- from_concept: C-038
+  to_concept: C-067
+  type: uses
+- from_concept: C-010
+  to_concept: C-032
+  type: uses
+source_ranges:
+- start: 17
+  end: 64
+- start: 156
+  end: 175
+- start: 503
+  end: 516
+- start: 1043
+  end: 1217
+depends_on:
+- G-001
+- G-002
+- G-003
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+- T-006
+- T-007
+- T-008
+- T-009
+- T-010
+- T-011
+- T-012
+- T-013
+cascade_note: changed — source-of-truth + sidecar-for-all + auto-create

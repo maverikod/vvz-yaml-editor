@@ -1,0 +1,109 @@
+step_id: G-003
+name: Formatters — AbstractFormatter base, unified tree, Text/YAML/JSON/CST backends
+status: needs_review
+description: 'Defines AbstractFormatter as the base class owning the in-memory Tree, all structural operations, stable_id identity, Sidecar production, and WritePipeline orchestration. Subclasses (Text, YAML, JSON, CST) implement conversion hooks only: parse, render, node_from_source, node_to_source, linters. Every format uses the unified TreeNode model and Sidecar (.tree session-side, .tree/<stem>.tree project-side; CST specialisation uses .cst paths). SourceOfTruth: source file at open; tree file after first mutation (modified=True). AutoCreateTree on preview-without-tree and after CA fetch. CSTFormatter is a specialisation, not a separate structural paradigm. Display-quirk reference: code_analysis docs/plans/ai_editor/viewer_features.yaml.'
+concepts:
+- C-021
+- C-022
+- C-023
+- C-024
+- C-025
+- C-026
+- C-027
+- C-028
+- C-029
+- C-030
+- C-031
+- C-032
+- C-033
+- C-034
+- C-063
+- C-064
+- C-066
+- C-067
+- C-068
+relations:
+- from_concept: C-025
+  to_concept: C-021
+  type: extends
+- from_concept: C-026
+  to_concept: C-021
+  type: extends
+- from_concept: C-028
+  to_concept: C-021
+  type: extends
+- from_concept: C-029
+  to_concept: C-021
+  type: extends
+- from_concept: C-021
+  to_concept: C-063
+  type: owns
+- from_concept: C-021
+  to_concept: C-032
+  type: produces
+- from_concept: C-021
+  to_concept: C-031
+  type: owns
+- from_concept: C-021
+  to_concept: C-068
+  type: owns
+- from_concept: C-021
+  to_concept: C-022
+  type: produces
+- from_concept: C-021
+  to_concept: C-023
+  type: produces
+- from_concept: C-021
+  to_concept: C-024
+  type: consumes
+- from_concept: C-063
+  to_concept: C-064
+  type: owns
+- from_concept: C-030
+  to_concept: C-063
+  type: extends
+- from_concept: C-029
+  to_concept: C-030
+  type: produces
+- from_concept: C-029
+  to_concept: C-032
+  type: produces
+- from_concept: C-029
+  to_concept: C-033
+  type: produces
+- from_concept: C-030
+  to_concept: C-031
+  type: owns
+- from_concept: C-030
+  to_concept: C-034
+  type: owns
+- from_concept: C-032
+  to_concept: C-063
+  type: consumes
+- from_concept: C-032
+  to_concept: C-034
+  type: consumes
+- from_concept: C-026
+  to_concept: C-027
+  type: uses
+source_ranges:
+- start: 382
+  end: 974
+depends_on:
+- G-001
+- G-002
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+- T-006
+- T-007
+- T-008
+- T-009
+- T-010
+- T-011
+- T-012
+- T-013
+cascade_note: changed — AbstractFormatter paradigm cascade 2026-05-21
