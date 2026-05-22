@@ -10,7 +10,7 @@ concepts:
 - C-021
 - C-023
 - C-024
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-001. File: ai_editor/formatters/__init__.py. Operation: create_file.
 

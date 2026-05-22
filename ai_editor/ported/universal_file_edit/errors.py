@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, cast
 
-from mcp_proxy_adapter.commands.result import ErrorResult
+from ai_editor.result import ErrorResult
 
 SESSION_NOT_FOUND = "SESSION_NOT_FOUND"
 DRAFT_NOT_FOUND = "DRAFT_NOT_FOUND"
@@ -44,7 +44,7 @@ def error_result_for_edit(
     message: str,
     code: str,
     details: Optional[Dict[str, Any]] = None,
-) -> ErrorResult:
+) -> dict:
     """Build ``ErrorResult`` with a string application error code.
 
     ``mcp_proxy_adapter`` types ``ErrorResult.code`` as int (JSON-RPC numeric
@@ -53,7 +53,7 @@ def error_result_for_edit(
     return ErrorResult(message=message, code=cast(Any, code), details=details)
 
 
-def error_result_from_make_error(err: Dict[str, Any]) -> ErrorResult:
+def error_result_from_make_error(err: Dict[str, Any]) -> dict:
     """Convert a ``make_error()`` dict into an ``ErrorResult``."""
     return ErrorResult(
         message=str(err["message"]),

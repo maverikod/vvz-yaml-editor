@@ -11,7 +11,7 @@ depends_on:
 concepts:
 - C-028
 - C-021
-status: draft
+status: done
 prompt: "Project: ai_editor. Tactical step: T-013. File: ai_editor/formatters/json/formatter.py. Operation: modify_file.\n\nPrior state: file exists after lower-priority changes on this file with complete JsonFormatter including  converter hooks, linters, validate_document, match_unit, compare_units, diagnostics, and all private tree helpers.\n\nAdd imports:\n```python\nfrom ai_editor.contracts.results import OperationResult\nfrom ai_editor.contracts.error_codes import ErrorCode\nfrom ai_editor.formatters.json.address import JsonAddressError, resolve_json_address\nfrom ai_editor.formatters.json import mutations as json_mutations\n```\n\nAdd private helpers to JsonFormatter:\n\n```python\ndef _tree_to_document(self) -> Any:\n    \"\"\"Return parsed JSON value from self._tree.root via _node_to_value. Raise RuntimeError if no tree.\"\"\"\n\ndef _apply_document(self, document: Any) -> None:\n    \"\"\"Rebuild self._tree from document using _build_root_node wrapped in Tree; call self._id_index.clear()
             if self._tree:
                 self._assign_stable_ids(self._tree.root).\"\

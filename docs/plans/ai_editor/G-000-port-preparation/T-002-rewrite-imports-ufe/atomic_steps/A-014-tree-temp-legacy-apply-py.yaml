@@ -13,7 +13,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/tree_tem
   \   from ai_editor.ported.universal_file_edit._tree_temp_legacy_apply_impl import
   *  # noqa: F401,F403\nexcept ImportError:\n    pass  # All symbols unavailable;
   callers guard via try/except\n```"
-status: draft
+status: done
 step_id: A-014
 target_file: ai_editor/ported/universal_file_edit/tree_temp_legacy_apply.py
 verification:

@@ -21,4 +21,4 @@ verification:
   type: import
   target: ai_editor.formatters.text.formatter.TextFormatter
   expected: TextFormatter imports successfully. Its formatter name is text. registered_extensions lists exactly six extensions. linters returns an empty list. Parsing empty content yields a root with zero paragraph children. Parsing a two-line file without blank separators yields one paragraph with two line children.
-status: draft
+status: done

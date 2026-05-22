@@ -294,7 +294,7 @@ def open_buffer(
     except Exception as exc:
         return {
             "success": False,
-            "error_code": ErrorCode.FILE_NOT_FOUND,
+            "error_code": ErrorCode.PATH_NOT_FOUND,
             "message": str(exc),
         }
     content = content_bytes.decode("utf-8")
@@ -388,7 +388,7 @@ def create_new_buffer(
     except Exception as exc:
         return {
             "success": False,
-            "error_code": ErrorCode.FORMATTER_PARSE_ERROR,
+            "error_code": ErrorCode.FORMAT_INVALID_ON_OPEN,
             "message": str(exc),
         }
     buffer_id = str(uuid.uuid4())
@@ -540,7 +540,7 @@ def save_buffer(
     if not rel:
         return OperationResult(
             success=False,
-            error_code=ErrorCode.BUFFER_SAVE_FAILED,
+            error_code=ErrorCode.BUFFER_INVALID,
             message="unsaved local buffer",
         )
     result = run_save_pipeline(
@@ -667,7 +667,7 @@ def reload_buffer(
     except Exception as exc:
         return {
             "success": False,
-            "error_code": ErrorCode.BUFFER_RELOAD_FAILED,
+            "error_code": ErrorCode.PATH_NOT_FOUND,
             "message": str(exc),
         }
     content = content_bytes.decode("utf-8")
@@ -684,7 +684,7 @@ def reload_buffer(
     except Exception as exc:
         return {
             "success": False,
-            "error_code": ErrorCode.FORMATTER_PARSE_ERROR,
+            "error_code": ErrorCode.FORMAT_INVALID_ON_OPEN,
             "message": str(exc),
         }
     buf_path = Path(buf["buf_file_path"])
@@ -889,7 +889,7 @@ def undo(
         if not target.parents:
             return OperationResult(
                 success=False,
-                error_code=ErrorCode.UNDO_NOT_AVAILABLE,
+                error_code=ErrorCode.UNDO_AT_BEGINNING,
                 message="at first commit",
             )
         target = target.parents[0]
@@ -927,7 +927,7 @@ def redo(
     if not redo_stack:
         return OperationResult(
             success=False,
-            error_code=ErrorCode.REDO_NOT_AVAILABLE,
+            error_code=ErrorCode.REDO_AT_END,
             message="redo stack empty",
         )
     diagnostics: list[Diagnostic] = []
@@ -936,7 +936,7 @@ def redo(
         if not redo_stack:
             return OperationResult(
                 success=False,
-                error_code=ErrorCode.REDO_NOT_AVAILABLE,
+                error_code=ErrorCode.REDO_AT_END,
                 message="redo stack empty",
             )
         sha = redo_stack.pop()
@@ -1239,7 +1239,7 @@ def write_all(
         vr = run_validate(formatter, document)
         if not vr.success:
             failed.append(
-                {"buffer_id": buffer_id, "error": ErrorCode.VALIDATION_ERROR.value}
+                {"buffer_id": buffer_id, "error": ErrorCode.VALIDATION_FAILED.value}
             )
             continue
         content = _source_text(formatter, document).encode("utf-8")

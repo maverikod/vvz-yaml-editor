@@ -1,8 +1,15 @@
 step_id: T-003
 parent_global_step: G-003
 name: TextFormatter
-status: needs_review
-description: 'TextFormatter subclass (C-025): converter hooks only. Document model is paragraph/line tree (root -> paragraph -> line). Paragraphs split by blank lines; no blanks => one paragraph. Implements parse, render, node_from_source, node_to_source. linters() returns empty list. Does not override base structural ops, stable_id handling, Sidecar production, WritePipeline, or list_commands. Extensions: .txt .log .rst .ini .cfg .toml.'
+status: frozen
+description: 'TextFormatter subclass (C-025): converter hooks only. Document model
+  is paragraph/line tree (root -> paragraph -> line). Paragraphs split by blank lines;
+  no blanks => one paragraph. Implements parse, render, node_from_source, node_to_source.
+  linters() returns empty list. Does not override base structural ops, stable_id handling,
+  Sidecar production, WritePipeline, or list_commands. windowed_preview(offset, limit)
+  always available — returns lines [offset, offset+limit) with 1-based line numbers;
+  available in InvalidOnOpen mode and normal text mode. Extensions: .txt .log .rst
+  .ini .cfg .toml.'
 concepts:
 - C-025
 - C-021
@@ -11,14 +18,18 @@ concepts:
 inputs:
 - name: AbstractFormatter base contract
   type: ai_editor.formatters.base
-  description: AbstractFormatter, FormatterUnit, ComparisonResult, SkeletonOptions from ai_editor.formatters.base.
+  description: AbstractFormatter, FormatterUnit, ComparisonResult, 
+    SkeletonOptions from ai_editor.formatters.base.
 - name: G-001 contracts
   type: ai_editor.contracts
   description: ValidationResult, Diagnostic.
 outputs:
 - name: ai_editor/formatters/text/formatter.py
   type: file
-  description: 'TextFormatter implementing converter hooks only: parse, render, node_from_source, node_to_source; linters() returns []. Inherits structural ops, stable_id, Sidecar, WritePipeline, and list_commands from AbstractFormatter base. Registered extensions .txt .log .rst .ini .cfg .toml.'
+  description: 'TextFormatter implementing converter hooks only: parse, render, node_from_source,
+    node_to_source; linters() returns []. Inherits structural ops, stable_id, Sidecar,
+    WritePipeline, and list_commands from AbstractFormatter base. Registered extensions
+    .txt .log .rst .ini .cfg .toml.'
 - name: ai_editor/formatters/text/__init__.py
   type: file
   description: Exports TextFormatter.
@@ -26,4 +37,5 @@ atomic_steps:
 - A-001
 - A-002
 - A-003
-cascade_note: changed — formatter paradigm cascade 2026-05-21; tactical-fix hook-only scope 2026-05-21
+cascade_note: changed — formatter paradigm cascade 2026-05-21; tactical-fix 
+  hook-only scope 2026-05-21; added windowed_preview 2026-05-22

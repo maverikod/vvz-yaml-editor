@@ -1,0 +1,33 @@
+step_id: A-001
+parent_tactical_step: T-001
+name: Create MdNode dataclass
+target_file: ai_editor/formatters/markdown/md_node.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-053
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.markdown.md_node.MdNode
+  expected: MdNode imports successfully; is a dataclass with fields node_type, 
+    content, level, children, attrs, source_pos; children defaults to empty 
+    list; level defaults to None.
+prompt: "Project: ai_editor. Tactical step: T-001 MarkdownFormatter. File: ai_editor/formatters/markdown/md_node.py.
+  Operation: create_file.\n\nMRS excerpt:\n- C-053 MdNode: document model node for
+  MarkdownFormatter wrapping a mistune AST node with structural metadata.\n  node_type:
+  str (heading|paragraph|code_block|list|list_item|blockquote|thematic_break|html_block|table|table_head|table_body|table_row|image|link)\n\
+  \  level: int | None (heading level 1-6, None for non-heading)\n  content: str (raw
+  text content)\n  children: list[MdNode]\n  attrs: dict (url, alt, lang, etc.)\n\
+  \  source_pos: tuple[int,int] | None\n\nCreate exactly this file:\n\n```\n\"\"\"\
+  MdNode: document model node for MarkdownFormatter.\"\"\"\nfrom __future__ import
+  annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Any\n\
+  \n\n@dataclass\nclass MdNode:\n    \"\"\"Represents one structural node in a Markdown
+  document tree.\"\"\"\n\n    node_type: str\n    content: str = \"\"\n    level:
+  int | None = None\n    children: list[MdNode] = field(default_factory=list)\n  \
+  \  attrs: dict[str, Any] = field(default_factory=dict)\n    source_pos: tuple[int,
+  int] | None = None\n```\n\nAllowed node_type values (documented, not enforced at
+  runtime):\nheading, paragraph, code_block, list, list_item, blockquote,\nthematic_break,
+  html_block, table, table_head, table_body, table_row, image, link.\n\nConstraints:
+  no other classes/functions/imports; file under 40 lines; no stable_id field."

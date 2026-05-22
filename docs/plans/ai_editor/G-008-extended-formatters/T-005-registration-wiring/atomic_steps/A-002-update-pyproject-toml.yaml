@@ -1,0 +1,30 @@
+step_id: A-002
+parent_tactical_step: T-005
+name: Add new dependencies to pyproject.toml
+target_file: pyproject.toml
+operation: modify_file
+priority: 2
+depends_on: []
+concepts:
+- C-052
+- C-054
+- C-055
+status: done
+verification:
+  type: manual
+  target: pyproject.toml
+  expected: pyproject.toml contains mistune>=3.0, lxml>=5.0, 
+    beautifulsoup4>=4.12, html2text>=2020.1.16 in the project dependencies list.
+prompt: "Project: ai_editor. Tactical step: T-005. File: pyproject.toml. Operation:
+  modify_file.\n\nKnown pyproject.toml structure (from G-001/T-001 package skeleton
+  AS):\n- Build system: hatchling\n- Project name: vvz-ai-editor, version: 0.1.0,
+  python_requires>=3.11\n- Current dependencies list includes: mcp-proxy-adapter,
+  ruamel.yaml>=0.18.0, jsonpath-ng>=1.6.0, jsonschema>=4.0.0, libcst>=1.1.0, lark>=1.1.0,
+  gitpython>=3.1.0, cryptography>=41.0.0\n- CLI entry: ai-editor=ai_editor.interfaces.cli:main\n\
+  \nNote: pyproject.toml is not parseable via universal_file_preview. Read the file
+  directly before editing to confirm current contents.\n\nModification: add exactly
+  these four runtime dependencies to the [project] dependencies list if not already
+  present:\n  \"beautifulsoup4>=4.12\"\n  \"html2text>=2020.1.16\"\n  \"lxml>=5.0\"\
+  \n  \"mistune>=3.0\"\n\nInsert them in alphabetical order among existing dependencies.
+  Final dependency list must include all original entries plus the four new ones.\n\
+  \nDo not modify any other field. Verify with a read after the edit."

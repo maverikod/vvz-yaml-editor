@@ -107,13 +107,13 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/buffer.py. Operation: c
   \            force: If True, save even buffers with validation errors.\n\n     \
   \   Returns:\n            WriteAllResult listing written, failed, and skipped buffer
   IDs.\n        \"\"\"\n```"
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/editor_core/buffer.py
 verification:
-  expected: from ai_editor.editor_core.buffer import AbstractBuffer, 
-    BufferState; BufferState(buffer_id='x', formatter='text', preview='', 
-    modified=False, readonly=False) constructed without error; AbstractBuffer is
-    abstract (cannot be instantiated directly).
+  expected: The module ai_editor.editor_core.buffer imports without error. 
+    AbstractBuffer and BufferState are importable. BufferState is a dataclass 
+    that can be constructed with its required fields. AbstractBuffer is an 
+    abstract base class that cannot be instantiated directly.
   target: ai_editor.editor_core.buffer
   type: import

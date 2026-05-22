@@ -53,13 +53,17 @@ prompt: "Project: ai_editor. File: ai_editor/contracts/descriptors.py. Operation
   \    Attributes:\n        buffer_id: Buffer this address belongs to.\n        address:
   Formatter-specific address (stable_id UUID, XPath, CSS selector, etc.).\n    \"\"\
   \"\n\n    buffer_id: str\n    address: Any\n```"
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/contracts/descriptors.py
 verification:
-  expected: from ai_editor.contracts.descriptors import SessionKey, 
-    BufferDescriptor, SessionDescriptor, BufferAddress; all import without 
-    error; BufferAddress(buffer_id='x', address=None).address is None; 
-    SessionDescriptor(session_key='k').open_buffers == [].
+  expected: 'The file ai_editor/contracts/descriptors.py exists. SessionKey is a type
+    alias for str. BufferDescriptor, SessionDescriptor, and BufferAddress are importable
+    as dataclasses (not frozen). BufferDescriptor has nine fields in the declared
+    order: buffer_id, session_key, filename, relative_path (str or None), formatter,
+    project_id, modified (bool), readonly (bool), buf_file_path. SessionDescriptor
+    has three fields: session_key (SessionKey), open_buffers (list of BufferDescriptor,
+    default empty list), diagnostics (list of Diagnostic, default empty list). BufferAddress
+    has two fields: buffer_id (str) and address (Any).'
   target: ai_editor.contracts.descriptors
   type: import

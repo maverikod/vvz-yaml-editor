@@ -8,7 +8,7 @@ depends_on: []
 concepts:
 - C-029
 - C-033
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-009 CST skeleton and get_unit (G-003). File: ai_editor/formatters/cst/node_type_utils.py. Operation: create_file.
 

@@ -51,13 +51,18 @@ prompt: "Project: ai_editor. File: ai_editor/contracts/results.py. Operation: cr
   \    failed_buffers: list[dict[str, Any]] = field(default_factory=list)\n    skipped_buffers:
   list[str] = field(default_factory=list)\n    diagnostics: list[Diagnostic] = field(default_factory=list)\n\
   ```"
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/contracts/results.py
 verification:
-  expected: from ai_editor.contracts.results import ResultEnvelope, 
-    ValidationResult, OperationResult, WriteAllResult; all four import without 
-    error; ResultEnvelope(success=True) has message='', details={}, 
-    diagnostics=[]; WriteAllResult(success=True).written_buffers == [].
+  expected: 'The file ai_editor/contracts/results.py exists. All four dataclasses
+    (ResultEnvelope, ValidationResult, OperationResult, WriteAllResult) are importable
+    from ai_editor.contracts.results. None of the four classes is frozen. ResultEnvelope
+    has five fields: success (bool), error_code (ErrorCode or None, default None),
+    message (str, default empty string), details (dict, default empty dict), diagnostics
+    (list of Diagnostic, default empty list). ValidationResult has two fields: success
+    and diagnostics. OperationResult has four fields: success, error_code, message,
+    diagnostics. WriteAllResult has five fields: success, written_buffers (list of
+    str), failed_buffers (list of dict), skipped_buffers (list of str), diagnostics.'
   target: ai_editor.contracts.results
   type: import

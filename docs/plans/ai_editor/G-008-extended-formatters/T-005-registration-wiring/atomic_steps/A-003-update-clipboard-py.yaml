@@ -1,0 +1,65 @@
+step_id: A-003
+parent_tactical_step: T-005
+name: Update clipboard.py — ConversionRegistry lookup in paste_from_clipboard
+target_file: ai_editor/sessions/clipboard.py
+operation: modify_file
+priority: 3
+depends_on: []
+concepts:
+- C-056
+status: done
+verification:
+  type: import
+  target: ai_editor.sessions.clipboard
+  expected: clipboard imports; paste_from_clipboard no longer immediately raises
+    on formatter mismatch; instead calls conversion_registry.can_convert and 
+    attempts convert; only raises CLIPBOARD_FORMAT_MISMATCH when no rule exists 
+    or conversion fails.
+prompt: "Project: ai_editor. Tactical step: T-005. File: ai_editor/sessions/clipboard.py.
+  Operation: modify_file.\n\nCurrent file content (ai_editor/sessions/clipboard.py)
+  — show only the paste_from_clipboard function since that is the only target, but
+  the full file context is provided for reference:\n\nFull imports and helpers (unchanged):\n\
+  ```python\n\"\"\"Session clipboard copy/cut/paste.\"\"\"\nfrom __future__ import
+  annotations\nimport json\nimport os\nimport tempfile\nfrom pathlib import Path\n\
+  from typing import Any\nfrom ai_editor.contracts import Diagnostic, ErrorCode\n\
+  from ai_editor.editor_core.writer import Writer\nfrom ai_editor.sessions.session_dir
+  import read_session_settings, update_buffer_in_settings\nfrom ai_editor.sessions.session_git
+  import commit_buffer, history_diagnostic\n\nCLIPBOARD_NAME = \"clipboard.json\"\n\
+  \ndef _atomic_write_json(path: Path, data: dict[str, Any]) -> None: ...\ndef _read_clipboard(session_dir:
+  Path) -> dict[str, Any] | None: ...\ndef copy_to_clipboard(...) -> None: ...\ndef
+  cut_to_clipboard(...) -> tuple[Any, Any]: ...\n```\n\nCurrent paste_from_clipboard
+  (the function to modify):\n```python\ndef paste_from_clipboard(\n    session_dir:
+  Path,\n    buffer_id: str,\n    target_address: Any,\n    mode: str,\n    formatter:
+  Any,\n    document: Any,\n    repo: Any,\n) -> tuple[Any, list[Diagnostic]]:\n \
+  \   \"\"\"Paste clipboard body at target; write_buf + commit.\"\"\"\n    diagnostics:
+  list[Diagnostic] = []\n    clip = _read_clipboard(session_dir)\n    if not clip:\n\
+  \        raise ValueError(ErrorCode.CLIPBOARD_EMPTY.value)\n    if clip[\"formatter\"\
+  ] != formatter.formatter_name:\n        raise ValueError(ErrorCode.CLIPBOARD_FORMAT_MISMATCH.value)\n\
+  \    if clip.get(\"paste_policy\") == \"reject_if_source_revision_changed\":\n \
+  \       head = repo.heads[f\"buf/{buffer_id}\"].commit.hexsha\n        if head !=
+  clip.get(\"source_revision\"):\n            raise ValueError(ErrorCode.CLIPBOARD_SOURCE_STALE.value)\n\
+  \    fragment = formatter.from_string(clip[\"body\"])\n    new_document, _changed
+  = formatter.paste_fragment(\n        document, target_address, mode, fragment\n\
+  \    )\n    settings = read_session_settings(session_dir)\n    buf = next(\n   \
+  \     b for b in settings[\"open_buffers\"] if b[\"buffer_id\"] == buffer_id\n \
+  \   )\n    buf_path = Path(buf[\"buf_file_path\"])\n    Writer().write_buf(_source_text(formatter,
+  new_document), buf_path)\n    update_buffer_in_settings(\n        session_dir, buffer_id,
+  {\"modified\": True, \"redo_stack\": []}\n    )\n    try:\n        commit_buffer(\n\
+  \            repo,\n            buffer_id,\n            buf_path,\n            f\"\
+  clipboard: paste {mode} {target_address}\",\n        )\n    except Exception as
+  exc:\n        diagnostics.append(history_diagnostic(exc))\n    return new_document,
+  diagnostics\n```\n\nModification: replace ONLY these two lines inside paste_from_clipboard:\n\
+  ```python\n    if clip[\"formatter\"] != formatter.formatter_name:\n        raise
+  ValueError(ErrorCode.CLIPBOARD_FORMAT_MISMATCH.value)\n```\n\nWith:\n```python\n\
+  \    src_fmt = clip[\"formatter\"]\n    tgt_fmt = formatter.formatter_name\n   \
+  \ if src_fmt != tgt_fmt:\n        from ai_editor.formatters.conversion.registry
+  import conversion_registry\n        if not conversion_registry.can_convert(src_fmt,
+  tgt_fmt):\n            raise ValueError(ErrorCode.CLIPBOARD_FORMAT_MISMATCH.value)\n\
+  \        try:\n            raw_fragment = clip[\"body\"]\n            converted
+  = conversion_registry.convert(raw_fragment, src_fmt, tgt_fmt, None, formatter)\n\
+  \            clip = dict(clip)\n            clip[\"body\"] = converted if isinstance(converted,
+  str) else str(converted)\n        except ValueError:\n            raise\n      \
+  \  except Exception as exc:\n            raise ValueError(ErrorCode.CLIPBOARD_FORMAT_MISMATCH.value)
+  from exc\n```\n\nAll other lines of paste_from_clipboard and all other functions
+  (copy_to_clipboard, cut_to_clipboard, _source_text, _atomic_write_json, _read_clipboard)
+  remain byte-for-byte identical. File stays under 160 lines."

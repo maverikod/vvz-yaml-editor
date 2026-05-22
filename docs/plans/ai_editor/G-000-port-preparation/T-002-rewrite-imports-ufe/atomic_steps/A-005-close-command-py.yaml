@@ -26,7 +26,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/close_co
   import (...)\nAlso replace metadata() body with: return {}\n\nAlso: return type
   annotations '-> SuccessResult | ErrorResult:' or '-> Union[SuccessResult, ErrorResult]:'
   change to '-> dict:'."
-status: draft
+status: done
 step_id: A-005
 target_file: ai_editor/ported/universal_file_edit/close_command.py
 verification:

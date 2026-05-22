@@ -15,7 +15,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/tree_tem
   \    def apply_tree_temp_mutations(*args, **kwargs):  # type: ignore[misc]\n   \
   \     raise NotImplementedError('tree_temp_edit_batch not available in G-000; wired
   in G-003')\n\n__all__ = ['apply_tree_temp_mutations']\n```"
-status: draft
+status: done
 step_id: A-010
 target_file: ai_editor/ported/universal_file_edit/tree_temp_edit_batch.py
 verification:

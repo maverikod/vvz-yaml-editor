@@ -19,7 +19,7 @@ prompt: "Project: ai_editor. File: ai_editor/git.py. Operation: create_file.\n\n
   \n    Args:\n        path: Path to the file that was written (ignored in stub).\n\
   \        message: Commit message (ignored in stub).\n    \"\"\"\n    return\n```\n\
   \nNo other content. No imports beyond those shown."
-status: draft
+status: done
 step_id: A-003
 target_file: ai_editor/git.py
 verification:

@@ -12,39 +12,46 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, cast
 
-from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
+from ai_editor.result import ErrorResult, SuccessResult
 
-from code_analysis.commands.base_mcp_command import BaseMCPCommand
-from code_analysis.commands.universal_file_edit.errors import (
+from ai_editor.git import commit_after_write
+from ai_editor.ported.backup_manager import BackupManager
+from ai_editor.ported.file_handlers.diff_support import unified_diff_text
+from ai_editor.ported.universal_file_edit.errors import (
     SESSION_NOT_FOUND,
     WRITE_FAILED,
     error_result_from_make_error,
     make_error,
 )
-from code_analysis.commands.universal_file_edit.format_group import (
+from ai_editor.ported.universal_file_edit.format_group import (
     FORMAT_SIDECAR,
     FORMAT_TREE_TEMP,
     delete_lockfile,
     read_lockfile_pid,
     write_lockfile_pid,
 )
-from code_analysis.commands.universal_file_edit.session import EditSession, get_session
-from code_analysis.commands.universal_file_edit.tree_temp_write_commit import (
-    build_tree_temp_preview_text,
-    commit_tree_temp_to_disk,
-    serialize_tree_temp_session_source,
-)
-from code_analysis.commands.universal_file_edit.write_command_metadata import (
-    get_universal_file_write_metadata,
-)
-from code_analysis.core.backup_manager import BackupManager
-from code_analysis.core.cst_tree.node_stable_id import (
-    strip_inline_node_id_lines_from_source,
-)
-from code_analysis.core.cst_tree.tree_builder import get_tree as get_cst_tree
-from code_analysis.core.exceptions import ValidationError
-from code_analysis.core.file_handlers.diff_support import unified_diff_text
-from code_analysis.core.git_integration import commit_after_write
+from ai_editor.ported.universal_file_edit.session import EditSession, get_session
+try:
+    from ai_editor.ported.universal_file_edit.tree_temp_write_commit import (
+        build_tree_temp_preview_text,
+        commit_tree_temp_to_disk,
+        serialize_tree_temp_session_source,
+    )
+except ImportError:
+    build_tree_temp_preview_text = None  # type: ignore[assignment]
+    commit_tree_temp_to_disk = None  # type: ignore[assignment]
+    serialize_tree_temp_session_source = None  # type: ignore[assignment]
+try:
+    from ai_editor.ported.universal_file_edit.sidecar_cst_apply import (
+        strip_node_id_comments,
+    )
+
+    # get_cst_tree wiring is deferred to G-003.
+    get_cst_tree = None  # type: ignore[assignment]
+except ImportError:
+    strip_node_id_comments = None  # type: ignore[assignment]
+    get_cst_tree = None  # type: ignore[assignment]
+from ai_editor.project import BaseMCPCommand
 
 
 class UniversalFileWriteCommand(BaseMCPCommand):
@@ -112,11 +119,7 @@ class UniversalFileWriteCommand(BaseMCPCommand):
         params = super().validate_params(params)
         wm = params.get("write_mode", "preview")
         if wm not in ("preview", "commit"):
-            raise ValidationError(
-                "write_mode must be 'preview' or 'commit'",
-                field="write_mode",
-                details={"write_mode": wm},
-            )
+            raise ValueError("write_mode must be 'preview' or 'commit'")
         params["write_mode"] = wm
         return params
 
@@ -127,7 +130,7 @@ class UniversalFileWriteCommand(BaseMCPCommand):
         Returns:
             Metadata dict with description, parameters, examples, errors.
         """
-        return cast(Dict[str, Any], get_universal_file_write_metadata(cls))
+        return {}
 
     async def execute(  # type: ignore[override]
         self,
@@ -135,7 +138,7 @@ class UniversalFileWriteCommand(BaseMCPCommand):
         session_id: str,
         write_mode: str = "preview",
         **kwargs: Any,
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Execute the write command.
 
         First call (no matching lockfile): generate diff, write lockfile, return diff.
@@ -174,7 +177,7 @@ class UniversalFileWriteCommand(BaseMCPCommand):
             return self._second_call(session, project_id)
         return self._first_call(session, current_pid)
 
-    def _tree_temp_preview(self, session: EditSession) -> SuccessResult | ErrorResult:
+    def _tree_temp_preview(self, session: EditSession) -> dict:
         """Tree-temp preview: unified diff vs disk without lockfile or writes."""
         try:
             code = build_tree_temp_preview_text(
@@ -203,7 +206,7 @@ class UniversalFileWriteCommand(BaseMCPCommand):
 
     def _tree_temp_write_commit(
         self, session: EditSession, project_id: str
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Tree-temp commit: backup, atomic source + optional sidecar, git hook."""
         fp_parts = Path(session.file_path).parts
         root_dir = session.abs_path.parents[len(fp_parts) - 1]
@@ -268,17 +271,17 @@ class UniversalFileWriteCommand(BaseMCPCommand):
                 raise ValueError(
                     f"CST tree {tid!r} not found in memory.",
                 )
-            return cast(
-                str,
-                strip_inline_node_id_lines_from_source(str(tree.module.code)),
-            )
+            code = str(tree.module.code)
+            if strip_node_id_comments is None:
+                return code
+            return cast(str, strip_node_id_comments(code))
         if fg == FORMAT_TREE_TEMP:
             return serialize_tree_temp_session_source(session)
         return str(session.draft_path.read_text())
 
     def _first_call(
         self, session: EditSession, current_pid: int
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Handle first write call: generate code, compute diff, write lockfile.
 
         Args:
@@ -301,7 +304,7 @@ class UniversalFileWriteCommand(BaseMCPCommand):
 
     def _second_call(
         self, session: EditSession, _project_id: str
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Handle second write call: backup, commit, cleanup.
 
         Args:

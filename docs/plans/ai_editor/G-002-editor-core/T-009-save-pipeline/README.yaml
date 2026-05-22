@@ -13,16 +13,18 @@ inputs:
   description: OperationResult, ValidationResult, ErrorCode.
 - name: G-002/T-001 output
   type: ai_editor.editor_core.ca_client
-  description: CodeAnalysisClient with upload_file and list_project_files.
+  description: CodeAnalysisClient with upload_content and list_project_files 
+    (MRS C-013).
 outputs:
 - name: ai_editor/editor_core/save_pipeline.py
   type: file
   description: "run_validate(formatter, document) -> ValidationResult. run_save_pipeline(formatter,
-    document, relative_path: str, ca_client,\n  project_id: str, commit_message: str)
-    -> OperationResult.\nrun_save_as_pipeline(formatter, document, new_relative_path:
-    str, ca_client,\n  project_id: str, overwrite: bool, commit_message: str) -> OperationResult.\n\
-    Internal _source_bytes(formatter, document) -> bytes. upload_file in run_save_pipeline
-    always unlock_after_write=False. upload_file in run_save_as_pipeline always unlock_after_write=False.\n"
+    document, relative_path: str, ca_client, project_id: str, commit_message: str)
+    -> OperationResult. run_save_as_pipeline(formatter, document, new_relative_path:
+    str, ca_client, project_id: str, overwrite: bool, commit_message: str) -> OperationResult.
+    Internal _source_bytes(formatter, document) -> bytes. Both pipeline functions
+    call ca_client.upload_content; lock release is always a separate explicit unlock_file
+    call.\n"
 atomic_steps:
 - A-001
 cascade_note: changed — write orchestration via base WritePipeline

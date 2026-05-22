@@ -384,6 +384,7 @@ Config reader: `SimpleConfig.load()` from adapter. `ai_editor` does not implemen
 Owns: `ai_editor/formatters/`, `ai_editor/schemas/`, `tests/formatters/`.
 
 ### AbstractFormatter required contract
+
 AbstractFormatter is the **base class for every format**. It owns the tree and
 all operations over the tree. Subclasses own ONLY the conversion between the
 tree representation and the concrete file format. The editor works with the
@@ -407,21 +408,52 @@ diagnostics(tree) -> list[Diagnostic]
 
 # Structural mutations over the tree (base class moves/deletes/inserts nodes)
 insert(tree, parent_address, position, content) -> tree
-  # position: first | last | <0-based index among siblings>
-  # content is raw block source; base calls node_from_source() to build the node,
-  # then inserts the returned node under parent_address at position.
+  # position (uniform across ALL formats — tree-temp, sidecar, text):
+  #   "first"              — insert as first child
+  #   "last"               — insert as last child (default)
+  #   "before:<addr>"      — insert immediately before sibling at <addr>
+  #   "after:<addr>"       — insert immediately after sibling at <addr>
+  #   <0-based integer>    — insert at explicit sibling index
+  #
+  # <addr> resolution by format:
+  #   tree-temp (JSON/YAML):
+  #     starts with "/" → JSON Pointer (e.g. "before:/items/1")
+  #     UUID v4           → stable node id (before_node_id / after_node_id)
+  #     otherwise         → object key name (before_key / after_key)
+  #   text/markdown:
+  #     node_ref slug path (e.g. "before:some-section")
+  #     or bare "before" / "after" — relative to the node_ref of the op
+  #
+  # content is raw block source; base calls node_from_source() to build node.
 delete(tree, address) -> tree
 move(tree, address, target_parent_address, position) -> tree
 replace_node(tree, address, content) -> tree
-  # edits node content in place: base calls node_from_source(content),
-  # swaps the node body, and PRESERVES the existing stable_id of that node.
+  # Replaces FULL node including its structural marker:
+  #   text/markdown — includes heading line (e.g. "### Section Title\n")
+  #   tree-temp     — includes mapping key
+  #   sidecar       — includes function/class signature
+  # To replace body only (text/md): use address suffix "/<node_ref>/__content"
+  # Preserves existing stable_id.
 mutate_batch(tree, operations) -> tree    # atomic ordered list of structural ops
-multiple_replace(tree, [(address, content), ...]) -> tree   # many replace_node in one call
+  # All-or-nothing: if any op or resulting tree fails validation (parse
+  # failure or tree invariant violation), the entire batch is rolled back
+  # to the pre-batch tree. Returns MUTATION_ROLLBACK with diagnostics.
+multiple_replace(tree, [(address, content), ...]) -> tree
+  # Same all-or-nothing rollback semantics as mutate_batch.
+
+# Post-mutation validation (applies to every single mutation op above
+# except mutate_batch which has its own batch rollback):
+#   After insert/delete/move/replace_node/multiple_replace the base runs:
+#     a) subclass parse on export(tree) — syntax check
+#     b) tree invariants — stable_id uniqueness, parent-child consistency
+#   On failure: roll back ONLY that operation to pre-mutation tree state.
+#   Return MUTATION_ROLLBACK with diagnostics. No git commit on rollback.
 
 # Fragments / clipboard (structure handled by base; body via subclass converters)
 copy_fragment(tree, source_address) -> fragment
 cut_fragment(tree, source_address) -> (tree, fragment, changed_addresses)
 paste_fragment(tree, target_parent_address, position, fragment) -> (tree, changed_addresses)
+  # position: same values as insert() above
 
 # Identity (owned entirely by the base class)
 #  - stable_id is assigned by the base class to every node.
@@ -431,6 +463,8 @@ paste_fragment(tree, target_parent_address, position, fragment) -> (tree, change
 
 # Write orchestration (base class; uniform for all formats)
 write(tree, path) -> WriteResult
+  # 0. validate(tree): subclass parse on export(tree) + tree invariants.
+  #    Failure -> PRE_WRITE_VALIDATION_FAILED immediately. No diff shown.
   # 1. raw = export(tree) via subclass render
   # 2. show diff to caller (preview phase)
   # 3. on confirm: write raw to a temp file
@@ -459,11 +493,45 @@ operation on the tree -> on write, base calls subclass render and runs subclass
 linters before the atomic rename.
 
 The base class (via the session/buffer layer) does NOT:
-
 - Open, save, or close files for buffer lifecycle.
 - Own buffer registry or stale disk checks.
 - Perform git operations.
 - Know about `session_key`, `.buf` files, or session directory.
+
+### InvalidOnOpen mode
+
+If a file fails to parse at open time (any format — JSON, YAML, .py, etc.),
+the buffer enters **InvalidOnOpen mode** instead of returning an error:
+
+```
+open response when is_invalid=True:
+  format_group:          text  (TextFormatter used regardless of extension)
+  original_format_group: str   (format_group that would apply if file were valid)
+  is_invalid:            true
+  fallback_reason:       str   (parse error message)
+  warning:               str   (human-readable notice to model)
+  available_operations:  [insert, delete, replace]  (text-mode only)
+
+InvalidOnOpen invariants:
+  I1. format_group is always determined by file extension. Model cannot set it.
+  I2. If file is invalid at open → format_group=text, is_invalid=True.
+      Model is explicitly warned via `warning` field.
+  I3. format_group stays text until first successful commit that passes re-parse.
+  I4. write_mode=preview is always allowed regardless of is_invalid.
+  I5. write_mode=commit when is_invalid=True:
+        a) Re-parse draft with original_format_group formatter.
+        b) Parse fails → FORMAT_INVALID_ON_OPEN error; no disk write.
+           Response includes parse_errors: list[{line, col, message}].
+        c) Parse succeeds → atomic write; format_group restored to
+           original_format_group; is_invalid cleared.
+           Response includes recovered_format_group, available_operations.
+  I6. Every edit response when is_invalid=True includes `warning` field.
+  I7. windowed_preview(offset, limit) is always available for navigation
+      in text-mode (InvalidOnOpen or native text files).
+```
+
+InvalidOnOpen applies to all formats. TextFormatter itself never enters
+InvalidOnOpen (plain text always parses).
 
 ### render_skeleton
 
@@ -529,9 +597,14 @@ payload kinds:  text_lines, text_block
 paste modes:    insert, replace_range, append, prepend
 render_skeleton: lines[offset : offset + collapse_threshold*10] (sliding window)
 validate_document: always success=True
+windowed_preview(offset, limit) -> str:
+  Returns lines [offset, offset+limit) with 1-based line numbers prefixed.
+  offset: 0-based line index. limit: max lines to return.
+  Supported for all TextFormatter consumers at all times, including
+  InvalidOnOpen mode. Does not require a valid tree — operates on raw
+  line array. Used for navigation when structural preview is unavailable.
 Registered extensions: .txt .log .rst .ini .cfg .toml
 ```
-
 ### YAML formatter
 
 ```
@@ -1736,7 +1809,8 @@ FILE_HAS_UNSENT_CHANGES
 # Formatter
 FORMATTER_NOT_FOUND, FORMATTER_UNSUPPORTED,
 FORMATTER_COMMAND_DISCOVERY_FAILED, FORMATTER_COMMAND_SCHEMA_INVALID,
-FORMATTER_COMMAND_UNSUPPORTED, FORMAT_VALIDATION_FAILED
+FORMATTER_COMMAND_UNSUPPORTED, FORMAT_VALIDATION_FAILED,
+FORMAT_INVALID_ON_OPEN
 
 # Address / path
 PATH_PARSE_FAILED, PATH_NOT_FOUND, PATH_NOT_UNIQUE,
@@ -1760,6 +1834,9 @@ CST_PARSE_FAILED
 # Validation
 VALIDATION_FAILED
 
+# Mutation
+MUTATION_ROLLBACK, PRE_WRITE_VALIDATION_FAILED
+
 # Write
 WRITE_FAILED, BACKUP_FAILED, SAVE_TARGET_EXISTS, SAVE_TARGET_MISSING
 
@@ -1767,8 +1844,6 @@ WRITE_FAILED, BACKUP_FAILED, SAVE_TARGET_EXISTS, SAVE_TARGET_MISSING
 UNDO_AT_BEGINNING, REDO_AT_END, HISTORY_UNAVAILABLE,
 GIT_COMMIT_FAILED, GIT_NOT_AVAILABLE
 ```
-<!-- non-binding -->
-
 ## Code Analysis Server — Known Quirks and Feature Gaps
 
 This section is **non-binding** (does not produce concepts or GS coverage).

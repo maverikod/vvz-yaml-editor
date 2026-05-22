@@ -12,8 +12,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
-from code_analysis.commands.universal_file_edit.format_group import FormatDescriptor
-from code_analysis.core.tree_temp.tree_node import TreeNode
+from ai_editor.ported.universal_file_edit.format_group import FormatDescriptor
+try:
+    from ai_editor.ported.universal_file_edit.tree_temp_open_support import TreeNode
+except ImportError:
+    TreeNode = object  # type: ignore[assignment,misc]  # tree-temp deferred to G-003
 
 _sessions: dict[str, EditSession] = {}
 

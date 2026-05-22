@@ -10,7 +10,7 @@ concepts:
 - C-029
 - C-030
 - C-031
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-010. File: ai_editor/formatters/cst/tree_modifier.py. Operation: create_file.
 

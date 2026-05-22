@@ -11,7 +11,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/__init__.py. Operation: crea
   \n```python\n\"\"\"Ported code from code-analysis-server, adapted for standalone
   use.\"\"\"\n```\n\nThis makes ai_editor/ported/ a proper Python package importable
   as ai_editor.ported.\nNo imports, no exports, no logic. Just the module docstring."
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/ported/__init__.py
 verification:

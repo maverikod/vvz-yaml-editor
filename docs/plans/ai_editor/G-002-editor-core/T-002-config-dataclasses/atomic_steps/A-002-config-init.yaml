@@ -15,7 +15,7 @@ prompt: "Project: ai_editor. File: ai_editor/config/__init__.py. Operation: crea
   \    CodeAnalysisServerConfig,\n)\n\n__all__ = [\n    \"AiEditorConfig\",\n    \"\
   AiEditorFormatterConfig\",\n    \"AiEditorSessionsConfig\",\n    \"CodeAnalysisServerAuthConfig\"\
   ,\n    \"CodeAnalysisServerConfig\",\n]\n```"
-status: draft
+status: done
 step_id: A-002
 target_file: ai_editor/config/__init__.py
 verification:

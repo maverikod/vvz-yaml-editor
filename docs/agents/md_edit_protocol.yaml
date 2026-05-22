@@ -1,0 +1,126 @@
+meta:
+  title: Markdown File Edit Protocol
+  version: '1.0'
+  applies_to: all .md files in ai_editor project via universal_file_edit
+  format_group: text
+  rule: NEVER use line numbers for .md edits. Always use node_ref. Line numbers 
+    shift after every edit and cause cascading errors.
+golden_rule: node_ref is the only safe address for .md. Line numbers are 
+  forbidden.
+workflow:
+  step_1_open:
+    command: universal_file_open
+    params:
+      project_id: <uuid>
+      file_path: <path>
+    returns:
+      session_id: use in all subsequent calls
+      format_group: always 'text' for .md
+  step_2_preview_section:
+    command: universal_file_preview
+    params:
+      project_id: <uuid>
+      file_path: <path>
+      session_id: <sid>
+      node_ref: <slug-path>
+    returns:
+      focus.text: section body WITHOUT heading line
+      focus.attributes.start_line: 1-based, heading line
+      focus.attributes.end_line: 1-based, last line of section body
+    rule: Read section content here. Do NOT use start_line/end_line from this 
+      response in edit ops.
+  step_3_edit:
+    command: universal_file_edit
+    rule: Use node_ref field, NOT start_line/end_line. One batch per call. 
+      Bottom-to-top order unnecessary when using node_ref.
+    operations:
+      replace_full_section:
+        description: Replace entire section including heading
+        op:
+          type: replace
+          node_ref: <slug-path>
+          content: "### Heading Title\n\nNew body content.\n"
+        critical: content MUST include the heading line (### ...). node_ref 
+          replace covers heading+body.
+      replace_body_only:
+        description: Replace section body, keep existing heading
+        op:
+          type: replace
+          node_ref: <slug-path>/__content
+          content: "New body only.\n"
+        note: /__content suffix targets body without heading
+      insert_after_section:
+        description: Insert new content after a section
+        op:
+          type: insert
+          node_ref: <slug-path>
+          content: "### New Section\n\nContent.\n"
+        note: default position is after — inserts after end_line of referenced 
+          section
+      insert_before_section:
+        description: Insert new content before a section
+        op:
+          type: insert
+          node_ref: <slug-path>
+          position: before
+          content: "### Preamble\n\nContent.\n"
+  step_4_verify:
+    command: universal_file_write
+    params:
+      write_mode: preview
+    rule: Always preview before commit. Verify diff matches intent.
+  step_5_commit:
+    command: universal_file_write
+    params:
+      write_mode: commit
+  step_6_close:
+    command: universal_file_close
+node_ref_format:
+  description: Dot-separated slug path derived from heading hierarchy
+  slug_rule: heading text lowercased, spaces and special chars replaced with 
+    hyphens
+  examples:
+  - headings:
+    - '# AI Editor Technical Specification'
+    - '## G-003 ...'
+    - '### AbstractFormatter required contract'
+    node_ref: 
+      ai-editor-technical-specification.g-003-abstractformatter-and-formatter-backends-text-yaml-json-cst.abstractformatter-required-contract
+  - headings:
+    - '# AI Editor Technical Specification'
+    - '## Error model'
+    node_ref: ai-editor-technical-specification.error-model
+  discovery: 'If node_ref is unknown: call universal_file_preview without node_ref
+    to get top-level structure, then drill down. Or use fulltext_search to find a
+    unique phrase and derive the heading path.'
+what_replace_covers:
+  with_node_ref: heading line + full body up to next same-or-higher heading
+  with_node_ref___content: body only, heading line preserved
+  implication: 'When using plain node_ref replace, new content must include ### heading
+    line or the heading is lost'
+forbidden_patterns:
+- start_line / end_line in edit operations for .md — NEVER
+- using line numbers cached from a previous preview after any edit — lines shift
+- probe-replace lines to discover positions
+- multiple edits in one batch using line numbers
+- reading start_line from preview response and using it in edit op
+allowed_fallback:
+  condition: node_ref UNKNOWN_NODE_REF error after correct slug attempt
+  action: Call universal_file_preview on the file (no node_ref) to list 
+    top-level blocks, find the correct node_ref from the returned block 
+    summaries, then retry
+batch_edit_rules:
+  rule: Multiple node_ref operations in one batch are safe — no ordering 
+    constraint when using node_ref
+  exception: If one op inserts a section that another op in the same batch 
+    references by node_ref — split into two calls
+replace_then_verify_pattern:
+  description: Canonical safe pattern for any .md section update
+  steps:
+  - universal_file_preview(node_ref) — read current content, confirm heading 
+    text
+  - universal_file_edit([{type:replace, node_ref:..., content:'### 
+    Heading\n\nNew body\n'}])
+  - universal_file_write(preview) — inspect diff
+  - universal_file_write(commit) — only if diff is correct
+  - universal_file_close

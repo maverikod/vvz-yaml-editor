@@ -1,0 +1,77 @@
+step_id: A-002
+parent_tactical_step: T-004
+name: Create ConversionRule instances and register_all_rules
+target_file: ai_editor/formatters/conversion/rules.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-056
+- C-057
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.conversion.rules
+  expected: Module imports; register_all_rules exists; calling it on a fresh 
+    ConversionRegistry registers >= 15 rules; text->markdown and markdown->html 
+    rules are present.
+prompt: "Project: ai_editor. Tactical step: T-004. File: ai_editor/formatters/conversion/rules.py.
+  Operation: create_file.\n\nMRS C-056 full conversion matrix (v1) to implement as
+  ConversionRule entries.\nConversionRule (from A-001): source_formatter str, target_formatter
+  str, converter Callable[[Any,Any,Any],Any], lossy bool, description str.\n\nTop-level
+  imports only:\n```python\nfrom __future__ import annotations\nimport html as html_lib\n\
+  import json\nfrom typing import Any\nfrom ai_editor.formatters.conversion.registry
+  import ConversionRegistry, ConversionRule\n```\n\nAll converter functions are module-level
+  with signature:\ndef _<src>_to_<tgt>(fragment: Any, src_inst: Any, tgt_inst: Any)
+  -> Any\nAll non-stdlib imports inside converter bodies are LAZY.\n\nImplement these
+  converters:\n\ndef _text_to_markdown(f, s, t): return \"\\n\\n\" + str(f) + \"\\\
+  n\\n\"\ndef _text_to_yaml(f, s, t): return str(f)\ndef _text_to_json(f, s, t): return
+  json.dumps(str(f))\ndef _text_to_xml(f, s, t): escaped = html_lib.escape(str(f));
+  return f\"<text>{escaped}</text>\"\ndef _text_to_html(f, s, t): return f\"<p>{html_lib.escape(str(f))}</p>\"\
+  \n\ndef _markdown_to_text(f, s, t):\n    import mistune\n    md = mistune.create_markdown(renderer=\"\
+  ast\")\n    tokens = md(str(f))\n    return \" \".join(tok.get(\"raw\", \"\") for
+  tok in tokens if isinstance(tok, dict))\n\ndef _markdown_to_yaml(f, s, t):\n   \
+  \ import mistune\n    from io import StringIO\n    from ruamel.yaml import YAML\n\
+  \    md = mistune.create_markdown(renderer=\"ast\")\n    tokens = md(str(f))\n \
+  \   y = YAML(); buf = StringIO()\n    y.dump([{\"type\": tok.get(\"type\"), \"content\"\
+  : tok.get(\"raw\", \"\")} for tok in tokens if isinstance(tok, dict)], buf)\n  \
+  \  return buf.getvalue()\n\ndef _markdown_to_xml(f, s, t):\n    import mistune\n\
+  \    from lxml import etree\n    html_str = mistune.create_markdown()(str(f))\n\
+  \    try: return etree.tostring(etree.fromstring(f\"<doc>{html_str}</doc>\".encode()),
+  encoding=\"unicode\")\n    except Exception: return f\"<doc>{html_str}</doc>\"\n\
+  \ndef _markdown_to_html(f, s, t):\n    import mistune\n    return mistune.create_markdown()(str(f))\n\
+  \ndef _yaml_to_text(f, s, t):\n    from io import StringIO\n    from ruamel.yaml
+  import YAML\n    y = YAML(); buf = StringIO(); y.dump(f, buf); return buf.getvalue()\n\
+  \ndef _yaml_to_json(f, s, t):\n    from io import StringIO\n    from ruamel.yaml
+  import YAML\n    y = YAML(); buf = StringIO(); y.dump(f, buf)\n    return json.dumps(json.loads(buf.getvalue()),
+  indent=2)\n\ndef _json_to_text(f, s, t): return json.dumps(f, indent=2)\n\ndef _json_to_yaml(f,
+  s, t):\n    from io import StringIO\n    from ruamel.yaml import YAML\n    y = YAML();
+  buf = StringIO(); y.dump(f, buf); return buf.getvalue()\n\ndef _json_to_markdown(f,
+  s, t): return f\"```json\\n{json.dumps(f, indent=2)}\\n```\"\n\ndef _xml_to_text(f,
+  s, t):\n    from lxml import etree\n    return etree.tostring(f, encoding=\"unicode\"\
+  ) if hasattr(f, \"tag\") else str(f)\n\ndef _xml_to_yaml(f, s, t):\n    from io
+  import StringIO\n    from ruamel.yaml import YAML\n    from lxml import etree\n\
+  \    d = {\"tag\": f.tag, \"attrs\": dict(f.attrib), \"text\": f.text or \"\", \"\
+  children\": [c.tag for c in f]}\n    y = YAML(); buf = StringIO(); y.dump(d, buf);
+  return buf.getvalue()\n\ndef _xml_to_html(f, s, t):\n    from lxml import etree\n\
+  \    return etree.tostring(f, encoding=\"unicode\")\n\ndef _html_to_text(f, s, t):\n\
+  \    from bs4 import BeautifulSoup\n    soup = f if hasattr(f, \"get_text\") else
+  BeautifulSoup(str(f), \"lxml\")\n    return soup.get_text(separator=\"\\n\")\n\n\
+  def _html_to_markdown(f, s, t):\n    import html2text\n    h = html2text.HTML2Text();
+  h.ignore_links = False\n    return h.handle(str(f))\n\ndef _html_to_xml(f, s, t):\n\
+  \    from lxml import etree\n    return etree.fromstring(str(f).encode(\"utf-8\"\
+  ))\n\ndef _cst_to_text(f, s, t): return f.module.code if hasattr(f, \"module\")
+  else str(f)\ndef _cst_to_cst(f, s, t): return f  # identity; stable_id reassigned
+  by base on paste\n\nImplement register_all_rules(registry: ConversionRegistry) ->
+  None that calls\nregistry.register(ConversionRule(...)) for every rule:\n  text->markdown
+  (lossy=False), text->yaml (lossy=True), text->json (lossy=False),\n  text->xml (lossy=True),
+  text->html (lossy=False),\n  markdown->text (lossy=True), markdown->yaml (lossy=True),\n\
+  \  markdown->xml (lossy=True), markdown->html (lossy=True),\n  yaml->text (lossy=False),
+  yaml->json (lossy=True),\n  json->text (lossy=False), json->yaml (lossy=False),
+  json->markdown (lossy=True),\n  xml->text (lossy=False), xml->yaml (lossy=True),
+  xml->html (lossy=True),\n  html->text (lossy=True), html->markdown (lossy=True),
+  html->xml (lossy=True),\n  cst->text (lossy=False), cst->cst (lossy=False).\n\n\
+  Constraints: all non-stdlib imports are lazy (inside converter body); file under
+  200 lines.\nModule docstring: \"Conversion rules for cross-formatter clipboard paste
+  in ai_editor.\"\n"

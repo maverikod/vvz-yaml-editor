@@ -8,30 +8,27 @@ email: vasilyvz@gmail.com
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Dict, Type, cast
+from typing import Any, Dict, Type
 
-from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
+from ai_editor.result import ErrorResult, SuccessResult
 
-from code_analysis.commands.base_mcp_command import BaseMCPCommand
-from code_analysis.commands.universal_file_edit.errors import (
+from ai_editor.project import BaseMCPCommand
+from ai_editor.ported.universal_file_edit.errors import (
     SESSION_NOT_FOUND,
     error_result_from_make_error,
     make_error,
 )
-from code_analysis.commands.universal_file_edit.format_group import (
+from ai_editor.ported.universal_file_edit.format_group import (
     FORMAT_SIDECAR,
     FORMAT_TEXT,
     FORMAT_TREE_TEMP,
     delete_lockfile,
     read_lockfile_pid,
 )
-from code_analysis.commands.universal_file_edit.session import (
+from ai_editor.ported.universal_file_edit.session import (
     EditSession,
     get_session,
     release_session,
-)
-from code_analysis.commands.universal_file_edit.close_command_metadata import (
-    get_universal_file_close_metadata,
 )
 
 
@@ -91,14 +88,14 @@ class UniversalFileCloseCommand(BaseMCPCommand):
         Returns:
             Metadata dict with description, parameters, examples, errors.
         """
-        return cast(Dict[str, Any], get_universal_file_close_metadata(cls))
+        return {}
 
     async def execute(  # type: ignore[override]
         self,
         project_id: str,
         session_id: str,
         **kwargs: Any,
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Execute the close command.
 
         Args:

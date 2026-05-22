@@ -18,4 +18,4 @@ verification:
   type: import
   target: ai_editor.formatters.text
   expected: TextFormatter is importable from the text package. The package public export list contains only TextFormatter.
-status: draft
+status: done

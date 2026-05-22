@@ -8,7 +8,7 @@ depends_on: []
 concepts:
 - C-030
 - C-031
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-011. File: ai_editor/formatters/cst/query/index_builder.py. Operation: create_file.
 

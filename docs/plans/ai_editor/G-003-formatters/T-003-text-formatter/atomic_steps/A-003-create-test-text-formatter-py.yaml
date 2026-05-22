@@ -92,4 +92,4 @@ verification:
   type: pytest
   target: tests/formatters/test_text_formatter.py
   expected: All tests in the module pass when run with project venv active; zero failures.
-status: draft
+status: done

@@ -40,7 +40,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/errors.p
   it if `cast(Any, code)` calls remain. Since we are keeping the\n   cast calls, keep
   the import as-is.\n\nNo other changes. Preserve all docstrings, comments, and constant
   definitions."
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/ported/universal_file_edit/errors.py
 verification:

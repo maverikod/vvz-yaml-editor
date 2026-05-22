@@ -16,7 +16,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/session.
   import TreeNode\n→\n  try:\n      from ai_editor.ported.universal_file_edit.tree_temp_open_support
   import TreeNode\n  except ImportError:\n      TreeNode = object  # type: ignore[assignment,misc]\
   \  # tree-temp deferred to G-003\n\nNo other changes."
-status: draft
+status: done
 step_id: A-006
 target_file: ai_editor/ported/universal_file_edit/session.py
 verification:

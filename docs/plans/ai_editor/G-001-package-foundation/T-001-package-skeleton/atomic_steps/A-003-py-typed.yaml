@@ -8,7 +8,7 @@ prompt: "Project: ai_editor. File: ai_editor/py.typed. Operation: create_file.\n
   Create the file ai_editor/py.typed as an empty file (zero bytes).\nThis is a PEP
   561 marker that signals to type checkers that ai_editor\nprovides inline type annotations.\n\
   \nThe file must be empty. Do not write any content to it."
-status: draft
+status: done
 step_id: A-003
 target_file: ai_editor/py.typed
 verification:

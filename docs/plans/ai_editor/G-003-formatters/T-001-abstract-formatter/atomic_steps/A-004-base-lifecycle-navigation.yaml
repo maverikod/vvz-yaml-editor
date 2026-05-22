@@ -13,7 +13,7 @@ concepts:
 - C-031
 - C-063
 - C-064
-status: draft
+status: done
 prompt: |
   Project: ai_editor. File: ai_editor/formatters/base.py. Operation: modify_file.
   

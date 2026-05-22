@@ -1,0 +1,42 @@
+step_id: A-004
+parent_tactical_step: T-005
+name: Add markdown/xml/html to validate_file_schema formatter enum
+target_file: ai_editor/commands/validate_file_schema.py
+operation: modify_file
+priority: 4
+depends_on: []
+concepts:
+- C-052
+- C-054
+- C-055
+status: done
+verification:
+  type: import
+  target: ai_editor.commands.validate_file_schema
+  expected: Schema imports; get_validate_file_schema() returns schema where 
+    formatter property enum includes 'markdown', 'xml', 'html'.
+prompt: "Project: ai_editor. Tactical step: T-005. File: ai_editor/commands/validate_file_schema.py.
+  Operation: modify_file.\n\nCurrent file content (ai_editor/commands/validate_file_schema.py):\n\
+  \n```python\n\"\"\"JSON Schema for validate_file command parameters.\"\"\"\nfrom
+  __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_validate_file_schema()
+  -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for validate_file.\"\
+  \"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n \
+  \           \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session
+  identifier.\"},\n            \"file_path\": {\"type\": \"string\"},\n          \
+  \  \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"\
+  },\n            \"project_id\": {\"type\": \"string\"},\n            \"formatter\"\
+  : {\"type\": \"string\", \"default\": \"auto\"},\n            \"schema\": {\"type\"\
+  : \"object\"},\n        },\n        \"required\": [\"session_key\"],\n        \"\
+  additionalProperties\": False,\n    }\n```\n\nModification required:\n1. In the
+  \"formatter\" property, add an \"enum\" list containing all allowed values:\n  \
+  \ [\"auto\", \"text\", \"yaml\", \"json\", \"cst\", \"markdown\", \"xml\", \"html\"\
+  ]\n2. Update the \"formatter\" property to include a description:\n   \"Formatter
+  name. auto detects by extension: .yaml/.yml->yaml, .py->cst, .json->json, .md/.markdown->markdown,
+  .xml/.xsd/.xsl/.xslt/.svg->xml, .html/.htm/.xhtml->html, else->text.\"\n\nNew formatter
+  property should be:\n```python\n\"formatter\": {\n    \"type\": \"string\",\n  \
+  \  \"default\": \"auto\",\n    \"enum\": [\"auto\", \"text\", \"yaml\", \"json\"\
+  , \"cst\", \"markdown\", \"xml\", \"html\"],\n    \"description\": \"Formatter name.
+  auto detects by extension: .yaml/.yml->yaml, .py->cst, .json->json, .md/.markdown->markdown,
+  .xml/.xsd/.xsl/.xslt/.svg->xml, .html/.htm/.xhtml->html, else->text.\",\n},\n```\n\
+  \nDo not change any other properties, required list, or additionalProperties.\n\
+  Constraint: file stays under 35 lines."

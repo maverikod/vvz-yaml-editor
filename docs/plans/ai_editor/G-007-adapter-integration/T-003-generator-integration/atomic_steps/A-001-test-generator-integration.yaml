@@ -10,7 +10,7 @@ concepts:
 - C-019
 prompt: "Project: ai_editor. Tactical step: parent tactical step. File: tests/integration/test_config_generator_integration.py. Operation: create_file.\n\nRound-trip: generate config, no .tmp left, validator passes, invalid kwargs raise ConfigGenerationError without .tmp file.\n\nCreate with exact content:\n\n```python\n\"\"\"parent tactical step — AiEditorConfigGenerator round-trip integration.\"\"\"\nfrom __future__ import annotations\n\nimport json\nfrom pathlib import Path\n\nimport pytest\n\nfrom ai_editor.config.config_generator import AiEditorConfigGenerator, ConfigGenerationError\nfrom ai_editor.config.config_section import AiEditorConfig\nfrom ai_editor.config.config_validator import AiEditorConfigValidator\n\n\ndef test_generate_and_validate(tmp_path: Path) -> None:\n    out = tmp_path / \"config.json\"\n    gen = AiEditorConfigGenerator()\n    gen.generate(\"https\", str(out))\n    assert not (tmp_path / \"config.json.tmp\").exists()\n    raw = json.loads(out.read_text(encoding=\"\
   utf-8\"))\n    errors = AiEditorConfigValidator().validate(raw)\n    assert errors == [] or all(\"ai_editor\" not in e for e in errors)\n    cfg = AiEditorConfig.from_config_json(raw)\n    assert cfg.formatter.small_file_formatter\n\n\ndef test_invalid_kwargs_raises_and_no_tmp(tmp_path: Path) -> None:\n    gen = AiEditorConfigGenerator()\n    out = tmp_path / \"bad.json\"\n    with pytest.raises(ConfigGenerationError):\n        gen.generate(\"https\", str(out), small_file_threshold=\"1g\")\n    assert not (tmp_path / \"bad.json.tmp\").exists()```"
-status: draft
+status: done
 verification:
   type: pytest
   target: tests/integration/test_config_generator_integration.py

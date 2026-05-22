@@ -8,7 +8,7 @@ depends_on: []
 concepts:
 - C-028
 - C-021
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-013 JsonFormatter (C-028). File: ai_editor/formatters/json/address.py. Operation: create_file.
 

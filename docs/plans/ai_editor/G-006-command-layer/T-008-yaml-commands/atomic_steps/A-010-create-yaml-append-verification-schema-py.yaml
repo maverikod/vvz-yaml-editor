@@ -9,7 +9,7 @@ concepts:
   - C-045
   - C-047
 prompt: "Project: ai_editor. Tactical step: T-008. File: ai_editor/commands/yaml_append_verification_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for yaml_append_verification command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_yaml_append_verification_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for yaml_append_verification.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"},\n            \"item\": {},\n            \"dedupe\": {{\"type\": \"boolean\", \"default\": True}},\n            {DRY_RUN_PROP},\n        },\n        \"required\": [\"session_key\", \"buffer_id\", \"item\"],\n        \"additionalProperties\": False,\n    }\n```"
-status: draft
+status: done
 verification:
   type: import
   target: ai_editor.commands.yaml_append_verification_schema

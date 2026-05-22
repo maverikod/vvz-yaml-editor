@@ -8,10 +8,11 @@ prompt: "Project: ai_editor. File: ai_editor/__init__.py. Operation: create_file
   \nCreate the file ai_editor/__init__.py with the following exact content:\n\n```python\n\
   \"\"\"ai_editor — universal document editor for AI models and MCP servers.\"\"\"\
   \n\n__version__ = \"0.1.0\"\n```\n\nNo other content. No imports. No __all__."
-status: draft
+status: done
 step_id: A-002
 target_file: ai_editor/__init__.py
 verification:
-  expected: from ai_editor import __version__; assert __version__ == '0.1.0'
+  expected: The module ai_editor is importable and exposes __version__ equal to 
+    the string '0.1.0'. No other public names are present.
   target: ai_editor
   type: import

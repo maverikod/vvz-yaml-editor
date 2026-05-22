@@ -1,9 +1,11 @@
 step_id: G-007
 name: mcp_proxy_adapter integration and service manager
 status: frozen
-description: 'Entry point, adapter wiring, proxy auto-registration, and service lifecycle. ai_editor never implements HTTP routes or JSON-RPC handlers manually. mcp_proxy_adapter generates the entire external API surface automatically. Config components (AiEditorConfig, Validator, Generator) are owned by G-002; this step only wires them into the startup sequence.
-
-  '
+description: "Entry point, adapter wiring, proxy auto-registration, and service lifecycle.
+  ai_editor never implements HTTP routes or JSON-RPC handlers manually. mcp_proxy_adapter
+  generates the entire external API surface automatically. Config components (AiEditorConfig,
+  Validator, Generator) are owned by G-002; this step only wires them into the startup
+  sequence.\n"
 concepts:
 - C-049
 - C-050
@@ -26,7 +28,7 @@ relations:
   type: uses
 source_ranges:
 - start: 1365
-  end: 1439
+  end: 1466
 depends_on:
 - G-001
 - G-002
@@ -36,4 +38,5 @@ tactical_steps:
 - T-002
 - T-003
 - T-004
-cascade_note: unchanged; I1c source_ranges audited 2026-05-21
+cascade_note: unchanged; I1c source_ranges audited 2026-05-21; S4 fix 
+  source_ranges end 1439->1466 (pyproject deps binding text) 2026-05-22

@@ -1,7 +1,7 @@
 step_id: T-004
 parent_global_step: G-003
 name: YamlFormatter — parse, render, address resolution
-status: needs_review
+status: frozen
 description: "YamlFormatter converters: parse via ruamel round-trip, render preserving
   comments/order, node_from_source, node_to_source. Address = stable_id. No per-format
   structural mutations. VIEWER INVARIANTS: (NQ-006 option B) YamlFormatter surfaces

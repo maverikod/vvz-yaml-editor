@@ -9,7 +9,7 @@ concepts:
   - C-045
   - C-047
 prompt: "Project: ai_editor. Tactical step: T-002. File: ai_editor/commands/session_connect_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for session_connect command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_session_connect_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for session_connect.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"readonly\": {\"type\": \"boolean\", \"default\": False, \"description\": \"Open session read-only.\"},\n        },\n        \"additionalProperties\": False,\n    }\n```"
-status: draft
+status: done
 verification:
   type: import
   target: ai_editor.commands.session_connect_schema

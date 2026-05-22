@@ -22,7 +22,7 @@ prompt: "Project: ai_editor. Tactical step: T-003. File: ai_editor/commands/file
   advisory lock on the buffer file. True (default) locks; False reads without locking.\"\
   },\n        },\n        \"required\": [\"session_key\", \"buffer_id\"],\n      \
   \  \"additionalProperties\": False,\n    }\n```"
-status: draft
+status: done
 verification:
   type: import
   target: ai_editor.commands.file_get_schema

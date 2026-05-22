@@ -448,7 +448,7 @@ def generate_g005() -> tuple[list[Path], list[Path]]:
                 "target": "ai_editor.sessions.undo_redo",
                 "expected": "undo, redo, buf_history, buf_checkout, buf_diff import.",
             },
-            extra="Use ErrorCode.UNDO_NOT_AVAILABLE and REDO_NOT_AVAILABLE per G-001.\n",
+            extra="Use ErrorCode.UNDO_AT_BEGINNING and REDO_AT_END per G-001.\n",
         )
     )
     ts_updated.append(update_ts_atomic(f"{G5}/T-009-undo-redo/README.yaml", ["A-001"]))

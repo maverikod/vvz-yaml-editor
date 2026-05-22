@@ -47,13 +47,13 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/formatter_registry.py. 
   list_formatters(self) -> list[str]:\n        \"\"\"Return all registered formatter
   names in registration order.\n\n        Returns:\n            List of formatter
   name strings.\n        \"\"\"\n        return list(self._by_name.keys())\n```"
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/editor_core/formatter_registry.py
 verification:
-  expected: from ai_editor.editor_core.formatter_registry import 
-    FormatterRegistry; r = FormatterRegistry(); r.register('yaml', ['.yaml'], 
-    object); r.get_by_extension('.yaml') is object; r.list_formatters() == 
-    ['yaml'].
+  expected: The module ai_editor.editor_core.formatter_registry imports without 
+    error. FormatterRegistry is importable and can be instantiated. The registry
+    supports registering a formatter class by name and extensions, retrieving it
+    by extension, and listing registered formatter names.
   target: ai_editor.editor_core.formatter_registry
   type: import

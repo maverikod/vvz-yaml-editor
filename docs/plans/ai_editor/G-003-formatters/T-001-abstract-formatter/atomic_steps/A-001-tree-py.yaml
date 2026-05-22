@@ -8,7 +8,7 @@ depends_on: []
 concepts:
 - C-063
 - C-064
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-001 AbstractFormatter base (G-003). File: ai_editor/formatters/tree.py. Operation: create_file.
 

@@ -24,7 +24,7 @@ prompt: "Project: ai_editor. Tactical step: T-003. File: ai_editor/commands/file
   False (default) keeps lock; True releases lock so another client can acquire it.\"\
   },\n        },\n        \"required\": [\"session_key\", \"buffer_id\"],\n      \
   \  \"additionalProperties\": False,\n    }\n```"
-status: draft
+status: done
 verification:
   type: import
   target: ai_editor.commands.file_send_schema

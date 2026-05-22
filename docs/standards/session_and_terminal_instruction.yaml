@@ -1,0 +1,93 @@
+meta:
+  title: Session and Terminal Usage Instruction
+  version: '1.0'
+  applies_to: all Claude sessions working with ai_editor project
+  locale: en
+session_id_source:
+  rule: session_id == project_id for the current project
+  ai_editor_project:
+    project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+    session_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+  rationale: 'Both values are the same UUID4. This is a deliberate convention: one
+    session per project, identified by the project UUID itself. Never generate a new
+    UUID4 for session_id — always reuse project_id.'
+code_analysis_server_session:
+  description: Edit session opened via universal_file_open on 
+    code-analysis-server. Required only when writing files. Never open for 
+    read-only operations.
+  when_to_open: Only when performing file edits (universal_file_edit + 
+    universal_file_write). Never for preview/read.
+  workflow: universal_file_open → [universal_file_preview →] universal_file_edit
+    → universal_file_write(preview) → universal_file_write(commit) → 
+    universal_file_close
+  params:
+    project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+  reading_without_session:
+    rule: universal_file_preview does NOT require an open edit session. Pass 
+      only project_id and file_path. Omit session_id entirely.
+    anti_pattern: Never open a file with universal_file_open just to read it — 
+      this locks the file for all other operations.
+  session_id_in_edit_ops:
+    rule: Pass the session_id returned by universal_file_open in all subsequent 
+      universal_file_edit and universal_file_write calls for that file.
+    scope: session_id here is the edit session UUID returned by 
+      universal_file_open, NOT the project_id. These are different UUIDs.
+    note: The project_id==session_id rule applies only to mcp-terminal, not to 
+      code-analysis-server edit sessions.
+mcp_terminal_session:
+  description: 'Terminal session on mcp-terminal server. Composite key: (project_id,
+    session_id). session_id == project_id by convention.'
+  server_id: mcp-terminal
+  session_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+  project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+  workspace_write_policy:
+    rule: 'At most ONE session per project may have workspace_write: true. This is
+      the write-capable terminal session.'
+    constraint: Only open workspace_write sessions for the CURRENT project 
+      (ai_editor). Never for other projects.
+    on_conflict: 'If WORKSPACE_WRITE_NOT_ALLOWED: read data.workspace_writer_session_id
+      from error, call terminal_delete on that session_id, then retry.'
+  chat_startup_check:
+    rule: 'At the start of every chat session that may run terminal commands: call
+      terminal_sessions to check if a session already exists for project_id.'
+    command: terminal_sessions
+    params:
+      project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+    if_exists: 'Reuse existing session — call terminal_session_create with same project_id+session_id
+      (idempotent, returns already_exists: true).'
+    if_not_exists: 'Create: terminal_session_create with project_id=session_id=84ec55c8-cefd-480d-beb6-fa1d35e60362,
+      workspace_write=true.'
+  create_params:
+    project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+    session_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+    workspace_write: true
+    bootstrap_python_env: false
+    use_venv: true
+  run_commands:
+    command: terminal_run
+    required_params:
+    - project_id
+    - session_id
+    - cmd
+    always_pass:
+      project_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+      session_id: 84ec55c8-cefd-480d-beb6-fa1d35e60362
+    poll: terminal_get_status after terminal_run; then terminal_tail for output.
+summary_rules:
+- session_id == project_id == 84ec55c8-cefd-480d-beb6-fa1d35e60362 for 
+  mcp-terminal
+- 'For code-analysis-server reads: NO session needed — universal_file_preview with
+  project_id only'
+- 'For code-analysis-server writes: open edit session, use returned session_id in
+  edits, close after commit'
+- Edit session_id (from universal_file_open) != project_id — these are different
+  UUIDs
+- Terminal workspace_write only for current project, never for other projects
+- 'Chat startup: always check terminal_sessions before first terminal_run'
+anti_patterns:
+- Opening universal_file_open just to read — locks the file unnecessarily
+- Using project_id as edit session_id in universal_file_edit — wrong, use the 
+  UUID returned by universal_file_open
+- Opening workspace_write terminal for a project other than ai_editor
+- Running terminal_run without checking if session exists first
+- Forgetting universal_file_close after write — leaves stale file lock

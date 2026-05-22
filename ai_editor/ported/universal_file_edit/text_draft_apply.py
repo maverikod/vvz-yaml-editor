@@ -9,27 +9,23 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
+from ai_editor.result import ErrorResult, SuccessResult
 
-from code_analysis.commands.universal_file_edit.edit_draft_path_utils import (
+from ai_editor.ported.universal_file_edit.edit_draft_path_utils import (
     project_root_near,
 )
-from code_analysis.commands.universal_file_edit.errors import (
+from ai_editor.ported.universal_file_edit.errors import (
     WRITE_FAILED,
     error_result_for_edit,
 )
-from code_analysis.commands.universal_file_replace_command import (
-    TextReplacementTriple,
-    _sort_text_replacements_bottom_up,
-)
-from code_analysis.commands.universal_file_edit.session import EditSession
-from code_analysis.core.backup_manager import BackupManager
+from ai_editor.ported.universal_file_edit.session import EditSession
+from ai_editor.ported.backup_manager import BackupManager
 
 
 def run_text_draft_apply(
     session: EditSession,
     operations: List[Dict[str, Any]],
-) -> SuccessResult | ErrorResult:
+) -> dict:
     """Apply text edits to ``session.draft_path`` sorted bottom-up.
 
     Each operation supports:
@@ -68,36 +64,37 @@ def run_text_draft_apply(
         else:
             line_ops.append(op)
 
-    # Sort line-targeted ops bottom-up.
-    keyed: List[Dict[str, Any]] = []
-    for op in line_ops:
-        s_ln = int(op.get("start_line", 1))
-        e_raw = op.get("end_line")
-        e_ln = s_ln if e_raw is None else int(e_raw)
-        keyed.append({"start": s_ln, "end": e_ln, "op": op})
-    triples_only: List[TextReplacementTriple] = [
-        (int(k["start"]), int(k["end"]), [], None, None) for k in keyed
-    ]
-    _sort_text_replacements_bottom_up(triples_only)
-    keyed.sort(key=lambda row: (row["start"], row["end"]), reverse=True)
-    sorted_ops = [row["op"] for row in keyed]
+    def _apply_text_ranges(
+        lines: List[str],
+        ops: List[Dict[str, Any]],
+    ) -> List[str]:
+        keyed: List[Dict[str, Any]] = []
+        for op in ops:
+            s_ln = int(op.get("start_line", 1))
+            e_raw = op.get("end_line")
+            e_ln = s_ln if e_raw is None else int(e_raw)
+            keyed.append({"start": s_ln, "end": e_ln, "op": op})
+        keyed.sort(key=lambda row: (int(row["start"]), int(row["end"])), reverse=True)
 
-    # Apply line-targeted ops first (bottom-up).
-    for op in sorted_ops:
-        start = int(op.get("start_line", 1)) - 1
-        e_raw = op.get("end_line")
-        end = (start + 1) if e_raw is None else int(e_raw)
-        content_raw = op.get("content", "")
-        content_str = content_raw if isinstance(content_raw, str) else str(content_raw)
-        op_type = op.get("type", "replace")
-        if op_type == "delete":
-            del buffer[start:end]
-        elif op_type == "insert":
-            inserted = content_str if content_str.endswith("\n") else content_str + "\n"
-            buffer.insert(start, inserted)
-        else:
-            block = content_str if content_str.endswith("\n") else content_str + "\n"
-            buffer[start:end] = [block]
+        for row in keyed:
+            op = row["op"]
+            start = int(op.get("start_line", 1)) - 1
+            e_raw = op.get("end_line")
+            end = (start + 1) if e_raw is None else int(e_raw)
+            content_raw = op.get("content", "")
+            content_str = content_raw if isinstance(content_raw, str) else str(content_raw)
+            op_type = op.get("type", "replace")
+            if op_type == "delete":
+                del lines[start:end]
+            elif op_type == "insert":
+                inserted = content_str if content_str.endswith("\n") else content_str + "\n"
+                lines.insert(start, inserted)
+            else:
+                block = content_str if content_str.endswith("\n") else content_str + "\n"
+                lines[start:end] = [block]
+        return lines
+
+    buffer = _apply_text_ranges(buffer, line_ops)
 
     # Apply position='last' ops in order (append to current end of buffer).
     for op in append_ops:

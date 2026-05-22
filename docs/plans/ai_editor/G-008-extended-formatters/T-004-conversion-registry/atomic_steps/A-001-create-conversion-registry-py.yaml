@@ -1,0 +1,53 @@
+step_id: A-001
+parent_tactical_step: T-004
+name: Create ConversionRegistry and ConversionRule
+target_file: ai_editor/formatters/conversion/registry.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-056
+- C-057
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.conversion.registry
+  expected: Module imports; ConversionRule dataclass has 
+    source_formatter/target_formatter/converter/lossy/description; 
+    ConversionRegistry has register/can_convert/convert/list_conversions; 
+    conversion_registry singleton is ConversionRegistry; convert on unknown pair
+    raises ValueError(CLIPBOARD_FORMAT_MISMATCH).
+prompt: "Project: ai_editor. Tactical step: T-004. File: ai_editor/formatters/conversion/registry.py.
+  Operation: create_file.\n\nMRS C-056 ConversionRegistry: register(rule)->None; can_convert(src,tgt)->bool;\n\
+  convert(fragment,src_fmt,tgt_fmt,src_inst,tgt_inst)->fragment;\nlist_conversions()->list[ConversionRule];\n\
+  on_conversion_error: catch all exceptions, raise ValueError(CLIPBOARD_FORMAT_MISMATCH.value);\n\
+  module-level singleton: conversion_registry = ConversionRegistry().\nMRS C-057 ConversionRule:
+  source_formatter str, target_formatter str, converter Callable, lossy bool, description
+  str.\n\nImports:\n```python\nfrom __future__ import annotations\nfrom dataclasses
+  import dataclass\nfrom typing import Any, Callable\nfrom ai_editor.contracts.error_codes
+  import ErrorCode\n```\n\nCreate exactly this file:\n\n```python\n\"\"\"ConversionRegistry
+  and ConversionRule for cross-formatter clipboard conversion.\"\"\"\nfrom __future__
+  import annotations\n\nfrom dataclasses import dataclass\nfrom typing import Any,
+  Callable\n\nfrom ai_editor.contracts.error_codes import ErrorCode\n\n\n@dataclass\n\
+  class ConversionRule:\n    \"\"\"Single cross-formatter conversion entry.\"\"\"\n\
+  \n    source_formatter: str\n    target_formatter: str\n    converter: Callable[[Any,
+  Any, Any], Any]\n    lossy: bool\n    description: str\n\n\nclass ConversionRegistry:\n\
+  \    \"\"\"Registry of cross-formatter conversion rules.\"\"\"\n\n    def __init__(self)
+  -> None:\n        self._rules: dict[tuple[str, str], ConversionRule] = {}\n\n  \
+  \  def register(self, rule: ConversionRule) -> None:\n        \"\"\"Register a ConversionRule;
+  last write wins.\"\"\"\n        self._rules[(rule.source_formatter, rule.target_formatter)]
+  = rule\n\n    def can_convert(self, source_fmt: str, target_fmt: str) -> bool:\n\
+  \        \"\"\"Return True if a conversion rule exists for this pair.\"\"\"\n  \
+  \      if source_fmt == target_fmt:\n            return True\n        return (source_fmt,
+  target_fmt) in self._rules\n\n    def convert(\n        self,\n        fragment:
+  Any,\n        source_fmt: str,\n        target_fmt: str,\n        src_inst: Any,\n\
+  \        tgt_inst: Any,\n    ) -> Any:\n        \"\"\"Convert fragment. Raises ValueError(CLIPBOARD_FORMAT_MISMATCH)
+  on unknown pair or error.\"\"\"\n        if source_fmt == target_fmt:\n        \
+  \    return fragment\n        rule = self._rules.get((source_fmt, target_fmt))\n\
+  \        if rule is None:\n            raise ValueError(ErrorCode.CLIPBOARD_FORMAT_MISMATCH.value)\n\
+  \        try:\n            return rule.converter(fragment, src_inst, tgt_inst)\n\
+  \        except Exception as exc:\n            raise ValueError(ErrorCode.CLIPBOARD_FORMAT_MISMATCH.value)
+  from exc\n\n    def list_conversions(self) -> list[ConversionRule]:\n        \"\"\
+  \"Return all registered ConversionRule entries.\"\"\"\n        return list(self._rules.values())\n\
+  \n\n# Module-level singleton\nconversion_registry = ConversionRegistry()\n```\n\n\
+  Constraints: file under 80 lines; no side effects beyond creating the singleton.\n"

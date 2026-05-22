@@ -1,0 +1,21 @@
+step_id: A-002
+parent_tactical_step: T-003
+name: Create html package __init__.py
+target_file: ai_editor/formatters/html/__init__.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-055
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.html
+  expected: Package imports; HtmlFormatter accessible as 
+    ai_editor.formatters.html.HtmlFormatter.
+prompt: "Project: ai_editor. Tactical step: T-003. File: ai_editor/formatters/html/__init__.py.
+  Operation: create_file.\n\nCreate exactly this file:\n\n```python\n\"\"\"HTML formatter
+  package for ai_editor.\"\"\"\nfrom ai_editor.formatters.html.formatter import HtmlFormatter\n\
+  \n__all__ = [\"HtmlFormatter\"]\n```\n\nConstraints: no other exports; file under
+  10 lines.\n"

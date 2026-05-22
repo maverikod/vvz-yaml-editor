@@ -6,52 +6,79 @@ operation: create_file
 parent_tactical_step: T-002
 priority: 1
 prompt: "Project: ai_editor. File: ai_editor/contracts/error_codes.py. Operation:
-  create_file.\n\nMRS concept C-002 (ErrorCode): Centralised enum of all typed error
-  codes used\nacross every subsystem. Invariant: every possible typed error must appear
-  here;\nno subsystem defines its own ad-hoc error strings. Groups: Session, Buffer,
-  File,\nFormatter, Address, Search, Clipboard, YAML, CST, Validation, Write, History.\n\
-  \nCreate the directory ai_editor/contracts/ if it does not exist, then create the\n\
-  file ai_editor/contracts/error_codes.py with the following exact content:\n\n```python\n\
+  create_file (overwrite if exists).\n\nMRS concept C-002 (ErrorCode): Centralised
+  enum of all typed error codes used\nacross every subsystem. Invariant: every possible
+  typed error must appear here;\nno subsystem defines its own ad-hoc error strings.\n\
+  Groups (14): Session, Buffer, File, Formatter, Address, Search, Clipboard,\nYAML,
+  CST, Validation, Mutation, Write, History, (extra address aliases).\nTotal members:
+  55. Source of truth: source_spec.md error-model section.\n\nCreate the directory
+  ai_editor/contracts/ if it does not exist, then create\n(or fully overwrite) the
+  file ai_editor/contracts/error_codes.py with the\nfollowing exact content:\n\n```python\n\
   \"\"\"Centralised ErrorCode enum for all ai_editor subsystems.\n\nEvery typed error
   across Session, Buffer, File, Formatter, Address, Search,\nClipboard, YAML, CST,
-  Validation, Write, and History subsystems is defined here.\nNo subsystem may define
-  its own ad-hoc error strings.\n\"\"\"\nfrom __future__ import annotations\n\nfrom
-  enum import Enum\n\n\nclass ErrorCode(str, Enum):\n    \"\"\"Typed error codes for
-  all ai_editor operations.\"\"\"\n\n    # --- Session ---\n    SESSION_NOT_FOUND
-  = \"SESSION_NOT_FOUND\"\n    SESSION_READONLY = \"SESSION_READONLY\"\n    SESSION_ALREADY_EXISTS
-  = \"SESSION_ALREADY_EXISTS\"\n    SESSION_CORRUPT = \"SESSION_CORRUPT\"\n\n    #
-  --- Buffer ---\n    BUFFER_NOT_FOUND = \"BUFFER_NOT_FOUND\"\n    BUFFER_LOCKED =
-  \"BUFFER_LOCKED\"\n    BUFFER_READONLY = \"BUFFER_READONLY\"\n    BUFFER_MODIFIED
-  = \"BUFFER_MODIFIED\"\n    BUFFER_NOT_MODIFIED = \"BUFFER_NOT_MODIFIED\"\n    BUFFER_ALREADY_OPEN
-  = \"BUFFER_ALREADY_OPEN\"\n    BUFFER_SAVE_FAILED = \"BUFFER_SAVE_FAILED\"\n   \
-  \ BUFFER_RELOAD_FAILED = \"BUFFER_RELOAD_FAILED\"\n\n    # --- File ---\n    FILE_NOT_FOUND
-  = \"FILE_NOT_FOUND\"\n    FILE_ALREADY_EXISTS = \"FILE_ALREADY_EXISTS\"\n    FILE_ACCESS_DENIED
-  = \"FILE_ACCESS_DENIED\"\n    FILE_TOO_LARGE = \"FILE_TOO_LARGE\"\n    FILE_ENCODING_ERROR
-  = \"FILE_ENCODING_ERROR\"\n\n    # --- Formatter ---\n    FORMATTER_NOT_FOUND =
-  \"FORMATTER_NOT_FOUND\"\n    FORMATTER_PARSE_ERROR = \"FORMATTER_PARSE_ERROR\"\n\
-  \    FORMATTER_RENDER_ERROR = \"FORMATTER_RENDER_ERROR\"\n    FORMATTER_LINT_ERROR
-  = \"FORMATTER_LINT_ERROR\"\n    FORMATTER_UNSUPPORTED = \"FORMATTER_UNSUPPORTED\"\
-  \n\n    # --- Address ---\n    ADDRESS_NOT_FOUND = \"ADDRESS_NOT_FOUND\"\n    ADDRESS_INVALID
-  = \"ADDRESS_INVALID\"\n    ADDRESS_AMBIGUOUS = \"ADDRESS_AMBIGUOUS\"\n\n    # ---
-  Search ---\n    SEARCH_NO_MATCH = \"SEARCH_NO_MATCH\"\n    SEARCH_MULTIPLE_MATCHES
-  = \"SEARCH_MULTIPLE_MATCHES\"\n    SEARCH_INVALID_QUERY = \"SEARCH_INVALID_QUERY\"\
-  \n\n    # --- Clipboard ---\n    CLIPBOARD_EMPTY = \"CLIPBOARD_EMPTY\"\n    CLIPBOARD_FORMAT_MISMATCH
-  = \"CLIPBOARD_FORMAT_MISMATCH\"\n\n    # --- YAML ---\n    YAML_PARSE_ERROR = \"\
-  YAML_PARSE_ERROR\"\n    YAML_SCHEMA_ERROR = \"YAML_SCHEMA_ERROR\"\n    YAML_PATH_NOT_FOUND
-  = \"YAML_PATH_NOT_FOUND\"\n\n    # --- CST ---\n    CST_PARSE_ERROR = \"CST_PARSE_ERROR\"\
-  \n    CST_NODE_NOT_FOUND = \"CST_NODE_NOT_FOUND\"\n    CST_NESTED_BATCH = \"CST_NESTED_BATCH\"\
-  \n    CST_LINT_ERROR = \"CST_LINT_ERROR\"\n\n    # --- Validation ---\n    VALIDATION_ERROR
-  = \"VALIDATION_ERROR\"\n    SCHEMA_NOT_FOUND = \"SCHEMA_NOT_FOUND\"\n\n    # ---
-  Write ---\n    WRITE_FAILED = \"WRITE_FAILED\"\n    WRITE_CONFLICT = \"WRITE_CONFLICT\"\
-  \n    WRITE_PERMISSION_DENIED = \"WRITE_PERMISSION_DENIED\"\n\n    # --- History
-  ---\n    UNDO_NOT_AVAILABLE = \"UNDO_NOT_AVAILABLE\"\n    REDO_NOT_AVAILABLE = \"\
-  REDO_NOT_AVAILABLE\"\n```"
-status: draft
+  Validation, Mutation, Write, and History subsystems\nis defined here. No subsystem
+  may define its own ad-hoc error strings.\n\"\"\"\nfrom __future__ import annotations\n\
+  \nfrom enum import Enum\n\n\nclass ErrorCode(str, Enum):\n    \"\"\"Typed error
+  codes for all ai_editor operations.\"\"\"\n\n    # --- Session ---\n    SESSION_NOT_FOUND
+  = \"SESSION_NOT_FOUND\"\n    SESSION_LOCK_CONFLICT = \"SESSION_LOCK_CONFLICT\"\n\
+  \    SESSION_HAS_UNSAVED_BUFFERS = \"SESSION_HAS_UNSAVED_BUFFERS\"\n    SESSION_READONLY
+  = \"SESSION_READONLY\"\n    SESSION_HAS_UNSENT_FILES = \"SESSION_HAS_UNSENT_FILES\"\
+  \n\n    # --- Buffer ---\n    BUFFER_NOT_FOUND = \"BUFFER_NOT_FOUND\"\n    BUFFER_ALREADY_OPEN
+  = \"BUFFER_ALREADY_OPEN\"\n    BUFFER_HAS_UNSAVED_CHANGES = \"BUFFER_HAS_UNSAVED_CHANGES\"\
+  \n    BUFFER_STALE = \"BUFFER_STALE\"\n    BUFFER_INVALID = \"BUFFER_INVALID\"\n\
+  \    BUFFER_LOCKED = \"BUFFER_LOCKED\"\n    BUFFER_READONLY = \"BUFFER_READONLY\"\
+  \n\n    # --- File ---\n    FILE_HAS_UNSENT_CHANGES = \"FILE_HAS_UNSENT_CHANGES\"\
+  \n\n    # --- Formatter ---\n    FORMATTER_NOT_FOUND = \"FORMATTER_NOT_FOUND\"\n\
+  \    FORMATTER_UNSUPPORTED = \"FORMATTER_UNSUPPORTED\"\n    FORMATTER_COMMAND_DISCOVERY_FAILED
+  = \"FORMATTER_COMMAND_DISCOVERY_FAILED\"\n    FORMATTER_COMMAND_SCHEMA_INVALID =
+  \"FORMATTER_COMMAND_SCHEMA_INVALID\"\n    FORMATTER_COMMAND_UNSUPPORTED = \"FORMATTER_COMMAND_UNSUPPORTED\"\
+  \n    FORMAT_VALIDATION_FAILED = \"FORMAT_VALIDATION_FAILED\"\n    FORMAT_INVALID_ON_OPEN
+  = \"FORMAT_INVALID_ON_OPEN\"\n\n    # --- Address / path ---\n    PATH_PARSE_FAILED
+  = \"PATH_PARSE_FAILED\"\n    PATH_NOT_FOUND = \"PATH_NOT_FOUND\"\n    PATH_NOT_UNIQUE
+  = \"PATH_NOT_UNIQUE\"\n    TARGET_TYPE_MISMATCH = \"TARGET_TYPE_MISMATCH\"\n   \
+  \ ADDRESS_INVALID = \"ADDRESS_INVALID\"\n    ADDRESS_NOT_FOUND = \"ADDRESS_NOT_FOUND\"\
+  \n    ADDRESS_NOT_UNIQUE = \"ADDRESS_NOT_UNIQUE\"\n\n    # --- Search ---\n    SEARCH_QUERY_INVALID
+  = \"SEARCH_QUERY_INVALID\"\n    SEARCH_NO_MATCH = \"SEARCH_NO_MATCH\"\n    SEARCH_NOT_UNIQUE
+  = \"SEARCH_NOT_UNIQUE\"\n    SEARCH_SCOPE_INVALID = \"SEARCH_SCOPE_INVALID\"\n \
+  \   FORMATTER_SEARCH_UNSUPPORTED = \"FORMATTER_SEARCH_UNSUPPORTED\"\n\n    # ---
+  Clipboard ---\n    CLIPBOARD_EMPTY = \"CLIPBOARD_EMPTY\"\n    CLIPBOARD_ITEM_NOT_FOUND
+  = \"CLIPBOARD_ITEM_NOT_FOUND\"\n    CLIPBOARD_FORMAT_MISMATCH = \"CLIPBOARD_FORMAT_MISMATCH\"\
+  \n    CLIPBOARD_SOURCE_STALE = \"CLIPBOARD_SOURCE_STALE\"\n    CLIPBOARD_INVALID_MODE
+  = \"CLIPBOARD_INVALID_MODE\"\n\n    # --- YAML ---\n    YAML_PARSE_FAILED = \"YAML_PARSE_FAILED\"\
+  \n    SCHEMA_VALIDATION_FAILED = \"SCHEMA_VALIDATION_FAILED\"\n    SEMANTIC_VALIDATION_FAILED
+  = \"SEMANTIC_VALIDATION_FAILED\"\n    RENDER_NOT_DETERMINISTIC = \"RENDER_NOT_DETERMINISTIC\"\
+  \n    CHANGED_PATH_MISMATCH = \"CHANGED_PATH_MISMATCH\"\n\n    # --- CST ---\n \
+  \   CST_PARSE_FAILED = \"CST_PARSE_FAILED\"\n\n    # --- Validation ---\n    VALIDATION_FAILED
+  = \"VALIDATION_FAILED\"\n\n    # --- Mutation ---\n    MUTATION_ROLLBACK = \"MUTATION_ROLLBACK\"\
+  \n    PRE_WRITE_VALIDATION_FAILED = \"PRE_WRITE_VALIDATION_FAILED\"\n\n    # ---
+  Write ---\n    WRITE_FAILED = \"WRITE_FAILED\"\n    BACKUP_FAILED = \"BACKUP_FAILED\"\
+  \n    SAVE_TARGET_EXISTS = \"SAVE_TARGET_EXISTS\"\n    SAVE_TARGET_MISSING = \"\
+  SAVE_TARGET_MISSING\"\n\n    # --- History ---\n    UNDO_AT_BEGINNING = \"UNDO_AT_BEGINNING\"\
+  \n    REDO_AT_END = \"REDO_AT_END\"\n    HISTORY_UNAVAILABLE = \"HISTORY_UNAVAILABLE\"\
+  \n    GIT_COMMIT_FAILED = \"GIT_COMMIT_FAILED\"\n    GIT_NOT_AVAILABLE = \"GIT_NOT_AVAILABLE\"\
+  \n```\n\nDo not add, remove, or rename any members. Do not change the string values.\n\
+  If the file already exists, overwrite it entirely with the content above."
+status: done
 step_id: A-001
 target_file: ai_editor/contracts/error_codes.py
 verification:
-  expected: from ai_editor.contracts.error_codes import ErrorCode; 
-    ErrorCode.BUFFER_LOCKED == 'BUFFER_LOCKED'; all members are unique str 
-    values; len(ErrorCode) >= 40.
+  expected: "The file ai_editor/contracts/error_codes.py exists. The ErrorCode class
+    is importable from ai_editor.contracts.error_codes, inherits from both str and
+    Enum, and contains exactly 55 members organised across 14 comment-marked groups.
+    Every member's string value equals its name. Members match source_spec.md error-model
+    exactly: SESSION_NOT_FOUND, SESSION_LOCK_CONFLICT, SESSION_HAS_UNSAVED_BUFFERS,
+    SESSION_READONLY, SESSION_HAS_UNSENT_FILES, BUFFER_NOT_FOUND, BUFFER_ALREADY_OPEN,
+    BUFFER_HAS_UNSAVED_CHANGES, BUFFER_STALE, BUFFER_INVALID, BUFFER_LOCKED, BUFFER_READONLY,
+    FILE_HAS_UNSENT_CHANGES, FORMATTER_NOT_FOUND, FORMATTER_UNSUPPORTED, FORMATTER_COMMAND_DISCOVERY_FAILED,
+    FORMATTER_COMMAND_SCHEMA_INVALID, FORMATTER_COMMAND_UNSUPPORTED, FORMAT_VALIDATION_FAILED,
+    FORMAT_INVALID_ON_OPEN, PATH_PARSE_FAILED, PATH_NOT_FOUND, PATH_NOT_UNIQUE, TARGET_TYPE_MISMATCH,
+    ADDRESS_INVALID, ADDRESS_NOT_FOUND, ADDRESS_NOT_UNIQUE, SEARCH_QUERY_INVALID,
+    SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE, SEARCH_SCOPE_INVALID, FORMATTER_SEARCH_UNSUPPORTED,
+    CLIPBOARD_EMPTY, CLIPBOARD_ITEM_NOT_FOUND, CLIPBOARD_FORMAT_MISMATCH, CLIPBOARD_SOURCE_STALE,
+    CLIPBOARD_INVALID_MODE, YAML_PARSE_FAILED, SCHEMA_VALIDATION_FAILED, SEMANTIC_VALIDATION_FAILED,
+    RENDER_NOT_DETERMINISTIC, CHANGED_PATH_MISMATCH, CST_PARSE_FAILED, VALIDATION_FAILED,
+    MUTATION_ROLLBACK, PRE_WRITE_VALIDATION_FAILED, WRITE_FAILED, BACKUP_FAILED, SAVE_TARGET_EXISTS,
+    SAVE_TARGET_MISSING, UNDO_AT_BEGINNING, REDO_AT_END, HISTORY_UNAVAILABLE, GIT_COMMIT_FAILED,
+    GIT_NOT_AVAILABLE."
   target: ai_editor.contracts.error_codes
   type: import

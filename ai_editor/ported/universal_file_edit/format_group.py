@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from code_analysis.core.file_handlers.registry import RegistryError, resolve_handler
+from ai_editor.ported.file_handlers.registry import RegistryError, resolve_handler
 
 FORMAT_SIDECAR = "sidecar"
 FORMAT_TREE_TEMP = "tree-temp"

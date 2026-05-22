@@ -65,4 +65,4 @@ verification:
     ai_editor.ported.universal_file_edit.errors, 
     ai_editor.ported.universal_file_edit.format_group, 
     ai_editor.ported.universal_file_edit.session on the Python path.
-status: draft
+status: done

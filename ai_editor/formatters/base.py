@@ -1,0 +1,389 @@
+"""AbstractFormatter base class and formatter unit types."""
+from __future__ import annotations
+
+import hashlib
+import tempfile
+import uuid
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Protocol
+
+from ai_editor.contracts.diagnostic import Diagnostic
+from ai_editor.contracts.error_codes import ErrorCode
+from ai_editor.contracts.results import OperationResult, ValidationResult
+from ai_editor.formatters.sidecar import persist_tree_sidecar, save_sidecar
+from ai_editor.formatters.tree import Tree, TreeNode
+from ai_editor.writer import Writer
+
+class Linter(Protocol):
+    def __call__(self, path: str) -> ValidationResult: ...
+
+@dataclass
+class FormatterUnit:
+    """Addressable unit within the formatter Tree."""
+
+    address: str
+    unit_kind: str
+    display_text: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class ComparisonResult:
+    """Result of compare_units."""
+
+    equal: bool
+    details: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class SkeletonOptions:
+    """Configuration for render_skeleton."""
+
+    depth: int = 2
+    hint_fields: list[str] = field(default_factory=list)
+    collapse_threshold: int = 3
+    string_preview_len: int = 60
+    offset: int = 0
+
+@dataclass
+class FormatterCommandMetadata:
+    """Minimal command metadata stub."""
+
+    name: str
+    description: str
+    input_schema: dict[str, Any] = field(default_factory=dict)
+    output_schema: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class FormatterCommandCatalog:
+    """Minimal command catalog stub."""
+
+    formatter_name: str
+    formatter_version: str = "1.0"
+    standard_commands: list[FormatterCommandMetadata] = field(default_factory=list)
+    specific_commands: list[FormatterCommandMetadata] = field(default_factory=list)
+    openapi_schemas: dict[str, Any] = field(default_factory=dict)
+
+class AbstractFormatter(ABC):
+    """Base formatter owning Tree, stable_id identity, and structural operations."""
+
+    formatter_name: str = "base"
+    registered_extensions: list[str] = []
+    def __init__(self) -> None:
+        self._tree: Tree | None = None
+        self._source_sha256: str = ""
+        self._id_index: dict[str, TreeNode] = {}
+    @abstractmethod
+    def parse(self, raw_content: str) -> TreeNode: ...
+    @abstractmethod
+    def render(self, tree: Tree) -> str: ...
+    @abstractmethod
+    def node_from_source(self, raw_block: str) -> TreeNode: ...
+    @abstractmethod
+    def node_to_source(self, node: TreeNode) -> str: ...
+    @abstractmethod
+    def linters(self) -> list[Linter]: ...
+    def _assign_stable_ids(self, node: TreeNode) -> None:
+        if not node.stable_id:
+            node.stable_id = str(uuid.uuid4())
+        self._id_index[node.stable_id] = node
+        for child in node.children:
+            self._assign_stable_ids(child)
+    def _find_node(self, stable_id: str) -> TreeNode | None:
+        return self._id_index.get(stable_id)
+    def _walk(self, node: TreeNode):
+        yield node
+        for ch in node.children:
+            yield from self._walk(ch)
+    def open_tree(self, raw_content: str) -> Tree:
+        root = self.parse(raw_content)
+        self._id_index.clear()
+        self._assign_stable_ids(root)
+        self._tree = Tree(root=root)
+        self._source_sha256 = hashlib.sha256(raw_content.encode("utf-8")).hexdigest()
+        return self._tree
+    def export(self, tree: Tree | None = None) -> dict[str, Any]:
+        t = tree or self._tree
+        if t is None:
+            return {"success": False, "message": "no tree loaded", "diagnostics": []}
+        try:
+            content = self.render(t)
+            return {"success": True, "content": content, "diagnostics": []}
+        except Exception as exc:
+            return {
+                "success": False,
+                "message": str(exc),
+                "diagnostics": [Diagnostic(code=ErrorCode.WRITE_FAILED, message=str(exc))],
+            }
+    def render_skeleton(self, options: SkeletonOptions | None = None) -> str:
+        opts = options or SkeletonOptions()
+        if not self._tree:
+            return ""
+        lines: list[str] = []
+
+        def _render_node(node: TreeNode, depth: int) -> None:
+            if depth > opts.depth:
+                return
+            indent = "  " * depth
+            preview = node.display_text[: opts.string_preview_len]
+            lines.append(f"{indent}[{node.stable_id}] {node.node_kind}: {preview}")
+            if len(node.children) >= opts.collapse_threshold and depth >= opts.depth:
+                lines.append(f"{indent}  ... ({len(node.children)} children)")
+                return
+            for ch in node.children:
+                _render_node(ch, depth + 1)
+
+        _render_node(self._tree.root, 0)
+        return "\n".join(lines)
+    def normalize_address(self, address: Any) -> str:
+        return str(address)
+    def get_unit(self, address: str) -> FormatterUnit | None:
+        node = self._find_node(self.normalize_address(address))
+        if not node:
+            return None
+        return FormatterUnit(node.stable_id, node.node_kind, node.display_text, dict(node.metadata))
+    def iter_units(self) -> list[FormatterUnit]:
+        if not self._tree:
+            return []
+        return [
+            FormatterUnit(n.stable_id, n.node_kind, n.display_text, dict(n.metadata))
+            for n in self._walk(self._tree.root)
+            if n.stable_id
+        ]
+    def match_unit(self, unit: FormatterUnit, query: dict[str, Any]) -> bool:
+        text = query.get("contains_text")
+        if text and text.lower() not in unit.display_text.lower():
+            return False
+        kind = query.get("node_type")
+        if kind and unit.unit_kind != kind:
+            return False
+        return True
+    def compare_units(
+        self,
+        unit_a: FormatterUnit,
+        unit_b: FormatterUnit,
+        options: dict[str, Any] | None = None,
+    ) -> ComparisonResult:
+        equal = unit_a.address == unit_b.address and unit_a.unit_kind == unit_b.unit_kind
+        return ComparisonResult(equal=equal, details={"a": unit_a.address, "b": unit_b.address})
+    def diagnostics(self, tree: Tree | None = None) -> list[Diagnostic]:
+        return []
+    def _clear_stable_ids(self, node: TreeNode) -> None:
+        self._id_index.pop(node.stable_id, None)
+        node.stable_id = ""
+        for child in node.children:
+            self._clear_stable_ids(child)
+    def _find_parent_of(self, stable_id: str) -> TreeNode | None:
+        if not self._tree:
+            return None
+        for node in self._walk(self._tree.root):
+            for child in node.children:
+                if child.stable_id == stable_id:
+                    return node
+        return None
+    def _resolve_position(self, parent: TreeNode, position: str | int) -> int:
+        if position == "first":
+            return 0
+        if position == "last":
+            return len(parent.children)
+        return int(position)
+    def _is_ancestor(self, ancestor: TreeNode, node: TreeNode) -> bool:
+        for ch in ancestor.children:
+            if ch.stable_id == node.stable_id:
+                return True
+            if self._is_ancestor(ch, node):
+                return True
+        return False
+    def insert(self, tree: Tree | None, parent_address: str, position: str | int, content: str) -> Tree:
+        t = tree or self._tree
+        if t is None:
+            raise ValueError("no tree loaded")
+        parent = self._find_node(self.normalize_address(parent_address))
+        if parent is None:
+            raise ValueError(f"parent not found: {parent_address}")
+        new_node = self.node_from_source(content)
+        self._clear_stable_ids(new_node)
+        parent.children.insert(self._resolve_position(parent, position), new_node)
+        self._assign_stable_ids(new_node)
+        self._tree = t
+        return t
+    def delete(self, tree: Tree | None, address: str) -> Tree:
+        t = tree or self._tree
+        if t is None:
+            raise ValueError("no tree loaded")
+        sid = self.normalize_address(address)
+        if t.root.stable_id == sid:
+            raise ValueError("cannot delete root node")
+        parent = self._find_parent_of(sid)
+        if parent is None or self._find_node(sid) is None:
+            raise ValueError(f"address not found: {address}")
+        parent.children = [c for c in parent.children if c.stable_id != sid]
+        self._id_index.pop(sid, None)
+        self._tree = t
+        return t
+    def move(self, tree: Tree | None, address: str, target_parent_address: str, position: str | int) -> Tree:
+        t = tree or self._tree
+        if t is None:
+            raise ValueError("no tree loaded")
+        sid = self.normalize_address(address)
+        node = self._find_node(sid)
+        target = self._find_node(self.normalize_address(target_parent_address))
+        if node is None or target is None:
+            raise ValueError("address or target parent not found")
+        if self._is_ancestor(node, target):
+            raise ValueError("cannot move node into its own descendant")
+        source_parent = self._find_parent_of(sid)
+        if source_parent is None:
+            raise ValueError(f"address not found: {address}")
+        source_parent.children = [c for c in source_parent.children if c.stable_id != sid]
+        target.children.insert(self._resolve_position(target, position), node)
+        self._tree = t
+        return t
+    def replace_node(self, tree: Tree | None, address: str, content: str) -> Tree:
+        t = tree or self._tree
+        if t is None:
+            raise ValueError("no tree loaded")
+        sid = self.normalize_address(address)
+        node = self._find_node(sid)
+        if node is None:
+            raise ValueError(f"address not found: {address}")
+        preserved_id = node.stable_id
+        replacement = self.node_from_source(content)
+        node.node_kind = replacement.node_kind
+        node.start_line = replacement.start_line
+        node.end_line = replacement.end_line
+        node.display_text = replacement.display_text
+        node.metadata = dict(replacement.metadata)
+        node.children = replacement.children
+        self._clear_stable_ids(node)
+        node.stable_id = preserved_id
+        self._id_index[preserved_id] = node
+        self._assign_stable_ids(node)
+        self._tree = t
+        return t
+    def mutate_batch(self, tree: Tree | None, operations: list[dict[str, Any]]) -> Tree:
+        t = tree or self._tree
+        for op in operations:
+            kind = op["op"]
+            if kind == "insert":
+                t = self.insert(t, op["parent_address"], op["position"], op["content"])
+            elif kind == "delete":
+                t = self.delete(t, op["address"])
+            elif kind == "move":
+                t = self.move(t, op["address"], op["target_parent_address"], op["position"])
+            elif kind == "replace_node":
+                t = self.replace_node(t, op["address"], op["content"])
+            else:
+                raise ValueError(f"unknown operation: {kind}")
+        return t
+    def multiple_replace(self, tree: Tree | None, replacements: list[tuple[str, str]]) -> Tree:
+        t = tree or self._tree
+        for address, content in replacements:
+            t = self.replace_node(t, address, content)
+        return t
+    def _clone_node(self, node: TreeNode) -> TreeNode:
+        return TreeNode(
+            stable_id=node.stable_id,
+            node_kind=node.node_kind,
+            start_line=node.start_line,
+            end_line=node.end_line,
+            display_text=node.display_text,
+            metadata=dict(node.metadata),
+            children=[self._clone_node(c) for c in node.children],
+        )
+    def copy_fragment(self, tree: Tree | None, source_address: str) -> dict[str, Any]:
+        t = tree or self._tree
+        if t is None:
+            raise ValueError("no tree loaded")
+        node = self._find_node(self.normalize_address(source_address))
+        if node is None:
+            raise ValueError(f"address not found: {source_address}")
+        return {"root": self._clone_node(node)}
+    def cut_fragment(self, tree: Tree | None, source_address: str) -> tuple[Tree, dict[str, Any], list[str]]:
+        fragment = self.copy_fragment(tree, source_address)
+        sid = self.normalize_address(source_address)
+        return self.delete(tree, sid), fragment, [sid]
+    def paste_fragment(
+        self,
+        tree: Tree | None,
+        target_parent_address: str,
+        position: str | int,
+        fragment: dict[str, Any],
+    ) -> tuple[Tree, list[str]]:
+        t = tree or self._tree
+        if t is None:
+            raise ValueError("no tree loaded")
+        pasted = self._clone_node(fragment["root"])
+        self._clear_stable_ids(pasted)
+        parent = self._find_node(self.normalize_address(target_parent_address))
+        if parent is None:
+            raise ValueError(f"parent not found: {target_parent_address}")
+        parent.children.insert(self._resolve_position(parent, position), pasted)
+        self._assign_stable_ids(pasted)
+        changed = [n.stable_id for n in self._walk(pasted) if n.stable_id]
+        self._tree = t
+        return t, changed
+    def persist_sidecar(self, path: Path, source_content: str) -> str:
+        """Atomically write generic TREE_V1 sidecar for current tree."""
+        if not self._tree:
+            return save_sidecar(path, self.formatter_name, source_content, {})
+        return persist_tree_sidecar(path, self.formatter_name, source_content, self._tree.root)
+    def write(self, tree: Tree | None, path: Path, previous_content: str = "") -> OperationResult:
+        """WritePipeline: export, preview, lint temp file, atomic commit."""
+        t = tree or self._tree
+        if t is None:
+            return OperationResult(success=False, message="no tree loaded")
+        exported = self.export(t)
+        if not exported["success"]:
+            return OperationResult(success=False, message=exported["message"], diagnostics=exported["diagnostics"])
+        content = exported["content"]
+        details = {
+            "content": content,
+            "path": str(path),
+            "diff_preview": {
+                "changed": content != previous_content,
+                "previous_len": len(previous_content),
+                "new_len": len(content),
+            },
+        }
+        import os
+
+        fd, tmp_name = tempfile.mkstemp(suffix=".tmp")
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(content)
+            lint_diagnostics: list[Diagnostic] = []
+            for linter in self.linters():
+                result = linter(str(tmp_path))
+                if not result.success:
+                    lint_diagnostics.extend(result.diagnostics)
+            if lint_diagnostics:
+                return OperationResult(
+                    success=False,
+                    error_code=ErrorCode.FORMAT_VALIDATION_FAILED,
+                    message="lint failed",
+                    diagnostics=lint_diagnostics,
+                    details=details,
+                )
+            Writer().write_result(content, path)
+            return OperationResult(success=True, message="written", details=details)
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+    def list_commands(self) -> FormatterCommandCatalog:
+        """Return command catalog stub."""
+        pairs = (
+            ("open_tree", "Parse source and build in-memory tree"),
+            ("export", "Render tree to raw file content"),
+            ("render_skeleton", "Compact structural preview"),
+            ("insert", "Insert raw block under parent at position"),
+            ("delete", "Delete node by stable_id address"),
+            ("move", "Move node to new parent and position"),
+            ("replace_node", "Replace node body preserving stable_id"),
+            ("write", "Export, lint, and atomically write to path"),
+        )
+        return FormatterCommandCatalog(
+            formatter_name=self.formatter_name,
+            standard_commands=[FormatterCommandMetadata(n, d) for n, d in pairs],
+        )

@@ -4,13 +4,16 @@ name: Code analysis server client — download, upload, advisory lock
 status: draft
 description: "Create CodeAnalysisClient — the single HTTP gateway for all CA server
   calls. No other module reads or writes project files directly from disk. Implements:
-  download_file (chunked + SHA-256 verify + lock acquire), upload_file (chunked +
-  unlock_after_write), advisory_lock_batch, advisory_unlock, release_all_locks_for_session,
-  list_project_files, list_backup_versions, restore_backup_file, file_lock_status.
-  Auth: mTLS (default) or HTTPS+token (token read from env, never cached).\n"
+  download_content (transfer download, no lock side-effect), upload_content (writes
+  content only, never releases lock), lock_file (acquires advisory lock via session_open_file;
+  BUFFER_LOCKED if held), unlock_file (releases lock via session_close_file), list_file_locks
+  (pre-check via session_list_file_locks), list_project_files, list_backup_versions,
+  restore_backup_file. Auth: mTLS (default) or HTTPS+token (token read from env, never
+  cached).\n"
 concepts:
 - C-013
 - C-014
+- C-062
 inputs:
 - name: G-001 contracts
   type: ai_editor.contracts
@@ -24,10 +27,13 @@ outputs:
 - name: ai_editor/editor_core/ca_client.py
   type: file
   description: "CodeAnalysisClient class. Constructor: CodeAnalysisClient(config:
-    CodeAnalysisServerConfig). Public methods: download_file, upload_file, list_project_files,
-    list_backup_versions, restore_backup_file, advisory_lock_batch, advisory_unlock,
-    release_all_locks_for_session, file_lock_status. download_file returns tuple(bytes,
-    file_id|None, lock_session_id|None).\n"
+    CodeAnalysisServerConfig). Public methods per MRS C-013: download_content(project_id,
+    file_path, readonly) -> tuple(bytes, file_id|None); upload_content(project_id,
+    file_id, content) -> None; lock_file(ca_session_id, project_id, file_id) -> None;
+    unlock_file(ca_session_id, project_id, file_id) -> None; list_file_locks(ca_session_id,
+    project_id) -> list; list_project_files(project_id) -> list; list_backup_versions(project_id,
+    file_path) -> list; restore_backup_file(project_id, file_path, backup_uuid) ->
+    None.\n"
 - name: ai_editor/editor_core/__init__.py
   type: file
   description: Package init for editor_core.

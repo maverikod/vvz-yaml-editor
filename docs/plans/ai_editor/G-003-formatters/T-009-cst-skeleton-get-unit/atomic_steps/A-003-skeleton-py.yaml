@@ -9,7 +9,7 @@ depends_on:
 concepts:
 - C-033
 - C-031
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-009. File: ai_editor/formatters/cst/skeleton.py. Operation: create_file.
 

@@ -1,9 +1,26 @@
 step_id: T-005
 parent_global_step: G-008
-name: Registration wiring — hooks_register, pyproject.toml, clipboard integration
-status: needs_review
-description: "Wire all new formatters and ConversionRegistry into the existing\ninfrastructure. Three touch points:\n\n1. hooks_register.py (G-006/T-001 output) — updated registration order:\n     text:     .txt .log .rst .ini .cfg .toml  (REMOVE .md .markdown)\n     yaml:     .yaml .yml\n     json:     .json\n     cst:      .py\n     markdown: .md .markdown  (NEW — overrides text)\n     xml:      .xml .xsd .xsl .xslt .svg  (NEW)\n     html:     .html .htm .xhtml  (NEW)\n   After formatters: call register_all_rules(conversion_registry)\n   from ai_editor.formatters.conversion.rules.\n\n2. pyproject.toml (G-001/T-001 output) — add dependencies:\n     \"mistune>=3.0\"\n     \"lxml>=5.0\"\n     \"beautifulsoup4>=4.12\"\n     \"html2text>=2020.1.16\"\n\n3. clipboard.py (G-005/T-010 output) — paste path updated:\n   When formatter mismatch detected:\n     if conversion_registry.can_convert(src_fmt, tgt_fmt):\n       fragment = conversion_registry.convert(fragment, src_fmt, tgt_fmt,\n        \
-  \                                      src_instance, tgt_instance)\n     else:\n       return CLIPBOARD_FORMAT_MISMATCH\n   On conversion exception: CLIPBOARD_FORMAT_MISMATCH +\n     details.conversion_error = str(exception).\n   WRITE-THEN-COMMIT RULE still applies after successful cross-format paste.\n\n4. validate_file command (G-006/T-007) — formatter=auto mapping updated:\n     .yaml/.yml -> yaml\n     .py        -> cst\n     .json      -> json\n     .md/.markdown -> markdown  (NEW)\n     .xml/.xsd/.xsl/.xslt/.svg -> xml  (NEW)\n     .html/.htm/.xhtml -> html  (NEW)\n     else       -> text\n"
+name: Registration wiring — hooks_register, pyproject.toml, clipboard 
+  integration
+status: frozen
+description: "Wire all new formatters and ConversionRegistry into the existing\ninfrastructure.
+  Three touch points:\n\n1. hooks_register.py (G-006/T-001 output) — updated registration
+  order:\n     text:     .txt .log .rst .ini .cfg .toml  (REMOVE .md .markdown)\n\
+  \     yaml:     .yaml .yml\n     json:     .json\n     cst:      .py\n     markdown:
+  .md .markdown  (NEW — overrides text)\n     xml:      .xml .xsd .xsl .xslt .svg\
+  \  (NEW)\n     html:     .html .htm .xhtml  (NEW)\n   After formatters: call register_all_rules(conversion_registry)\n\
+  \   from ai_editor.formatters.conversion.rules.\n\n2. pyproject.toml (G-001/T-001
+  output) — add dependencies:\n     \"mistune>=3.0\"\n     \"lxml>=5.0\"\n     \"\
+  beautifulsoup4>=4.12\"\n     \"html2text>=2020.1.16\"\n\n3. clipboard.py (G-005/T-010
+  output) — paste path updated:\n   When formatter mismatch detected:\n     if conversion_registry.can_convert(src_fmt,
+  tgt_fmt):\n       fragment = conversion_registry.convert(fragment, src_fmt, tgt_fmt,\n\
+  \                                              src_instance, tgt_instance)\n   \
+  \  else:\n       return CLIPBOARD_FORMAT_MISMATCH\n   On conversion exception: CLIPBOARD_FORMAT_MISMATCH
+  +\n     details.conversion_error = str(exception).\n   WRITE-THEN-COMMIT RULE still
+  applies after successful cross-format paste.\n\n4. validate_file command (G-006/T-007)
+  — formatter=auto mapping updated:\n     .yaml/.yml -> yaml\n     .py        -> cst\n\
+  \     .json      -> json\n     .md/.markdown -> markdown  (NEW)\n     .xml/.xsd/.xsl/.xslt/.svg
+  -> xml  (NEW)\n     .html/.htm/.xhtml -> html  (NEW)\n     else       -> text\n"
 concepts:
 - C-052
 - C-054
@@ -34,13 +51,21 @@ inputs:
 outputs:
 - name: ai_editor/hooks_register.py
   type: file
-  description: Updated with markdown/xml/html registration + ConversionRegistry wiring.
+  description: Updated with markdown/xml/html registration + ConversionRegistry 
+    wiring.
 - name: pyproject.toml
   type: file
   description: Four new runtime dependencies added.
 - name: ai_editor/sessions/clipboard.py
   type: file
-  description: paste path updated with ConversionRegistry lookup on formatter mismatch.
-atomic_steps: []
-future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation. atomic_steps not written. Implement only after G-001..G-007 complete and G-008 approved in chat.
+  description: paste path updated with ConversionRegistry lookup on formatter 
+    mismatch.
+atomic_steps:
+- A-001
+- A-002
+- A-003
+- A-004
+future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation.
+  atomic_steps not written. Implement only after G-001..G-007 complete and G-008
+  approved in chat.
 cascade_note: changed — converter-only subclass pattern

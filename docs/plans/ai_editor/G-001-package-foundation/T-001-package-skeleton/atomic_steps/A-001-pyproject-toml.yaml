@@ -16,7 +16,7 @@ prompt: "Project: ai_editor. File: pyproject.toml. Operation: create_file.\n\nCr
   ai-editor = \"ai_editor.interfaces.cli:main\"\naiedmgr = \"ai_editor.interfaces.service_manager:main\"\
   \n\n[tool.hatch.build.targets.wheel]\npackages = [\"ai_editor\"]\n```\n\nIf pyproject.toml
   already exists, overwrite it entirely with the content above."
-status: draft
+status: done
 step_id: A-001
 target_file: pyproject.toml
 verification:

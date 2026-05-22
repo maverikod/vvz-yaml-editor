@@ -8,7 +8,7 @@ depends_on:
 - A-001
 concepts:
 - C-022
-status: draft
+status: done
 prompt: "Project: ai_editor. Tactical step: T-002. File: ai_editor/formatters/__init__.py. Operation: modify_file.\n\nMRS C-022: export FormatterCommandMetadata and FormatterCommandCatalog from the formatters package public API.\n\nCurrent file content after parent tactical step (full content — replace entire file):\n\n```python\n\"\"\"Public formatter base exports for ai_editor.\"\"\"\nfrom ai_editor.formatters.base import (\n    AbstractFormatter,\n    ComparisonResult,\n    FormatterUnit,\n    SkeletonOptions,\n)\n\n__all__ = [\n    \"AbstractFormatter\",\n    \"ComparisonResult\",\n    \"FormatterUnit\",\n    \"SkeletonOptions\",\n]\n```\n\nReplace the entire file with:\n\n```python\n\"\"\"Public formatter base and catalog exports for ai_editor.\"\"\"\nfrom ai_editor.formatters.base import (\n    AbstractFormatter,\n    ComparisonResult,\n    FormatterUnit,\n    SkeletonOptions,\n)\nfrom ai_editor.formatters.catalog import (\n    FormatterCommandCatalog,\n    FormatterCommandMetadata,\n\
   )\n\n__all__ = [\n    \"AbstractFormatter\",\n    \"ComparisonResult\",\n    \"FormatterCommandMetadata\",\n    \"FormatterCommandCatalog\",\n    \"FormatterUnit\",\n    \"SkeletonOptions\",\n]\n```\n\nConstraints: only add catalog imports and exports; do not remove T-001 base exports; under 30 lines.\n"
 verification:

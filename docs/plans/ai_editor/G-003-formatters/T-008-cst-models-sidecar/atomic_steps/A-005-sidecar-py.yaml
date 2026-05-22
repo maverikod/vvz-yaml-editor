@@ -10,7 +10,7 @@ depends_on:
 concepts:
 - C-032
 - C-034
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-008. File: ai_editor/formatters/cst/sidecar.py. Operation: create_file.
 

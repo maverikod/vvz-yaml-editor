@@ -12,7 +12,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/file_handlers/__init__.py. O
   code-analysis-server for standalone use.\"\"\"\n```\n\nThis makes ai_editor/ported/file_handlers/
   a proper Python package importable\nas ai_editor.ported.file_handlers. No imports,
   no exports, no logic."
-status: draft
+status: done
 step_id: A-003
 target_file: ai_editor/ported/file_handlers/__init__.py
 verification:

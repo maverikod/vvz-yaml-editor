@@ -19,7 +19,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/sidecar_
   = [\"run_sidecar_cst_edit_batch\", \"validate_sidecar_nested_batch\"]\n```\n\nThe
   original file content is preserved in G-003/T-008 where the real CST implementation
   is wired."
-status: draft
+status: done
 step_id: A-009
 target_file: ai_editor/ported/universal_file_edit/sidecar_cst_apply.py
 verification:

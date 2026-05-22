@@ -11,7 +11,7 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/save_pipeline.py. Opera
   create_file.\n\nMRS concepts:\n  C-013 CodeAnalysisClient: Single gateway for file
   I/O. upload_content writes\n    content only and never releases the lock. unlock_file
   is a separate call.\n  C-014 FileLock: server-side cooperative lock. Released only
-  via explicit\n    session_close_file during buffer close or save(close=True). upload_content\n\
+  via explicit\n    unlock_file during buffer close or save(close=True). upload_content\n\
   \    never releases the lock.\n\nThis module implements the three pipeline functions
   that the session layer (G-005)\ncalls when saving a buffer. The formatter WritePipeline
   (export, diff, temp, linters,\natomic rename) runs in the formatter layer (G-003).
@@ -42,8 +42,8 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/save_pipeline.py. Opera
   \ ],\n        )\n    except Exception as exc:\n        return ValidationResult(\n\
   \            success=False,\n            diagnostics=[Diagnostic(code=\"VALIDATION_ERROR\"\
   , message=str(exc))],\n        )\n\n\ndef run_save_pipeline(\n    formatter: Any,\n\
-  \    document: Any,\n    relative_path: str,\n    ca_client: CodeAnalysisClient,\n\
-  \    project_id: str,\n    file_id: str | None,\n    commit_message: str = \"\"\
+  \    document: Any,\n    relative_path: str,\n    ca_client: \"CodeAnalysisClient\"\
+  ,\n    project_id: str,\n    file_id: str | None,\n    commit_message: str = \"\"\
   ,\n) -> OperationResult:\n    \"\"\"Run the full save pipeline for a buffer.\n\n\
   \    Steps:\n      1. Export document via formatter WritePipeline (render, linters,
   atomic rename).\n      2. Read the written file bytes.\n      3. Upload to CA server
@@ -69,19 +69,21 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/save_pipeline.py. Opera
   \    except Exception as exc:\n        return OperationResult(\n            success=False,\n\
   \            error_code=ErrorCode.WRITE_FAILED,\n            message=str(exc),\n\
   \        )\n\n\ndef run_save_as_pipeline(\n    formatter: Any,\n    document: Any,\n\
-  \    new_relative_path: str,\n    ca_client: CodeAnalysisClient,\n    project_id:
-  str,\n    overwrite: bool,\n    commit_message: str = \"\",\n) -> OperationResult:\n\
-  \    \"\"\"Run the save-as pipeline, writing content to a new project path.\n\n\
-  \    Steps:\n      1. Check if target path already exists (unless overwrite=True).\n\
-  \      2. Export document via formatter WritePipeline.\n      3. Upload content
-  to CA server for the new path.\n      4. The file lock on the original file is NOT
-  released here.\n\n    Args:\n        formatter: AbstractFormatter instance owning
-  the document.\n        document: Current document state.\n        new_relative_path:
-  New project-relative destination path.\n        ca_client: CodeAnalysisClient gateway
-  to the CA server.\n        project_id: UUID of the project.\n        overwrite:
-  If False and the target path exists, return an error.\n        commit_message: Commit
-  message for the CA server (advisory).\n\n    Returns:\n        OperationResult with
-  success flag and any diagnostics.\n    \"\"\"\n    try:\n        existing = ca_client.list_project_files(project_id)\n\
+  \    new_relative_path: str,\n    ca_client: \"CodeAnalysisClient\",\n    project_id:
+  str,\n    file_id: str | None,\n    overwrite: bool,\n    commit_message: str =
+  \"\",\n) -> OperationResult:\n    \"\"\"Run the save-as pipeline, writing content
+  to a new project path.\n\n    Steps:\n      1. Check if target path already exists
+  (unless overwrite=True).\n      2. Export document via formatter WritePipeline.\n\
+  \      3. Upload content to CA server for the new path via upload_content.\n   \
+  \   4. The file lock on the original file is NOT released here.\n\n    Args:\n \
+  \       formatter: AbstractFormatter instance owning the document.\n        document:
+  Current document state.\n        new_relative_path: New project-relative destination
+  path.\n        ca_client: CodeAnalysisClient gateway to the CA server.\n       \
+  \ project_id: UUID of the project.\n        file_id: UUID of the new file on the
+  CA server, or None if not yet created.\n        overwrite: If False and the target
+  path exists, return an error.\n        commit_message: Commit message for the CA
+  server (advisory).\n\n    Returns:\n        OperationResult with success flag and
+  any diagnostics.\n    \"\"\"\n    try:\n        existing = ca_client.list_project_files(project_id)\n\
   \        exists = any(\n            f.get(\"relative_path\") == new_relative_path
   for f in existing\n        )\n        if exists and not overwrite:\n           \
   \ return OperationResult(\n                success=False,\n                error_code=ErrorCode.FILE_ALREADY_EXISTS,\n\
@@ -91,14 +93,12 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/save_pipeline.py. Opera
   \                error_code=ErrorCode.FORMATTER_LINT_ERROR,\n                message=export_result.get(\"\
   message\", \"Formatter export failed\"),\n            )\n        written_path: Path
   = export_result[\"path\"]\n        content = written_path.read_bytes()\n       \
-  \ # For save_as, upload_content always unlock_after_write=False\n        # (lock
-  on original file remains; new file has no lock)\n        ca_client.upload_content(project_id,
-  \"\", content)  # file_id TBD by session\n        return OperationResult(\n    \
-  \        success=True, message=f\"Saved as {new_relative_path}\"\n        )\n  \
-  \  except Exception as exc:\n        return OperationResult(\n            success=False,\n\
-  \            error_code=ErrorCode.WRITE_FAILED,\n            message=str(exc),\n\
-  \        )\n```"
-status: draft
+  \ if file_id is not None:\n            ca_client.upload_content(project_id, file_id,
+  content)\n        return OperationResult(\n            success=True, message=f\"\
+  Saved as {new_relative_path}\"\n        )\n    except Exception as exc:\n      \
+  \  return OperationResult(\n            success=False,\n            error_code=ErrorCode.WRITE_FAILED,\n\
+  \            message=str(exc),\n        )\n```"
+status: done
 step_id: A-001
 target_file: ai_editor/editor_core/save_pipeline.py
 verification:

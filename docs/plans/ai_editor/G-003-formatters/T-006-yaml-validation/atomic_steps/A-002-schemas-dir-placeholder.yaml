@@ -7,7 +7,7 @@ priority: 1
 depends_on: []
 concepts:
 - C-026
-status: draft
+status: done
 prompt: |
   Project: ai_editor. File: ai_editor/schemas/.gitkeep. Operation: create_file.
 

@@ -1,0 +1,24 @@
+step_id: A-003
+parent_tactical_step: T-004
+name: Create conversion package __init__.py
+target_file: ai_editor/formatters/conversion/__init__.py
+operation: create_file
+priority: 3
+depends_on:
+- A-001
+- A-002
+concepts:
+- C-056
+- C-057
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.conversion
+  expected: Package imports; ConversionRegistry, ConversionRule, 
+    conversion_registry all accessible from ai_editor.formatters.conversion.
+prompt: "Project: ai_editor. Tactical step: T-004. File: ai_editor/formatters/conversion/__init__.py.
+  Operation: create_file.\n\nCreate exactly this file:\n\n```python\n\"\"\"Conversion
+  registry package for cross-formatter clipboard paste.\"\"\"\nfrom ai_editor.formatters.conversion.registry
+  import (\n    ConversionRegistry,\n    ConversionRule,\n    conversion_registry,\n\
+  )\n\n__all__ = [\"ConversionRegistry\", \"ConversionRule\", \"conversion_registry\"\
+  ]\n```\n\nConstraints: no other exports; file under 15 lines.\n"

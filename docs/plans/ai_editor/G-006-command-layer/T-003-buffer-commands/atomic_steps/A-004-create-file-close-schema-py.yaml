@@ -9,7 +9,7 @@ concepts:
   - C-045
   - C-047
 prompt: "Project: ai_editor. Tactical step: T-003. File: ai_editor/commands/file_close_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for file_close command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_file_close_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for file_close.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"},\n            \"force\": {\"type\": \"boolean\", \"default\": False},\n            \"dry_run\": {\"type\": \"boolean\", \"default\": False, \"description\": \"Preview without mutating.\"},\n        },\n        \"required\": [\"session_key\", \"buffer_id\"],\n        \"additionalProperties\": False,\n    }\n```"
-status: draft
+status: done
 verification:
   type: import
   target: ai_editor.commands.file_close_schema

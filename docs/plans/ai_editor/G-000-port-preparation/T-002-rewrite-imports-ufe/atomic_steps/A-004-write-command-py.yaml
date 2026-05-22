@@ -39,7 +39,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/write_co
   unified_diff_text\n\nCHANGE 12:\n  from code_analysis.core.git_integration import
   commit_after_write\n→ from ai_editor.git import commit_after_write\n\nAlso: return
   type annotations '-> SuccessResult | ErrorResult:' change to '-> dict:'."
-status: draft
+status: done
 step_id: A-004
 target_file: ai_editor/ported/universal_file_edit/write_command.py
 verification:

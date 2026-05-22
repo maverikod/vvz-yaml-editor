@@ -9,7 +9,7 @@ concepts:
 - C-030
 - C-034
 - C-032
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-008 CST models and sidecar (G-003). File: ai_editor/formatters/cst/tree_node_metadata.py. Operation: create_file.
 

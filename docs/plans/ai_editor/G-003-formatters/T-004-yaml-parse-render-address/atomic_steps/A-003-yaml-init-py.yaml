@@ -8,7 +8,7 @@ depends_on:
 - A-002
 concepts:
 - C-026
-status: draft
+status: done
 prompt: 'Project: ai_editor. File: ai_editor/formatters/yaml/__init__.py. Operation: create_file.
 
 

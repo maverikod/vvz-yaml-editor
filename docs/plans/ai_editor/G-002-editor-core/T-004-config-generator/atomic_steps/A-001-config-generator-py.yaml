@@ -5,43 +5,130 @@ name: Create ai_editor/config/config_generator.py — AiEditorConfigGenerator
 operation: create_file
 parent_tactical_step: T-004
 priority: 1
-prompt: "Project: ai_editor. File: ai_editor/config/config_generator.py. Operation:
-  create_file.\n\nMRS concept C-019 AiEditorConfigGenerator: Config generator that
-  extends adapter\nSimpleConfigGenerator; calls super first, then appends ai_editor
-  and\ncode_analysis_server sections to produced config.json.\nProperties: extends
-  SimpleConfigGenerator (mcp_proxy_adapter), calls_super:\ngenerates base adapter
-  config first, appends: ai_editor section +\ncode_analysis_server section.\n\nCreate
-  the file ai_editor/config/config_generator.py with the following exact content:\n\
-  \n```python\n\"\"\"AiEditorConfigGenerator — appends ai_editor and CA server sections
-  to config.json.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import
-  Any\n\ntry:\n    from mcp_proxy_adapter.core.config.simple_config import SimpleConfigGenerator\n\
-  \    _BaseGenerator = SimpleConfigGenerator\nexcept ImportError:\n    class SimpleConfigGenerator:\
-  \  # type: ignore[no-redef]\n        \"\"\"Fallback when mcp_proxy_adapter is not
-  available.\"\"\"\n        def generate(self) -> dict[str, Any]:  # noqa: D102\n\
-  \            return {}\n    _BaseGenerator = SimpleConfigGenerator\n\n\nclass AiEditorConfigGenerator(_BaseGenerator):\
-  \  # type: ignore[misc]\n    \"\"\"Appends ai_editor and code_analysis_server sections
-  to the generated config.\n\n    Extends the adapter SimpleConfigGenerator. Calls
-  super().generate() first\n    to produce the base adapter config, then appends the
-  ai_editor and\n    code_analysis_server sections.\n    \"\"\"\n\n    def generate(self)
-  -> dict[str, Any]:\n        \"\"\"Generate the full config.json dict.\n\n      \
-  \  Calls super().generate() to produce the adapter base config, then\n        merges
-  in the ai_editor and code_analysis_server sections.\n\n        Returns:\n      \
-  \      Complete config dict ready to write to config.json.\n        \"\"\"\n   \
-  \     config: dict[str, Any] = super().generate()  # type: ignore[misc]\n      \
-  \  config.setdefault(\"ai_editor\", {\n            \"formatter\": {\n          \
-  \      \"small_file_threshold\": \"50kb\",\n                \"small_file_formatter\"\
-  : \"text\",\n            },\n            \"sessions\": {\n                \"base_dir\"\
-  : \"/tmp/ai_editor_sessions\",\n            },\n        })\n        config.setdefault(\"\
-  code_analysis_server\", {\n            \"host\": \"localhost\",\n            \"\
-  port\": 15000,\n            \"protocol\": \"https\",\n            \"auth\": {\n\
-  \                \"use_token\": False,\n                \"token_env\": None,\n \
-  \           },\n        })\n        return config\n```"
-status: draft
+prompt: |
+  Project: ai_editor
+  Target file: ai_editor/config/config_generator.py
+  Operation: create_file
+
+  Rewrite this file to exactly the implementation below (complete create spec matching current disk state).
+
+  Required imports and symbols:
+  - import json
+  - import os
+  - from pathlib import Path
+  - from typing import Any
+  - from mcp_proxy_adapter.core.config.simple_config_generator import SimpleConfigGenerator
+  - from ai_editor.config.config_validator import AiEditorConfigValidator
+  - class ConfigGenerationError(RuntimeError)
+  - class AiEditorConfigGenerator(SimpleConfigGenerator)
+
+  Required behavior and constraints:
+  - generate(protocol: str, out_path: str = "config.json", **kwargs: Any) -> str
+  - call super().generate(protocol=protocol, out_path=<tmp file>, **kwargs)
+  - use temporary file <out_path>.tmp
+  - read generated tmp JSON, append/override ai_editor and code_analysis_server fields from kwargs/defaults
+  - validate resulting dict via AiEditorConfigValidator(config_path=str(tmp_file)).validate(raw)
+  - on validation errors raise ConfigGenerationError(errors_as_strings)
+  - on success write prettified JSON back to tmp and atomically replace output with os.replace(tmp, out)
+  - delete tmp file in both ConfigGenerationError and generic exception branches before re-raising
+  - return output file path string on success
+
+  File content to create exactly:
+  ```python
+  """AiEditorConfigGenerator writes validated config atomically."""
+  from __future__ import annotations
+
+  import json
+  import os
+  from pathlib import Path
+  from typing import Any
+
+  from mcp_proxy_adapter.core.config.simple_config_generator import SimpleConfigGenerator
+
+  from ai_editor.config.config_validator import AiEditorConfigValidator
+
+
+  class ConfigGenerationError(RuntimeError):
+      """Raised when generated config fails ai_editor validation."""
+
+      def __init__(self, errors: list[str]):
+          self.errors = errors
+          super().__init__("; ".join(errors))
+
+
+  class AiEditorConfigGenerator(SimpleConfigGenerator):
+      """Generate config and append ai_editor/code_analysis_server sections."""
+
+      def generate(self, protocol: str, out_path: str = "config.json", **kwargs: Any) -> str:
+          """Generate config via adapter, validate it, then atomically replace output."""
+          out_file = Path(out_path)
+          tmp_file = Path(f"{out_path}.tmp")
+
+          small_file_threshold = kwargs.pop("small_file_threshold", "50kb")
+          small_file_formatter = kwargs.pop("small_file_formatter", "text")
+          sessions_base_dir = kwargs.pop("sessions_base_dir", "/tmp/ai_editor_sessions")
+
+          ca_host = kwargs.pop("ca_host", "localhost")
+          ca_port = kwargs.pop("ca_port", 15000)
+          ca_protocol = kwargs.pop("ca_protocol", protocol)
+          ca_servername = kwargs.pop("ca_servername", None)
+          ca_check_hostname = kwargs.pop("ca_check_hostname", True)
+          ca_ssl = kwargs.pop("ca_ssl", None)
+          ca_auth_use_token = kwargs.pop("ca_auth_use_token", False)
+          ca_auth_token_env = kwargs.pop("ca_auth_token_env", None)
+
+          try:
+              super().generate(protocol=protocol, out_path=str(tmp_file), **kwargs)
+              raw = json.loads(tmp_file.read_text(encoding="utf-8"))
+
+              raw.setdefault("ai_editor", {})
+              raw["ai_editor"].setdefault("formatter", {})
+              raw["ai_editor"]["formatter"]["small_file_threshold"] = small_file_threshold
+              raw["ai_editor"]["formatter"]["small_file_formatter"] = small_file_formatter
+              raw["ai_editor"].setdefault("sessions", {})
+              raw["ai_editor"]["sessions"]["base_dir"] = sessions_base_dir
+
+              raw.setdefault("code_analysis_server", {})
+              raw["code_analysis_server"]["host"] = ca_host
+              raw["code_analysis_server"]["port"] = ca_port
+              raw["code_analysis_server"]["protocol"] = ca_protocol
+              raw["code_analysis_server"]["servername"] = ca_servername
+              raw["code_analysis_server"]["check_hostname"] = ca_check_hostname
+              raw["code_analysis_server"]["ssl"] = ca_ssl
+              raw["code_analysis_server"].setdefault("auth", {})
+              raw["code_analysis_server"]["auth"]["use_token"] = ca_auth_use_token
+              raw["code_analysis_server"]["auth"]["token_env"] = ca_auth_token_env
+
+              validation_errors = AiEditorConfigValidator(config_path=str(tmp_file)).validate(raw)
+              if validation_errors:
+                  raise ConfigGenerationError(
+                      [getattr(err, "message", str(err)) for err in validation_errors]
+                  )
+
+              tmp_file.write_text(
+                  json.dumps(raw, indent=2, ensure_ascii=False),
+                  encoding="utf-8",
+              )
+              out_file.parent.mkdir(parents=True, exist_ok=True)
+              os.replace(tmp_file, out_file)
+              return str(out_file)
+          except ConfigGenerationError:
+              if tmp_file.exists():
+                  tmp_file.unlink()
+              raise
+          except Exception:
+              if tmp_file.exists():
+                  tmp_file.unlink()
+              raise
+  ```
+status: done
 step_id: A-001
 target_file: ai_editor/config/config_generator.py
 verification:
-  expected: from ai_editor.config.config_generator import 
-    AiEditorConfigGenerator; g = AiEditorConfigGenerator(); cfg = g.generate(); 
-    'ai_editor' in cfg; 'code_analysis_server' in cfg.
+  expected: Importing ai_editor.config.config_generator succeeds; ConfigGenerationError
+    stores a list[str] in errors and uses joined text as message; AiEditorConfigGenerator.generate(...)
+    writes to <out_path>.tmp via super(), injects ai_editor/code_analysis_server fields,
+    validates with AiEditorConfigValidator, atomically replaces out_path on success,
+    and removes the temporary file before re-raising on validation or unexpected errors.
   target: ai_editor.config.config_generator
   type: import

@@ -1,0 +1,79 @@
+step_id: A-002
+parent_tactical_step: T-001
+name: Create MarkdownFormatter converter hooks
+target_file: ai_editor/formatters/markdown/formatter.py
+operation: create_file
+priority: 2
+depends_on:
+- A-001
+concepts:
+- C-052
+- C-053
+- C-021
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.markdown.formatter.MarkdownFormatter
+  expected: MarkdownFormatter imports; formatter_name='markdown'; 
+    registered_extensions=['.md','.markdown']; linters() returns []; parse('# 
+    Hello\n\nParagraph.') returns TreeNode root with two children; render 
+    produces non-empty string.
+prompt: "Project: ai_editor. Tactical step: T-001. File: ai_editor/formatters/markdown/formatter.py.
+  Operation: create_file.\n\nMRS excerpts:\n- C-052 MarkdownFormatter: library=mistune>=3.0;
+  document_model=list[MdNode]; address_model=int|\"heading:<text>\"|\"N.M\"; registered_extensions=[.md,.markdown];
+  overrides TextFormatter; validate_document=mistune parse round-trip.\n- C-053 MdNode:
+  node_type str, content str, level int|None, children list[MdNode], attrs dict, source_pos
+  tuple[int,int]|None.\n- C-021 AbstractFormatter: subclasses implement parse, render,
+  node_from_source, node_to_source, linters ONLY. Must NOT override open_tree/export/render_skeleton/insert/delete/move/replace_node/mutate_batch/multiple_replace/copy_fragment/cut_fragment/paste_fragment/write/list_commands.
+  Must NOT assign/read stable_id.\n\nBase API (inlined):\nclass Linter(Protocol):
+  def __call__(self, path: str) -> ValidationResult: ...\nclass AbstractFormatter(ABC):
+  formatter_name: str; registered_extensions: list[str]; @abstractmethod def parse(self,
+  raw_content: str) -> TreeNode; @abstractmethod def render(self, tree: Tree) -> str;
+  @abstractmethod def node_from_source(self, raw_block: str) -> TreeNode; @abstractmethod
+  def node_to_source(self, node: TreeNode) -> str; @abstractmethod def linters(self)
+  -> list[Linter].\n\nTreeNode: stable_id str, node_kind str, start_line int, end_line
+  int, display_text str, metadata dict, children list[TreeNode].\nTree: root TreeNode.\n\
+  \nMdNode (from A-001): node_type str, content str='', level int|None=None, children
+  list[MdNode]=[], attrs dict={}, source_pos tuple[int,int]|None=None.\n\nImports:
+  from __future__ import annotations; from typing import Any; import mistune; from
+  ai_editor.formatters.base import AbstractFormatter, Linter; from ai_editor.formatters.markdown.md_node
+  import MdNode; from ai_editor.formatters.tree import Tree, TreeNode.\n\nImplement
+  MarkdownFormatter(AbstractFormatter):\n  formatter_name = \"markdown\"\n  registered_extensions
+  = [\".md\", \".markdown\"]\n\nModule-level helper _token_to_mdnode(tok: dict) ->
+  MdNode:\n  Dispatches on tok[\"type\"]: heading->MdNode(node_type=\"heading\",content=joined
+  children raw,level=attrs.level,attrs=tok.attrs,source_pos=tok.position,children=recursive);
+  paragraph->MdNode(node_type=\"paragraph\",content=joined children raw); code/block_code->MdNode(node_type=\"\
+  code_block\",content=tok.raw,attrs={\"info\":attrs.info,\"_content\":tok.raw});
+  list->MdNode(node_type=\"list\",children=recursive); list_item->MdNode(node_type=\"\
+  list_item\",content=joined); block_quote->MdNode(node_type=\"blockquote\",children=recursive);
+  thematic_break->MdNode(node_type=\"thematic_break\",content=\"---\"); block_html->MdNode(node_type=\"\
+  html_block\",attrs={\"_content\":tok.raw}); table->MdNode(node_type=\"table\",children=recursive);
+  image->MdNode(node_type=\"image\",attrs=tok.attrs); link->MdNode(node_type=\"link\"\
+  ,content=joined,attrs=tok.attrs); default->MdNode(node_type=t,content=str(tok)).\n\
+  \nModule-level helper _node_display(n: MdNode) -> str:\n  heading: \"#\"*level +
+  \" \" + content (max 80 chars); paragraph: content[:60] + \" # N chars\" if >60;
+  code_block: \"```\"+info+\"\\n\"+content[:40]; list: \"- [N items]\"; table: \"\
+  | table\"; image: \"![alt](src)\"; link: \"[text[:40]](href)\"; thematic_break:
+  \"---\"; default: kind+\": \"+content[:60].\n\nModule-level helper _mdnode_to_treenode(n:
+  MdNode) -> TreeNode:\n  stable_id=\"\", node_kind=n.node_type, start_line=source_pos[0]
+  or 0, end_line=source_pos[1] or 0, display_text=_node_display(n), metadata={\"level\"\
+  :n.level,\"md_attrs\":dict(n.attrs)}, children=[_mdnode_to_treenode(c) for c in
+  n.children].\n\nMethod parse(self, raw_content: str) -> TreeNode:\n  md=mistune.create_markdown(renderer=\"\
+  ast\"); tokens=md(raw_content); nodes=[_token_to_mdnode(t) for t in tokens]; line_count=raw_content.count(\"\
+  \\n\")+(1 if raw_content and not raw_content.endswith(\"\\n\") else 0); return TreeNode(stable_id=\"\
+  \",node_kind=\"root\",start_line=1,end_line=max(1,line_count),display_text=\"(markdown
+  document)\",metadata={\"trailing_newline\":raw_content.endswith(\"\\n\")},children=[_mdnode_to_treenode(n)
+  for n in nodes]).\n\nMethod render(self, tree: Tree) -> str:\n  parts=[self.node_to_source(c)
+  for c in tree.root.children]; result=\"\\n\\n\".join(parts); if tree.root.metadata.get(\"\
+  trailing_newline\",True): result+=\"\\n\"; return result.\n\nMethod node_from_source(self,
+  raw_block: str) -> TreeNode:\n  md=mistune.create_markdown(renderer=\"ast\"); tokens=md(raw_block.strip());
+  if not tokens: return TreeNode(stable_id=\"\",node_kind=\"paragraph\",...,metadata={\"\
+  level\":None,\"md_attrs\":{}},children=[]); return _mdnode_to_treenode(_token_to_mdnode(tokens[0])).\n\
+  \nMethod node_to_source(self, node: TreeNode) -> str:\n  Dispatches on node.node_kind:
+  heading->'#'*level+' '+display_text.lstrip('# '); paragraph->display_text.split('
+  # ')[0]; code_block->f'```{lang}\\n{content}\\n```'; thematic_break->'---'; html_block->attrs._content;
+  list->join '- '+node_to_source(c); list_item->display_text; blockquote->join '>
+  '+line; image->f'![alt](src)'; link->f'[text](href)'; default->display_text.\n\n\
+  Method linters(self) -> list[Linter]: return [].\n\nConstraints: no stable_id assignment;
+  no override of base structural methods; file under 260 lines; module docstring:
+  'MarkdownFormatter: mistune AST-based converter hooks for ai_editor.'"

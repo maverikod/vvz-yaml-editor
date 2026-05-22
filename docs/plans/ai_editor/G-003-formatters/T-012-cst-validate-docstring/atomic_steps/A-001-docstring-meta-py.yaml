@@ -7,7 +7,7 @@ priority: 1
 depends_on: []
 concepts:
 - C-034
-status: draft
+status: done
 prompt: |
   Project: ai_editor. Tactical step: T-012 CST validate and integration (G-003). File: ai_editor/formatters/cst/docstring_meta.py. Operation: create_file.
 

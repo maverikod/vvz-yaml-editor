@@ -1,0 +1,57 @@
+step_id: A-001
+parent_tactical_step: T-003
+name: Create HtmlFormatter converter hooks
+target_file: ai_editor/formatters/html/formatter.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-055
+- C-021
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.html.formatter.HtmlFormatter
+  expected: HtmlFormatter imports; formatter_name='html'; 
+    registered_extensions=['.html','.htm','.xhtml']; 
+    parse('<html><body><p>Hi</p></body></html>') returns TreeNode root with 
+    children; linters() returns list of length >= 1; render produces non-empty 
+    HTML string.
+prompt: 'Project: ai_editor. Tactical step: T-003. File: ai_editor/formatters/html/formatter.py.
+  Operation: "create_file. MRS C-055 HtmlFormatter: library=beautifulsoup4>=4.12 with
+  lxml" parser; document_model=bs4.BeautifulSoup; address_model=CSS selector string;
+  registered_extensions=[.html,.htm,.xhtml]; preserves doctype and comments; paste_modes=[set,append,insert_before,insert_after,replace_block];
+  validate_document=HTML5 structural round-trip check; to_string=str(fragment); from_string=BeautifulSoup(body,"lxml").find()
+  top element. C-021 AbstractFormatter: subclasses implement parse/render/node_from_source/node_to_source/linters
+  ONLY. Must NOT override open_tree/export/render_skeleton/insert/delete/move/replace_node/
+  mutate_batch/multiple_replace/copy_fragment/cut_fragment/paste_fragment/write/list_commands.
+  Must NOT assign/read stable_id. Imports: from __future__ import annotations; from
+  typing import Any; from bs4 import BeautifulSoup, Tag; from ai_editor.contracts.diagnostic
+  import Diagnostic; from ai_editor.contracts.error_codes import ErrorCode; from ai_editor.contracts.results
+  import ValidationResult; from ai_editor.formatters.base import AbstractFormatter,
+  Linter; from ai_editor.formatters.tree import Tree, TreeNode. Implement HtmlFormatter(AbstractFormatter):
+  formatter_name="html"; registered_extensions=[".html",".htm",".xhtml"]. Constructor:
+  def __init__(self, require_full_document: bool = False): super().__init__(); self._require_full_document=require_full_document.
+  Module-level helper _tag_to_treenode(tag: Tag) -> TreeNode: name=tag.name or "?";
+  id_attr=tag.get("id",""); class_attr=" ".join(tag.get("class") or []); text_preview=tag.get_text(separator="
+  ",strip=True)[:60]; display=f"<{name}>"+(f"#{id_attr}" if id_attr else "")+(f".{class_attr}"
+  if class_attr else ""); if text_preview: display+=f" {text_preview}"; children=[_tag_to_treenode(c)
+  for c in tag.children if isinstance(c,Tag)]; return TreeNode(stable_id="",node_kind=name,start_line=0,end_line=0,
+  display_text=display[:120],metadata={"tag":name,"id":id_attr,"class":class_attr,"attrs":dict(tag.attrs),"_html":str(tag)},children=children).
+  Methods: "parse: soup=BeautifulSoup(raw_content,\"lxml\"); body=soup.body or soup;"
+  block_children=[c for c in body.children if isinstance(c,Tag)]; children=[_tag_to_treenode(c)
+  for c in block_children]; return TreeNode(stable_id="",node_kind="root",start_line=1,
+  end_line=raw_content.count("\n")+1,display_text="(html document)",metadata={"_full_html":str(soup),"trailing_newline":raw_content.endswith("\n")},children=children).
+  render: "full_html=tree.root.metadata.get(\"_full_html\"); if full_html: if trailing_newline"
+  and not ends_with_newline: result+="\n"; return result; else: join node_to_source
+  children+"\n". node_from_source: soup=BeautifulSoup(raw_block.strip(),"lxml"); body=soup.body
+  or soup; tags=[c for c in body.children if isinstance(c,Tag)]; if not tags return
+  fallback span TreeNode; return _tag_to_treenode(tags[0]). node_to_source: html=node.metadata.get("_html");
+  if html return html; else rebuild tag from metadata. linters: _lint_html reads file,
+  BeautifulSoup(content,"lxml"), optionally checks for html/head/body tags if require_full_document;
+  return [_lint_html]. Clipboard: "def to_string(self,fragment)->str: return str(fragment);
+  def from_string(self,body)->Any:" soup=BeautifulSoup(body,"lxml"); bdy=soup.body
+  or soup; tags=[c for c in bdy.children if isinstance(c,Tag)]; return tags[0] if
+  tags else soup. Constraints: no stable_id assignment; no override of base structural
+  methods; file under 200 lines. Module docstring: HtmlFormatter: BeautifulSoup4-based
+  HTML converter hooks for ai_editor.'

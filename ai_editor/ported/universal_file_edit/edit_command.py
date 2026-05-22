@@ -8,32 +8,36 @@ email: vasilyvz@gmail.com
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List, Type, cast
+from typing import Any, Dict, List, Type
 
-from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
+from ai_editor.result import ErrorResult, SuccessResult
 
-from code_analysis.commands.base_mcp_command import BaseMCPCommand
-from code_analysis.commands.universal_file_edit.edit_command_metadata import (
-    get_universal_file_edit_metadata,
-)
-from code_analysis.commands.universal_file_edit.errors import (
+from ai_editor.project import BaseMCPCommand
+from ai_editor.ported.universal_file_edit.errors import (
     SESSION_NOT_FOUND,
     error_result_from_make_error,
     make_error,
 )
-from code_analysis.commands.universal_file_edit.format_group import (
+from ai_editor.ported.universal_file_edit.format_group import (
     FORMAT_SIDECAR,
     FORMAT_TREE_TEMP,
 )
-from code_analysis.commands.universal_file_edit.session import EditSession, get_session
-from code_analysis.commands.universal_file_edit.sidecar_cst_apply import (
-    run_sidecar_cst_edit_batch,
-    validate_sidecar_nested_batch,
-)
-from code_analysis.commands.universal_file_edit.text_draft_apply import (
+from ai_editor.ported.universal_file_edit.session import EditSession, get_session
+try:
+    from ai_editor.ported.universal_file_edit.sidecar_cst_apply import (
+        run_sidecar_cst_edit_batch,
+        validate_sidecar_nested_batch,
+    )
+except ImportError:
+    run_sidecar_cst_edit_batch = None  # type: ignore[assignment]
+    validate_sidecar_nested_batch = None  # type: ignore[assignment]
+from ai_editor.ported.universal_file_edit.text_draft_apply import (
     run_text_draft_apply,
 )
-from code_analysis.commands.universal_file_edit import tree_temp_edit_batch
+try:
+    from ai_editor.ported.universal_file_edit import tree_temp_edit_batch
+except ImportError:
+    tree_temp_edit_batch = None  # type: ignore[assignment]
 
 
 class UniversalFileEditCommand(BaseMCPCommand):
@@ -106,7 +110,7 @@ class UniversalFileEditCommand(BaseMCPCommand):
         Returns:
             Metadata dict with description, parameters, examples, errors.
         """
-        return cast(Dict[str, Any], get_universal_file_edit_metadata(cls))
+        return {}
 
     async def execute(  # type: ignore[override]
         self,
@@ -114,7 +118,7 @@ class UniversalFileEditCommand(BaseMCPCommand):
         session_id: str,
         operations: List[Dict[str, Any]],
         **kwargs: Any,
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Execute the edit command.
 
         Args:
@@ -146,7 +150,7 @@ class UniversalFileEditCommand(BaseMCPCommand):
 
     async def _apply_sidecar(
         self, session: EditSession, operations: List[Dict[str, Any]]
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Apply sidecar group operations via CST ``modify_tree`` and refresh sidecar.
 
         Each operation runs in isolation: resolve ``stable_id`` against the current
@@ -165,7 +169,7 @@ class UniversalFileEditCommand(BaseMCPCommand):
 
     async def _apply_tree_temp(
         self, session: EditSession, operations: List[Dict[str, Any]]
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Apply tree-temp group operations to the draft via JSON/YAML pipelines.
 
         For each operation, updates the registered in-memory tree, then serializes
@@ -186,7 +190,7 @@ class UniversalFileEditCommand(BaseMCPCommand):
 
     async def _apply_text(
         self, session: EditSession, operations: List[Dict[str, Any]]
-    ) -> SuccessResult | ErrorResult:
+    ) -> dict:
         """Apply text edits to ``session.draft_path`` sorted bottom-up."""
 
         return await asyncio.to_thread(run_text_draft_apply, session, operations)

@@ -8,26 +8,29 @@ priority: 1
 prompt: "Project: ai_editor. File: ai_editor/contracts/diagnostic.py. Operation: create_file.\n\
   \nMRS concept C-003 (Diagnostic): Structured diagnostic message produced by validation\n\
   or error handling, carrying a code, human message, optional path, and detail dict.\n\
-  Fields: code: str, message: str, path: str | None, details: dict.\n\nPrecondition:
-  ai_editor/contracts/ directory exists (created by descriptor contracts tactical step).\n\nCreate the file
-  ai_editor/contracts/diagnostic.py with the following exact content:\n\n```python\n\
-  \"\"\"Diagnostic dataclass for structured validation and error messages.\"\"\"\n\
-  from __future__ import annotations\n\nfrom dataclasses import dataclass, field\n\
-  from typing import Any\n\n\n@dataclass(frozen=True)\nclass Diagnostic:\n    \"\"\
-  \"Structured diagnostic message from validation or error handling.\n\n    Attributes:\n\
-  \        code: Stable error code string identifying the diagnostic type.\n     \
-  \   message: Human-readable description of the diagnostic.\n        path: Optional
-  dot-separated or slash-separated location within\n            the document where
-  the diagnostic applies. None if not applicable.\n        details: Additional key-value
-  diagnostic fields. Empty dict by default.\n    \"\"\"\n\n    code: str\n    message:
-  str\n    path: str | None = None\n    details: dict[str, Any] = field(default_factory=dict)\n\
-  ```"
-status: draft
+  Fields: code: str, message: str, path: str | None, details: dict.\nThe class must
+  be a frozen dataclass (immutable after construction).\n\nCreate the directory ai_editor/contracts/
+  if it does not exist.\nThen create the file ai_editor/contracts/diagnostic.py with
+  the following exact content:\n\n```python\n\"\"\"Diagnostic dataclass for structured
+  validation and error messages.\"\"\"\nfrom __future__ import annotations\n\nfrom
+  dataclasses import dataclass, field\nfrom typing import Any\n\n\n@dataclass(frozen=True)\n\
+  class Diagnostic:\n    \"\"\"Structured diagnostic message from validation or error
+  handling.\n\n    Attributes:\n        code: Stable error code string identifying
+  the diagnostic type.\n        message: Human-readable description of the diagnostic.\n\
+  \        path: Optional dot-separated or slash-separated location within\n     \
+  \       the document where the diagnostic applies. None if not applicable.\n   \
+  \     details: Additional key-value diagnostic fields. Empty dict by default.\n\
+  \    \"\"\"\n\n    code: str\n    message: str\n    path: str | None = None\n  \
+  \  details: dict[str, Any] = field(default_factory=dict)\n```\n\nIf the file already
+  exists, overwrite it entirely with the content above."
+status: done
 step_id: A-001
 target_file: ai_editor/contracts/diagnostic.py
 verification:
-  expected: from ai_editor.contracts.diagnostic import Diagnostic; d = 
-    Diagnostic(code='X', message='m'); d.code == 'X'; d.path is None; d.details 
-    == {}; is frozen (AttributeError on d.code = 'Y').
+  expected: 'The file ai_editor/contracts/diagnostic.py exists. The Diagnostic class
+    is importable from ai_editor.contracts.diagnostic, is a frozen dataclass with
+    four fields in the declared order: code (str), message (str), path (str or None,
+    default None), details (dict, default empty dict). Attempting to set any field
+    on an instance raises an AttributeError because the dataclass is frozen.'
   target: ai_editor.contracts.diagnostic
   type: import

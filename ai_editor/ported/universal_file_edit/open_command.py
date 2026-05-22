@@ -12,17 +12,16 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, cast
 
-from mcp_proxy_adapter.commands.result import ErrorResult, SuccessResult
+from ai_editor.result import ErrorResult, SuccessResult
 
-from code_analysis.commands.base_mcp_command import BaseMCPCommand
-from code_analysis.core.exceptions import ValidationError
-from code_analysis.commands.universal_file_edit.errors import (
+from ai_editor.project import BaseMCPCommand
+from ai_editor.ported.universal_file_edit.errors import (
     PARSE_ERROR,
     UNKNOWN_FORMAT,
     error_result_from_make_error,
     make_error,
 )
-from code_analysis.commands.universal_file_edit.format_group import (
+from ai_editor.ported.universal_file_edit.format_group import (
     FORMAT_SIDECAR,
     FORMAT_TEXT,
     FORMAT_TREE_TEMP,
@@ -34,13 +33,13 @@ from code_analysis.commands.universal_file_edit.format_group import (
     resolve_format_group,
     write_lockfile_pid,
 )
-from code_analysis.commands.universal_file_edit.open_command_metadata import (
-    get_universal_file_open_metadata,
-)
-from code_analysis.commands.universal_file_edit.session import create_session
-from code_analysis.commands.universal_file_edit.tree_temp_open_support import (
-    acquire_tree_temp_for_open,
-)
+from ai_editor.ported.universal_file_edit.session import create_session
+try:
+    from ai_editor.ported.universal_file_edit.tree_temp_open_support import (
+        acquire_tree_temp_for_open,
+    )
+except ImportError:
+    acquire_tree_temp_for_open = None  # type: ignore[assignment]
 
 
 class UniversalFileOpenCommand(BaseMCPCommand):
@@ -110,10 +109,8 @@ class UniversalFileOpenCommand(BaseMCPCommand):
             if Path(file_path).suffix == ".py":
                 content = params.get("initial_content")
                 if content is None or content == "":
-                    raise ValidationError(
-                        "initial_content is required when create=True for .py files",
-                        field="initial_content",
-                        details={"file_path": file_path},
+                    raise ValueError(
+                        "initial_content is required when create=True for .py files"
                     )
         return params
     @classmethod
@@ -123,7 +120,7 @@ class UniversalFileOpenCommand(BaseMCPCommand):
         Returns:
             Metadata dict with description, parameters, examples, errors.
         """
-        return cast(Dict[str, Any], get_universal_file_open_metadata(cls))
+        return {}
 
     async def execute(  # type: ignore[override]
         self,
@@ -132,7 +129,7 @@ class UniversalFileOpenCommand(BaseMCPCommand):
         create: bool = False,
         initial_content: str = "",
         **kwargs: Any,
-    ) -> Union[SuccessResult, ErrorResult]:
+    ) -> dict:
         """Execute the open command.
 
         Args:
@@ -335,7 +332,7 @@ class UniversalFileOpenCommand(BaseMCPCommand):
             project_id: UUID of the project (used to resolve root dir).
             abs_path: Absolute path to the original file.
         """
-        from code_analysis.core.backup_manager import BackupManager
+        from ai_editor.ported.backup_manager import BackupManager
 
         root_dir = BaseMCPCommand._resolve_project_root(project_id)
         root_path = Path(root_dir).resolve()
@@ -383,8 +380,13 @@ class UniversalFileOpenCommand(BaseMCPCommand):
         Returns:
             In-memory CST tree UUID for subsequent edit/write commands.
         """
-        from code_analysis.core.cst_tree import tree_builder as cst_builder
-        from code_analysis.core.cst_tree.tree_sidecar import write_sidecar_atomic
+        try:
+            from ai_editor.ported.universal_file_edit import cst_stub as cst_builder
+            from ai_editor.ported.universal_file_edit import cst_stub as _ws
+
+            write_sidecar_atomic = _ws.write_sidecar_atomic
+        except ImportError:
+            raise NotImplementedError("CST not available in G-000; wired in G-003")
 
         tree = cst_builder.load_file_to_tree(str(abs_path))
         write_sidecar_atomic(abs_path, tree)
@@ -416,15 +418,25 @@ class UniversalFileOpenCommand(BaseMCPCommand):
             raw_source_bytes=raw_bytes,
         )
         if descriptor.handler_id == "json":
-            from code_analysis.core.tree_temp.json_source_serializer import (
-                serialize_json_source,
-            )
+            try:
+                from ai_editor.ported.universal_file_edit.tree_temp_open_support import (
+                    serialize_json_source,
+                )
+            except ImportError:
+                raise NotImplementedError(
+                    "tree_temp not available in G-000; wired in G-003"
+                )
 
             draft_text = serialize_json_source(acq.roots)
         elif descriptor.handler_id == "yaml":
-            from code_analysis.core.tree_temp.yaml_source_serializer import (
-                serialize_yaml_source,
-            )
+            try:
+                from ai_editor.ported.universal_file_edit.tree_temp_open_support import (
+                    serialize_yaml_source,
+                )
+            except ImportError:
+                raise NotImplementedError(
+                    "tree_temp not available in G-000; wired in G-003"
+                )
 
             draft_text = serialize_yaml_source(acq.roots)
         else:

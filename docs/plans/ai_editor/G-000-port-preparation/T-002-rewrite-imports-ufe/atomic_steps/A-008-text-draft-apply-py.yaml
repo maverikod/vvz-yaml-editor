@@ -30,7 +30,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/text_dra
   \nCHANGE 6:\n  from code_analysis.core.backup_manager import BackupManager\n→ from
   ai_editor.ported.backup_manager import BackupManager\n\nAlso: return type annotations
   using SuccessResult|ErrorResult as class types change to dict."
-status: draft
+status: done
 step_id: A-008
 target_file: ai_editor/ported/universal_file_edit/text_draft_apply.py
 verification:

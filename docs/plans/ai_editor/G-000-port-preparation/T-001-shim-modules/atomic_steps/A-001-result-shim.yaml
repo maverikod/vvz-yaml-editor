@@ -32,4 +32,4 @@ verification:
   expected: "Module imports without error; SuccessResult({'x': 1}) returns {'success':
     True, 'x': 1}; ErrorResult('E', 'msg') returns {'success': False, 'error_code':
     'E', 'message': 'msg', 'details': {}}."
-status: draft
+status: done

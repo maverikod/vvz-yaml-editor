@@ -31,6 +31,7 @@ concepts:
 - C-066
 - C-067
 - C-068
+- C-069
 relations:
 - from_concept: C-025
   to_concept: C-021
@@ -95,6 +96,9 @@ relations:
 - from_concept: C-026
   to_concept: C-027
   type: uses
+- from_concept: C-021
+  to_concept: C-069
+  type: produces
 source_ranges:
 - start: 382
   end: 974
@@ -168,4 +172,4 @@ cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21;
   AbstractFormatter paradigm cascade applied and rechecked 2026-05-21; I1c 
   source_ranges audited 2026-05-21; viewer_features gaps 
   NQ-001/NQ-005/NQ-006/NQ-008 reflected in executor_brief.formatter_backends 
-  2026-05-21
+  2026-05-21; S5 fix C-069 added to concepts 2026-05-22

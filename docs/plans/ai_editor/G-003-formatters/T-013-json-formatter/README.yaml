@@ -1,7 +1,7 @@
 step_id: T-013
 parent_global_step: G-003
 name: JsonFormatter — full implementation
-status: needs_review
+status: frozen
 description: 'JsonFormatter converters only: stdlib json parse/render, node_from_source,
   node_to_source. linters: JSON parse + optional jsonschema. Address = stable_id.
   VIEWER INVARIANTS: (NQ-006 option B) JsonFormatter surfaces scalar values inline

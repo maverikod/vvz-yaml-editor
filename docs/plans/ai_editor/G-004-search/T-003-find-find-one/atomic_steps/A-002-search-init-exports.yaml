@@ -9,7 +9,7 @@ depends_on:
 concepts:
 - C-035
 - C-037
-status: draft
+status: done
 prompt: "Project: ai_editor. File: ai_editor/search/__init__.py. Operation: modify_file.\n\nPreconditions: ai_editor/search/search.py exists with Search class; ai_editor/search/query.py exists.\n\nCurrent file content:\n\n```python\n\"\"\"Universal search layer.\"\"\"\nfrom ai_editor.search.base import AbstractSearch, SearchMatch\n\n__all__ = [\"AbstractSearch\", \"SearchMatch\"]\n```\n\nReplace entire file with:\n\n```python\n\"\"\"Universal search layer.\"\"\"\nfrom ai_editor.search.base import AbstractSearch, SearchMatch\nfrom ai_editor.search.query import KNOWN_QUERY_KINDS, validate_query\nfrom ai_editor.search.search import Search\n\n__all__ = [\n    \"AbstractSearch\",\n    \"SearchMatch\",\n    \"Search\",\n    \"KNOWN_QUERY_KINDS\",\n    \"validate_query\",\n]\n```"
 verification:
   type: import

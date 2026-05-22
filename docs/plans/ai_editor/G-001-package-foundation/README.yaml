@@ -1,9 +1,10 @@
 step_id: G-001
 name: Package foundation and shared contracts
 status: frozen
-description: 'Creates the installable package skeleton and defines all shared data contracts used by every subsystem. Contains zero business logic. All subsystems import types exclusively from ai_editor/contracts/. No subsystem patches .venv, venv, or site-packages. No subsystem edits another subsystem''s owned paths.
-
-  '
+description: "Creates the installable package skeleton and defines all shared data
+  contracts used by every subsystem. Contains zero business logic. All subsystems
+  import types exclusively from ai_editor/contracts/. No subsystem patches .venv,
+  venv, or site-packages. No subsystem edits another subsystem's owned paths.\n"
 concepts:
 - C-001
 - C-002
@@ -37,7 +38,7 @@ source_ranges:
 - start: 68
   end: 99
 - start: 1767
-  end: 1816
+  end: 1846
 depends_on: []
 tactical_steps:
 - T-001

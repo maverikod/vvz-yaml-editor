@@ -9,7 +9,7 @@ concepts:
   - C-045
   - C-047
 prompt: "Project: ai_editor. Tactical step: T-006. File: ai_editor/commands/search_list_units_schema.py. Operation: create_file.\n\nMRS concepts C-045 EditorCommand, C-047 ApiFacade.\nmetadatastd: get_schema() returns JSON Schema with additionalProperties=False.\n\nCreate with exact content:\n\n```python\n\"\"\"JSON Schema for search_list_units command parameters.\"\"\"\nfrom __future__ import annotations\n\nfrom typing import Any\n\n\ndef get_search_list_units_schema() -> dict[str, Any]:\n    \"\"\"Return machine-readable input schema for search_list_units.\"\"\"\n    return {\n        \"type\": \"object\",\n        \"properties\": {\n            \"session_key\": {\"type\": \"string\", \"description\": \"UUID4 session identifier.\"},\n            \"buffer_id\": {\"type\": \"string\", \"description\": \"Open buffer identifier.\"},\n            \"scope\": {\"type\": \"string\", \"description\": \"Optional search scope.\"},\n        },\n        \"required\": [\"session_key\", \"buffer_id\"],\n        \"additionalProperties\": False,\n    }\n```"
-status: draft
+status: done
 verification:
   type: import
   target: ai_editor.commands.search_list_units_schema

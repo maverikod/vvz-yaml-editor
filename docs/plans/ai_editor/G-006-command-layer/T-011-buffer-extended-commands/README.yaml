@@ -1,27 +1,24 @@
 step_id: T-011
 parent_global_step: G-006
-name: Buffer extended commands — buf_new, buf_save_as, buf_reload, buf_get_state,
-  buf_write_all, buf_mutate_batch
+name: Buffer extended commands — buf_new, buf_save_as, buf_reload, 
+  buf_get_state, buf_write_all, buf_mutate_batch
 status: draft
-description: "Six in-memory buffer operation commands for already-open buffers. Complements\
-  \ T-003 (file lifecycle commands: file_open/close/get/send/create). All six follow\
-  \ the three-file structure (command/schema/metadata), delegate via api.py (never\
-  \ directly to session layer), and are registered in hooks_register._register().\n\
-  buf_new: create an unsaved buffer from initial content. No CA server interaction.\n\
-  buf_save_as: save buffer content to a new path on CA server. Destructive - has dry_run.\n\
-  buf_reload: re-download file from CA server into buffer. Remote buffers only.\n\
-  buf_get_state: return current BufferState snapshot (preview, modified, formatter,\
-  \ etc.).\nbuf_write_all: save all modified buffers in session to CA server. Destructive\
-  \ - has dry_run.\nbuf_mutate_batch: apply multiple mutations atomically on a single\
-  \ buffer. Destructive - has dry_run.\n  operations: list[{op, address, value?}]\
-  \ where op in [set, replace_block, append, delete, move].\n  Fails atomically -\
-  \ if any op fails, document unchanged. After success: write_buf + git commit (same\
-  \ as any mutation).\n  dry_run=True: validates operations via formatter.mutate_batch,\
-  \ returns what would change without writing.\n"
+description: "Six in-memory buffer operation commands for already-open buffers. Complements
+  T-003 (file lifecycle commands: file_open/close/get/send/create). All six follow
+  the three-file structure (command/schema/metadata), delegate via api.py (never directly
+  to session layer), and are registered in hooks_register._register().\nbuf_new: create
+  an unsaved buffer from initial content. No CA server interaction.\nbuf_save_as:
+  save buffer content to a new path on CA server. Destructive - has dry_run.\nbuf_reload:
+  re-download file from CA server into buffer. Remote buffers only.\nbuf_get_state:
+  return current BufferState snapshot (preview, modified, formatter, etc.).\nbuf_write_all:
+  save all modified buffers in session to CA server. Destructive - has dry_run.\n\
+  buf_mutate_batch: apply multiple mutations atomically on a single buffer. Destructive
+  - has dry_run.\n  operations: list[{op, address, value?}] where op in [set, replace_block,
+  append, delete, move].\n  Fails atomically - if any op fails, document unchanged.
+  After success: write_buf + git commit (same as any mutation).\n  dry_run=True: validates
+  operations via formatter.mutate_batch, returns what would change without writing.\n"
 concepts:
 - C-010
-- C-011
-- C-013
 - C-045
 - C-047
 inputs:
@@ -30,8 +27,8 @@ inputs:
   description: hooks_register._register() skeleton.
 - name: G-006/T-010 output
   type: ai_editor.api
-  description: api.new_buffer, api.save_as_buffer, api.reload_buffer, api.get_buffer_state,
-    api.write_all, api.mutate_batch.
+  description: api.new_buffer, api.save_as_buffer, api.reload_buffer, 
+    api.get_buffer_state, api.write_all, api.mutate_batch.
 - name: G-001 contracts
   type: ai_editor.contracts
   description: OperationResult, WriteAllResult, BufferState.

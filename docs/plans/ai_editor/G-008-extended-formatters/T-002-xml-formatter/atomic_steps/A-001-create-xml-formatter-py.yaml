@@ -1,0 +1,57 @@
+step_id: A-001
+parent_tactical_step: T-002
+name: Create XmlFormatter converter hooks
+target_file: ai_editor/formatters/xml/formatter.py
+operation: create_file
+priority: 1
+depends_on: []
+concepts:
+- C-054
+- C-021
+status: done
+verification:
+  type: import
+  target: ai_editor.formatters.xml.formatter.XmlFormatter
+  expected: XmlFormatter imports; formatter_name='xml'; 
+    registered_extensions=['.xml','.xsd','.xsl','.xslt','.svg']; 
+    parse('<root><a/></root>') returns TreeNode root with one element child; 
+    linters() returns list of length >= 1; render produces well-formed XML 
+    string.
+prompt: 'Project: ai_editor. Tactical step: T-002. File: ai_editor/formatters/xml/formatter.py.
+  Operation: "create_file. MRS C-054 XmlFormatter: library=lxml>=5.0; document_model=lxml.etree._Element;"
+  address_model=XPath 1.0 string; registered_extensions=[.xml,.xsd,.xsl,.xslt,.svg];
+  comments/PIs preserved; validate_document=well-formedness always + optional XSD;
+  to_string=lxml.etree.tostring(encoding=unicode); from_string=lxml.etree.fromstring(body.encode()).
+  C-021 AbstractFormatter: subclasses implement parse/render/node_from_source/node_to_source/linters
+  ONLY. Must NOT override open_tree/export/render_skeleton/insert/delete/move/replace_node/
+  mutate_batch/multiple_replace/copy_fragment/cut_fragment/paste_fragment/write/list_commands.
+  Must NOT assign/read stable_id. Imports: from __future__ import annotations; from
+  pathlib import Path; from typing import Any; from lxml import etree; from ai_editor.contracts.diagnostic
+  import Diagnostic; from ai_editor.contracts.error_codes import ErrorCode; from ai_editor.contracts.results
+  import ValidationResult; from ai_editor.formatters.base import AbstractFormatter,
+  Linter; from ai_editor.formatters.tree import Tree, TreeNode. Implement XmlFormatter(AbstractFormatter):
+  formatter_name="xml"; registered_extensions=[".xml",".xsd",".xsl",".xslt",".svg"].
+  Constructor: "def __init__(self, schema_xsd: str | None = None): super().__init__();
+  self._schema_xsd=schema_xsd." Module-level helper _element_to_treenode(el) -> TreeNode:
+  tag=getattr(el,"tag","?"); if callable(tag): tag=str(el); attrib=dict(getattr(el,"attrib",{}));
+  text=(el.text or "").strip()[:60]; display=f"<{tag}>"+(f" {text}" if text else "")+(f"
+  [{len(el)}]" if len(el) else ""); return TreeNode(stable_id="",node_kind="element",start_line=el.sourceline
+  if hasattr(el,"sourceline") else 0,end_line=el.sourceline if hasattr(el,"sourceline")
+  else 0,display_text=display[:120], metadata={"tag":tag,"attrib":attrib,"text":el.text
+  or "","tail":el.tail or ""}, children=[_element_to_treenode(c) for c in el]). Methods:
+  parse: try etree.fromstring(raw_content.encode("utf-8")) except XMLSyntaxError raise
+  ValueError; wrap in root TreeNode(stable_id="",node_kind="root", start_line=1,end_line=raw_content.count("\n")+1,display_text="(xml
+  document)", metadata={"_xml_root_tag":root_node.metadata["tag"]},children=[root_node]).
+  render: if not tree.root.children return ""; return node_to_source(tree.root.children[0]).
+  node_from_source: try etree.fromstring(raw_block.strip().encode("utf-8")) return
+  _element_to_treenode(el). node_to_source: tag=node.metadata["tag"]; attrib=node.metadata["attrib"]
+  or {}; text=node.metadata["text"] or ""; tail=node.metadata["tail"] or ""; el=etree.Element(tag,attrib);
+  el.text=text or None; el.tail=tail or None; for child: try child_el=etree.fromstring(node_to_source(child).encode());
+  el.append(child_el); except pass; return etree.tostring(el,encoding="unicode",pretty_print=True).
+  linters: _lint_wellformed reads file bytes, calls etree.fromstring, returns ValidationResult;
+  if schema_xsd provided add _lint_xsd; return [_lint_wellformed] (+ optional _lint_xsd).
+  Clipboard: "def to_string(self,fragment)->str: return etree.tostring(fragment,encoding=\"unicode\")
+  if hasattr(fragment,\"tag\") else str(fragment);" def from_string(self,body)->Any:
+  return etree.fromstring(body.encode("utf-8")). Constraints: no stable_id assignment;
+  no override of base structural methods; file under 200 lines. Module docstring:
+  XmlFormatter: lxml-based XML converter hooks for ai_editor.'

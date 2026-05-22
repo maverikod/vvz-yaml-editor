@@ -2,7 +2,14 @@ step_id: T-005
 parent_global_step: G-005
 name: Buffer mutation — mandatory write_buf and git commit after every change
 status: needs_review
-description: Every mutation via base-class tree ops. Sets modified=True (SourceOfTruth -> tree Sidecar). Writes session-side Sidecar after mutation + buf file + git commit.
+description: "Every mutation via base-class tree ops. Sets modified=True (SourceOfTruth
+  -> tree Sidecar). Writes session-side Sidecar after mutation + buf file + git commit.\n\
+  Invariant: buf write (Writer.write_buf) is a mandatory atomic part of every mutation
+  — if write_buf fails the mutation is rolled back and returns error. file_get always
+  reads from buf file; in-memory tree and buf file are always consistent after any
+  completed mutation. This design structurally prevents stale-read after mutation
+  (contrast: CA-server BUG-UNIVERSAL-FILE-PREVIEW-TREE-TEMP-DRAFT-001 where preview
+  session binding could return pre-edit state)."
 concepts:
 - C-010
 - C-038
@@ -25,10 +32,9 @@ inputs:
 outputs:
 - name: ai_editor/sessions/buffer_mutation.py
   type: file
-  description: 'execute_mutation(session_dir, buffer_id, formatter, document, new_document, command_name, params_summary, repo, readonly_session=False, readonly_buffer=False) -> dict.
-
-    '
+  description: "execute_mutation(session_dir, buffer_id, formatter, document, new_document,
+    command_name, params_summary, repo, readonly_session=False, readonly_buffer=False)
+    -> dict.\n"
 atomic_steps:
 - A-001
-
 cascade_note: changed — formatter paradigm cascade 2026-05-21

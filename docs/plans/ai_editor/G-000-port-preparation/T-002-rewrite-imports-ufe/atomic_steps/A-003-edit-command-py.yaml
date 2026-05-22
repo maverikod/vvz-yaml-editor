@@ -35,7 +35,7 @@ prompt: "Project: ai_editor. File: ai_editor/ported/universal_file_edit/edit_com
   import tree_temp_edit_batch\n  except ImportError:\n      tree_temp_edit_batch =
   None  # type: ignore[assignment]\n\nAlso: return type annotations '-> SuccessResult
   | ErrorResult:' change to '-> dict:'."
-status: draft
+status: done
 step_id: A-003
 target_file: ai_editor/ported/universal_file_edit/edit_command.py
 verification:

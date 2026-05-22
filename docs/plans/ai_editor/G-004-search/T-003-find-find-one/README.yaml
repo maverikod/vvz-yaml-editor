@@ -2,7 +2,9 @@ step_id: T-003
 parent_global_step: G-004
 name: find, find_one, list_units
 status: needs_review
-description: Implement the concrete Search class with three public search operations. Search operates on formatter Tree via base iter_units/match_unit. SearchMatch.address is node stable_id for all formats.
+description: Implement the concrete Search class with three public search 
+  operations. Search operates on formatter Tree via base iter_units/match_unit. 
+  SearchMatch.address is node stable_id for all formats.
 concepts:
 - C-035
 - C-036
@@ -14,17 +16,20 @@ inputs:
 - description: validate_query.
   name: G-004/T-002 output
   type: ai_editor.search.query
-- description: ErrorCode (SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE, SEARCH_QUERY_INVALID).
+- description: ErrorCode (SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE, 
+    SEARCH_QUERY_INVALID).
   name: G-001 contracts
   type: ai_editor.contracts
 outputs:
 - name: ai_editor/search/search.py
   type: file
-  description: 'Search(AbstractSearch) with constructor Search(get_buffer_fn). Public methods: find, find_one, list_units. No public select().
-
-    '
+  description: "Search(AbstractSearch) with constructor Search(get_buffer_fn). Public
+    methods: find, find_one, list_units. No public select().\n"
+- description: Modified to also export Search, KNOWN_QUERY_KINDS, validate_query
+    (A-002).
+  name: ai_editor/search/__init__.py
+  type: file (modify)
 atomic_steps:
 - A-001
 - A-002
-
 cascade_note: changed — unified tree search; stable_id addresses

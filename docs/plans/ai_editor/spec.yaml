@@ -2,16 +2,27 @@ meta:
   plan_id: ai_editor
   source_spec: docs/plans/ai_editor/source_spec.md
   standard: plan_standard_machine.yaml v1.0
-  note: "Original tz G-006 (CST) merged into G-003 (Formatters).\nOriginal tz G-008 (Session) + buffer lifecycle merged into G-005.\nFinal plan has 8 global steps G-001..G-008.\nG-008 adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\nthe cross-formatter ConversionRegistry (clipboard paste matrix).\nC-025 TextFormatter registered extensions updated: .md .markdown\nremoved (now owned by C-052 MarkdownFormatter).\n\nNON-BINDING LINES (excluded from G-step coverage):\n  - 1-16:   HTML-comment header with plan standard notes (preamble).\n  - 65-67, 100-102, 155, 176-178, 380-381, 974-975, 998-1003, 1041-1042, 1179-1181, 1218-1220, 1323-1325, 1363-1364, 1399-1401, 1439-1440, 1725-1727, 1765-1766, 1819-1897 (quirks appendix; HRS marks non-binding):\n            section dividers ('---' and blank lines between G-NNN sections).\nThese ranges are intentionally not covered by any G-step.\n\nNON-BINDING (additional): blank lines and '---' dividers between ### subsections;\n  line 1817 (HTML non-binding marker before quirks appendix).\n  1819-1897:\
-    \ quirks appendix (HRS explicit non-binding).\nGS-ONLY CONCEPTS (excluded from I1c HRS line union):\n  C-058 PortedCodeBase, C-059 StandaloneAdapter, C-060 ImportRewrite, C-061 TextGroupReadiness\n  — defined in G-000 only; no binding HRS text.\n"
+  note: "Original tz G-006 (CST) merged into G-003 (Formatters).\nOriginal tz G-008
+    (Session) + buffer lifecycle merged into G-005.\nFinal plan has 8 global steps
+    G-001..G-008.\nG-008 adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\n\
+    the cross-formatter ConversionRegistry (clipboard paste matrix).\nC-025 TextFormatter
+    registered extensions updated: .md .markdown\nremoved (now owned by C-052 MarkdownFormatter).\n\
+    \nNON-BINDING LINES (excluded from G-step coverage):\n  - 1-16:   HTML-comment
+    header with plan standard notes (preamble).\n  - 65-67, 100-102, 155, 176-178,
+    380-381, 974-975, 998-1003, 1041-1042, 1179-1181, 1218-1220, 1323-1325, 1363-1364,
+    1399-1401, 1439-1440, 1725-1727, 1765-1766, 1819-1897 (quirks appendix; HRS marks
+    non-binding):\n            section dividers ('---' and blank lines between G-NNN
+    sections).\nThese ranges are intentionally not covered by any G-step.\n\nNON-BINDING
+    (additional): blank lines and '---' dividers between ### subsections;\n  line
+    1817 (HTML non-binding marker before quirks appendix).\n  1819-1897: quirks appendix
+    (HRS explicit non-binding).\nGS-ONLY CONCEPTS (excluded from I1c HRS line union):\n\
+    \  C-058 PortedCodeBase, C-059 StandaloneAdapter, C-060 ImportRewrite, C-061 TextGroupReadiness\n\
+    \  — defined in G-000 only; no binding HRS text.\n"
 concepts:
 - concept_id: C-001
   name: ResultEnvelope
-  definition: 'Universal response wrapper for all editor operations carrying success flag,
-
-    optional error code, message, detail dict, and diagnostics list.
-
-    '
+  definition: "Universal response wrapper for all editor operations carrying success
+    flag,\noptional error code, message, detail dict, and diagnostics list.\n"
   properties:
   - success: bool
   - error_code: str | None
@@ -27,13 +38,9 @@ concepts:
     end: 99
 - concept_id: C-002
   name: ErrorCode
-  definition: 'Centralised enum of all typed error codes used across every subsystem.
-
-    Invariant: every possible typed error must appear here; no subsystem
-
-    defines its own ad-hoc error strings.
-
-    '
+  definition: "Centralised enum of all typed error codes used across every subsystem.\n\
+    Invariant: every possible typed error must appear here; no subsystem\ndefines
+    its own ad-hoc error strings.\n"
   properties:
   - groups:
     - Session
@@ -46,6 +53,7 @@ concepts:
     - YAML
     - CST
     - Validation
+    - Mutation
     - Write
     - History
   - all_values_unique: true
@@ -56,11 +64,8 @@ concepts:
     end: 1816
 - concept_id: C-003
   name: Diagnostic
-  definition: 'Structured diagnostic message produced by validation or error handling,
-
-    carrying a code, human message, optional path, and detail dict.
-
-    '
+  definition: "Structured diagnostic message produced by validation or error handling,\n\
+    carrying a code, human message, optional path, and detail dict.\n"
   properties:
   - code: str
   - message: str
@@ -71,9 +76,8 @@ concepts:
     end: 76
 - concept_id: C-004
   name: ValidationResult
-  definition: 'Result of a validation operation: success flag and list of Diagnostic items.
-
-    '
+  definition: "Result of a validation operation: success flag and list of Diagnostic
+    items.\n"
   properties:
   - success: bool
   - diagnostics: list[Diagnostic]
@@ -82,11 +86,8 @@ concepts:
     end: 77
 - concept_id: C-005
   name: OperationResult
-  definition: 'Result of a mutating operation: success flag, optional typed error code,
-
-    message, and diagnostics list.
-
-    '
+  definition: "Result of a mutating operation: success flag, optional typed error
+    code,\nmessage, and diagnostics list.\n"
   properties:
   - success: bool
   - error_code: str | None
@@ -97,11 +98,8 @@ concepts:
     end: 78
 - concept_id: C-006
   name: WriteAllResult
-  definition: 'Result of a bulk-save operation listing written, failed, and skipped
-
-    buffer IDs.
-
-    '
+  definition: "Result of a bulk-save operation listing written, failed, and skipped\n\
+    buffer IDs.\n"
   properties:
   - success: bool
   - written_buffers: list[str]
@@ -113,11 +111,8 @@ concepts:
     end: 79
 - concept_id: C-007
   name: SessionKey
-  definition: 'UUID4 string that uniquely and permanently identifies one session.
-
-    Invariant: never reused after session close.
-
-    '
+  definition: "UUID4 string that uniquely and permanently identifies one session.\n\
+    Invariant: never reused after session close.\n"
   properties:
   - type: str (UUID4)
   - reuse: never
@@ -126,11 +121,8 @@ concepts:
     end: 80
 - concept_id: C-008
   name: SessionDescriptor
-  definition: 'Point-in-time snapshot of session state returned by connect/status
-
-    operations.
-
-    '
+  definition: "Point-in-time snapshot of session state returned by connect/status\n\
+    operations.\n"
   properties:
   - session_key: SessionKey
   - open_buffers: list[BufferDescriptor]
@@ -140,9 +132,7 @@ concepts:
     end: 81
 - concept_id: C-009
   name: BufferDescriptor
-  definition: 'Point-in-time snapshot of buffer metadata included in SessionDescriptor.
-
-    '
+  definition: "Point-in-time snapshot of buffer metadata included in SessionDescriptor.\n"
   properties:
   - buffer_id: str
   - session_key: str
@@ -158,13 +148,8 @@ concepts:
     end: 82
 - concept_id: C-020
   name: BufferAddress
-  definition: 'Opaque pair of buffer_id and formatter-specific address. Invariant:
-
-    address content is never interpreted by editor core — only by the
-
-    owning formatter.
-
-    '
+  definition: "Opaque pair of buffer_id and formatter-specific address. Invariant:\n\
+    address content is never interpreted by editor core — only by the\nowning formatter.\n"
   properties:
   - buffer_id: str
   - address: Any
@@ -175,13 +160,9 @@ concepts:
     end: 343
 - concept_id: C-010
   name: Buffer
-  definition: 'Binding of exactly one file (or unsaved content) to exactly one formatter
-
-    for the lifetime of an open buffer. Both formatter and buffer_id are
-
-    immutable after open.
-
-    '
+  definition: "Binding of exactly one file (or unsaved content) to exactly one formatter\n\
+    for the lifetime of an open buffer. Both formatter and buffer_id are\nimmutable
+    after open.\n"
   properties:
   - buffer_id: UUID4 stable for lifetime
   - project_id: UUID4
@@ -208,11 +189,8 @@ concepts:
     end: 1151
 - concept_id: C-011
   name: BufferState
-  definition: 'Snapshot of buffer''s current state returned by get_state, including a
-
-    formatter-rendered skeleton preview.
-
-    '
+  definition: "Snapshot of buffer's current state returned by get_state, including
+    a\nformatter-rendered skeleton preview.\n"
   properties:
   - buffer_id: str
   - formatter: str
@@ -225,11 +203,8 @@ concepts:
     end: 228
 - concept_id: C-012
   name: FormatterRegistry
-  definition: 'Singleton registry mapping file extensions and formatter names to formatter
-
-    classes. Invariant: one extension maps to exactly one formatter.
-
-    '
+  definition: "Singleton registry mapping file extensions and formatter names to formatter\n\
+    classes. Invariant: one extension maps to exactly one formatter.\n"
   properties:
   - register: register(formatter_name, extensions, formatter_class) -> void
   - get_by_extension: get_by_extension(ext) -> formatter_class | None
@@ -240,23 +215,27 @@ concepts:
     end: 241
 - concept_id: C-013
   name: CodeAnalysisClient
-  definition: 'Single gateway for all project file I/O via the CA server API. Invariant:
-
-    ai_editor never reads or writes project files directly from disk.
-
-    '
+  definition: "Single gateway for all project file I/O via the CA server API. Invariant:\n\
+    ai_editor never reads or writes project files directly from disk.\n"
   properties:
   - auth_modes:
     - mTLS
     - HTTPS+token
-  - download_content: (project_id, file_path, readonly) -> (bytes, file_id); transfer download, no lock side-effect
-  - upload_content writes file content only; it never releases the lock. Lock release is a separate explicit unlock_file (session_close_file) call, made when closing a buffer or on save(close=True).
-  - unlock_file: (ca_session_id, project_id, file_id) -> void; wraps session_close_file (releases the file lock)
-  - lock_file: (ca_session_id, project_id, file_id) -> void; wraps session_open_file (acquires the file lock; BUFFER_LOCKED if held by another CA session)
+  - download_content: (project_id, file_path, readonly) -> (bytes, file_id); 
+      transfer download, no lock side-effect
+  - upload_content writes file content only; it never releases the lock. Lock 
+    release is a separate explicit unlock_file (session_close_file) call, made 
+    when closing a buffer or on save(close=True).
+  - unlock_file: (ca_session_id, project_id, file_id) -> void; wraps 
+      session_close_file (releases the file lock)
+  - lock_file: (ca_session_id, project_id, file_id) -> void; wraps 
+      session_open_file (acquires the file lock; BUFFER_LOCKED if held by 
+      another CA session)
   - list_project_files: (project_id) -> list
   - list_backup_versions: (project_id, file_path) -> list
   - restore_backup_file: (project_id, file_path, backup_uuid) -> void
-  - list_file_locks: (ca_session_id, project_id) -> list; wraps session_list_file_locks (pre-check before acquiring)
+  - list_file_locks: (ca_session_id, project_id) -> list; wraps 
+      session_list_file_locks (pre-check before acquiring)
   source_ranges:
   - start: 103
     end: 148
@@ -264,41 +243,39 @@ concepts:
     end: 153
 - concept_id: C-014
   name: FileLock
-  definition: 'Server-side cooperative file lock, keyed by (ca_session_id, project_id, file_id) in the
-
-    CA server''s session_file_locks table. Acquired via session_open_file when a writable
-
-    remote buffer is opened; released via session_close_file on buffer close, save(close=True),
-
-    or startup_sweep recovery. The ca_session_id is an EXTERNAL user/chat session (see CASession);
-
-    ai_editor never creates or deletes it. Invariant: a file locked by one CA session is
-
-    unavailable to any other (BUFFER_LOCKED). Readonly buffers acquire no lock.
-
-    '
+  definition: "Server-side cooperative file lock, keyed by (ca_session_id, project_id,
+    file_id) in the\nCA server's session_file_locks table. Acquired via session_open_file
+    when a writable\nremote buffer is opened; released via session_close_file on buffer
+    close, save(close=True),\nor startup_sweep recovery. The ca_session_id is an EXTERNAL
+    user/chat session (see CASession);\nai_editor never creates or deletes it. Invariant:
+    a file locked by one CA session is\nunavailable to any other (BUFFER_LOCKED).
+    Readonly buffers acquire no lock.\n"
   properties:
-  - acquire: session_open_file(ca_session_id, project_id, file_id); idempotent (acquired=false if same session already holds it)
-  - no release on save; upload_content writes content only and never releases the lock
-  - release only via explicit session_close_file during buffer close, or during save(close=True)
-  - release on startup_sweep for stale locks recorded in orphaned ses_settings.json (session_close_file per file)
-  - readonly_buffers: no lock acquired (no session_open_file); not counted in cross-session isolation checks
-  - isolation_precheck: session_list_file_locks(ca_session_id, project_id) consulted before acquire; if held by a different CA session -> BUFFER_LOCKED, no content fetched
+  - acquire: session_open_file(ca_session_id, project_id, file_id); idempotent 
+      (acquired=false if same session already holds it)
+  - no release on save; upload_content writes content only and never releases 
+    the lock
+  - release only via explicit session_close_file during buffer close, or during 
+    save(close=True)
+  - release on startup_sweep for stale locks recorded in orphaned 
+    ses_settings.json (session_close_file per file)
+  - readonly_buffers: no lock acquired (no session_open_file); not counted in 
+      cross-session isolation checks
+  - isolation_precheck: session_list_file_locks(ca_session_id, project_id) 
+      consulted before acquire; if held by a different CA session -> 
+      BUFFER_LOCKED, no content fetched
   source_ranges:
   - start: 252
     end: 316
 - concept_id: C-015
   name: Writer
-  definition: 'Local disk write utilities with two distinct responsibilities: write_buf
-
-    for session buf files only; write_result for local derived artifacts only.
-
-    Neither writes project files.
-
-    '
+  definition: "Local disk write utilities with two distinct responsibilities: write_buf\n\
+    for session buf files only; write_result for local derived artifacts only.\nNeither
+    writes project files.\n"
   properties:
   - write_buf: write_buf(content, path) -> atomic write, no backup
-  - write_result: write_result(content, path) -> backup + atomic write + read-back
+  - write_result: write_result(content, path) -> backup + atomic write + 
+      read-back
   - project_files: written only via CodeAnalysisClient.upload_file
   source_ranges:
   - start: 318
@@ -307,11 +284,8 @@ concepts:
     end: 353
 - concept_id: C-016
   name: AiEditorConfig
-  definition: 'Configuration section ''ai_editor'' in config.json providing formatter
-
-    thresholds and session base directory.
-
-    '
+  definition: "Configuration section 'ai_editor' in config.json providing formatter\n\
+    thresholds and session base directory.\n"
   properties:
   - small_file_threshold: str
   - small_file_formatter: str
@@ -325,11 +299,8 @@ concepts:
     end: 1363
 - concept_id: C-017
   name: CodeAnalysisServerConfig
-  definition: 'Configuration section ''code_analysis_server'' in config.json for CA server
-
-    connection (host, port, protocol, mTLS or token auth).
-
-    '
+  definition: "Configuration section 'code_analysis_server' in config.json for CA
+    server\nconnection (host, port, protocol, mTLS or token auth).\n"
   properties:
   - host: str
   - port: int
@@ -346,11 +317,8 @@ concepts:
     end: 1363
 - concept_id: C-018
   name: AiEditorConfigValidator
-  definition: 'Validator that extends adapter BaseValidator; validates ai_editor and
-
-    code_analysis_server config sections inside the adapter''s validation pipeline.
-
-    '
+  definition: "Validator that extends adapter BaseValidator; validates ai_editor and\n\
+    code_analysis_server config sections inside the adapter's validation pipeline.\n"
   properties:
   - extends: BaseValidator (mcp_proxy_adapter)
   - calls_super: SimpleConfigValidator first
@@ -366,13 +334,9 @@ concepts:
     end: 1363
 - concept_id: C-019
   name: AiEditorConfigGenerator
-  definition: 'Config generator that extends adapter SimpleConfigGenerator; calls super
-
-    first, then appends ai_editor and code_analysis_server sections to
-
-    produced config.json.
-
-    '
+  definition: "Config generator that extends adapter SimpleConfigGenerator; calls
+    super\nfirst, then appends ai_editor and code_analysis_server sections to\nproduced
+    config.json.\n"
   properties:
   - extends: SimpleConfigGenerator (mcp_proxy_adapter)
   - calls_super: generates base adapter config first
@@ -388,22 +352,38 @@ concepts:
     end: 1363
 - concept_id: C-021
   name: AbstractFormatter
-  definition: 'Base class for every format. Owns the in-memory Tree, all structural operations over it, stable_id identity, Sidecar production, and write orchestration. Subclasses implement conversion hooks only. Invariant: formatters must not know about sessions, session_key, buf files, git, or buffer registry.'
+  definition: 'Base class for every format. Owns the in-memory Tree, all structural
+    operations over it, stable_id identity, Sidecar production, and write orchestration.
+    Subclasses implement conversion hooks only. Invariant: formatters must not know
+    about sessions, session_key, buf files, git, or buffer registry.'
   properties:
   - 'base_owned_lifecycle: [open_tree, export, render_skeleton]'
-  - 'base_owned_navigation: [normalize_address, get_unit, iter_units, match_unit, compare_units, diagnostics]'
-  - 'base_owned_mutations: insert(parent, position, content); delete; move; replace_node (preserves stable_id); mutate_batch; multiple_replace'
-  - 'insert_position: first | last | 0-based sibling index'
+  - 'base_owned_navigation: [normalize_address, get_unit, iter_units, match_unit,
+    compare_units, diagnostics]'
+  - 'base_owned_mutations: insert(parent, position, content); delete; move; replace_node
+    (preserves stable_id); mutate_batch; multiple_replace'
+  - 'insert_position: first | last | before:<addr> | after:<addr> | 0-based integer;
+    <addr> resolved by format (JSON Pointer / UUID / key-name for tree-temp; node_ref
+    slug for text/md)'
+  - 'mutate_batch_rollback: all-or-nothing; on validation failure entire batch rolled
+    back to pre-batch tree; returns MUTATION_ROLLBACK'
+  - 'multiple_replace_rollback: same all-or-nothing rollback semantics as mutate_batch'
+  - 'post_mutation_validation: after each single op base runs parse+tree-invariants;
+    on failure rolls back that op only; returns MUTATION_ROLLBACK'
   - 'base_owned_fragments: [copy_fragment, cut_fragment, paste_fragment]'
   - 'base_owned_identity: stable_id assigned/preserved by base; subclasses forbidden'
-  - 'base_owned_write: export -> diff preview -> temp file -> subclass linters -> atomic rename; abort on lint error'
-  - 'subclass_hooks: [parse, render, node_from_source, node_to_source, linters]'
   - 'subclass_forbidden: [assign/read stable_id, any structural mutation]'
+  - 'subclass_hooks: [parse, render, node_from_source, node_to_source, linters]'
+  - 'base_owned_write: step-0 pre-write validation (PRE_WRITE_VALIDATION_FAILED on
+    error); export -> diff preview -> temp file -> subclass linters -> atomic rename;
+    abort on lint error'
   - 'list_commands: list_commands() -> FormatterCommandCatalog'
   - 'formatter_name: str'
   source_ranges:
   - start: 382
-    end: 466
+    end: 500
+  - end: 535
+    start: 501
   - start: 518
     end: 533
   - start: 535
@@ -412,11 +392,8 @@ concepts:
     end: 562
 - concept_id: C-022
   name: FormatterCommandCatalog
-  definition: 'Structured catalogue of all standard and formatter-specific commands with
-
-    OpenAPI-compatible input/output schemas.
-
-    '
+  definition: "Structured catalogue of all standard and formatter-specific commands
+    with\nOpenAPI-compatible input/output schemas.\n"
   properties:
   - formatter_name: str
   - formatter_version: str
@@ -424,26 +401,25 @@ concepts:
   - specific_commands: list[FormatterCommandMetadata]
   - openapi_schemas: dict
   source_ranges:
-  - start: 564
-    end: 579
+  - start: 571
+    end: 586
 - concept_id: C-023
   name: FormatterUnit
-  definition: Addressable unit within the formatter Tree for navigation and search. address is node stable_id (UUID). Carries unit_kind, display_text, metadata.
+  definition: Addressable unit within the formatter Tree for navigation and 
+    search. address is node stable_id (UUID). Carries unit_kind, display_text, 
+    metadata.
   properties:
   - 'address: stable_id UUID'
   - 'unit_kind: str'
   - 'display_text: str'
   - 'metadata: dict'
   source_ranges:
-  - start: 581
-    end: 588
+  - start: 588
+    end: 595
 - concept_id: C-024
   name: SkeletonOptions
-  definition: 'Configuration for render_skeleton controlling depth, hint fields, collapse
-
-    threshold, string preview length, and line offset.
-
-    '
+  definition: "Configuration for render_skeleton controlling depth, hint fields, collapse\n\
+    threshold, string preview length, and line offset.\n"
   properties:
   - depth: int = 2
   - hint_fields: list[str]
@@ -451,11 +427,13 @@ concepts:
   - string_preview_len: int = 60
   - offset: int = 0
   source_ranges:
-  - start: 535
-    end: 552
+  - start: 536
+    end: 554
 - concept_id: C-025
   name: TextFormatter
-  definition: Converter-only subclass for plain text files. Document model is a two-level paragraph/line tree (not list[str]). Structure, navigation, mutation, and identity are owned by AbstractFormatter base.
+  definition: Converter-only subclass for plain text files. Document model is a 
+    two-level paragraph/line tree (not list[str]). Structure, navigation, 
+    mutation, and identity are owned by AbstractFormatter base.
   properties:
   - 'document_model: root -> paragraph -> line'
   - 'paragraph_rule: split by blank line(s); no blanks => whole file is one paragraph'
@@ -463,14 +441,17 @@ concepts:
   - 'address: stable_id'
   - 'subclass_hooks: parse, render, node_from_source, node_to_source'
   - 'linters: none'
+  - 'windowed_preview(offset, limit): returns lines [offset, offset+limit) with 1-based
+    numbers; always available including InvalidOnOpen mode'
   - 'registered_extensions: [.txt, .log, .rst, .ini, .cfg, .toml]'
   - 'note: .md and .markdown owned by MarkdownFormatter (C-052)'
   source_ranges:
-  - start: 590
-    end: 611
+  - start: 591
+    end: 607
 - concept_id: C-026
   name: YamlFormatter
-  definition: Converter-only subclass for YAML using ruamel.yaml round-trip. Structure, navigation, mutation, and identity owned by base class.
+  definition: Converter-only subclass for YAML using ruamel.yaml round-trip. 
+    Structure, navigation, mutation, and identity owned by base class.
   properties:
   - 'document_model: mapping | sequence | scalar tree nodes'
   - 'node_kinds: [mapping, sequence, scalar]'
@@ -484,13 +465,9 @@ concepts:
     end: 637
 - concept_id: C-027
   name: PlanTaskV1
-  definition: 'Semantic validation schema for plan task YAML files. Validates format,
-
-    kind, depends_on, commands uniqueness, schema references, verification
-
-    presence, and status values.
-
-    '
+  definition: "Semantic validation schema for plan task YAML files. Validates format,\n\
+    kind, depends_on, commands uniqueness, schema references, verification\npresence,
+    and status values.\n"
   properties:
   - format_value: plan_task_v1
   - kind_values:
@@ -509,7 +486,8 @@ concepts:
     end: 563
 - concept_id: C-028
   name: JsonFormatter
-  definition: Converter-only subclass for JSON. Structure, navigation, mutation, and identity owned by base class. No comment preservation.
+  definition: Converter-only subclass for JSON. Structure, navigation, mutation,
+    and identity owned by base class. No comment preservation.
   properties:
   - 'document_model: mapping | sequence | scalar tree nodes'
   - 'node_kinds: [mapping, sequence, scalar]'
@@ -523,7 +501,9 @@ concepts:
     end: 654
 - concept_id: C-029
   name: CSTFormatter
-  definition: Specialisation of AbstractFormatter for Python (.py) using libcst. Provides CST-specific parse/render converters; tree ownership and structural ops remain in base class. Default view is declarative skeleton.
+  definition: Specialisation of AbstractFormatter for Python (.py) using libcst.
+    Provides CST-specific parse/render converters; tree ownership and structural
+    ops remain in base class. Default view is declarative skeleton.
   properties:
   - 'document_model: CSTTree (extends generic Tree)'
   - 'address: stable_id (UUID4)'
@@ -537,7 +517,8 @@ concepts:
     end: 973
 - concept_id: C-030
   name: CSTTree
-  definition: 'CST specialisation of Tree: in-memory Python CST with libcst.Module, metadata_map, node_map, and stable_id survival through mutations.'
+  definition: 'CST specialisation of Tree: in-memory Python CST with libcst.Module,
+    metadata_map, node_map, and stable_id survival through mutations.'
   properties:
   - 'extends: Tree (generic model)'
   - 'tree_id: runtime UUID'
@@ -552,7 +533,10 @@ concepts:
     end: 673
 - concept_id: C-031
   name: StableId
-  definition: 'UUID4 node identity assigned once by AbstractFormatter base class at tree build for every format. Never reassigned on replace_node; maintained through structural ops. Subclasses never assign, read, or depend on stable_ids. For CST, transient # @node-id embedding during mutation is stripped before any write.'
+  definition: 'UUID4 node identity assigned once by AbstractFormatter base class at
+    tree build for every format. Never reassigned on replace_node; maintained through
+    structural ops. Subclasses never assign, read, or depend on stable_ids. For CST,
+    transient # @node-id embedding during mutation is stripped before any write.'
   properties:
   - 'type: UUID4 str'
   - 'owner: AbstractFormatter base class'
@@ -565,7 +549,10 @@ concepts:
     end: 703
 - concept_id: C-032
   name: Sidecar
-  definition: Persisted tree file for every format. Session-side after every mutation; project-side on save. Generic header TREE_V1 fmt=<formatter> sha256=<source> tree_sha256=<tree>. CST uses .cst paths and CST_TREE_V1 as a specialisation.
+  definition: Persisted tree file for every format. Session-side after every 
+    mutation; project-side on save. Generic header TREE_V1 fmt=<formatter> 
+    sha256=<source> tree_sha256=<tree>. CST uses .cst paths and CST_TREE_V1 as a
+    specialisation.
   properties:
   - 'session_side_generic: <session_dir>/<buffer_id>.tree'
   - 'project_side_generic: <dir>/.tree/<stem>.tree'
@@ -582,11 +569,8 @@ concepts:
     end: 720
 - concept_id: C-033
   name: DeclarativeSkeleton
-  definition: 'Default view of a .py buffer: structural overview of visible nodes each
-
-    prefixed with [stable_id]. Method/function bodies replaced by placeholder.
-
-    '
+  definition: "Default view of a .py buffer: structural overview of visible nodes
+    each\nprefixed with [stable_id]. Method/function bodies replaced by placeholder.\n"
   properties:
   - visible_kinds:
     - module
@@ -605,11 +589,8 @@ concepts:
     end: 767
 - concept_id: C-034
   name: DocstringMeta
-  definition: 'Structured docstring stored in TreeNodeMetadata, migrating with the node
-
-    through mutations via stable_id. Parsed from Google-style sections.
-
-    '
+  definition: "Structured docstring stored in TreeNodeMetadata, migrating with the
+    node\nthrough mutations via stable_id. Parsed from Google-style sections.\n"
   properties:
   - fields:
     - summary
@@ -624,27 +605,21 @@ concepts:
     end: 785
 - concept_id: C-035
   name: AbstractSearch
-  definition: 'Interface for searching within a formatter''s document model. Does not open
-
-    or write files. Returns SearchMatch items carrying formatter-specific
-
-    addresses usable directly in BufferAddress.
-
-    '
+  definition: "Interface for searching within a formatter's document model. Does not
+    open\nor write files. Returns SearchMatch items carrying formatter-specific\n\
+    addresses usable directly in BufferAddress.\n"
   properties:
   - find: find(session_key, buffer_id, query, scope) -> list[SearchMatch]
-  - find_one: find_one(session_key, buffer_id, query, scope) -> SearchMatch | error
+  - find_one: find_one(session_key, buffer_id, query, scope) -> SearchMatch | 
+      error
   - list_units: list_units(session_key, buffer_id, scope) -> list[SearchMatch]
   source_ranges:
   - start: 976
     end: 992
 - concept_id: C-036
   name: SearchMatch
-  definition: 'Single search result carrying a formatter-specific address, a text preview,
-
-    unit kind, and metadata. Address is directly usable in BufferAddress.
-
-    '
+  definition: "Single search result carrying a formatter-specific address, a text
+    preview,\nunit kind, and metadata. Address is directly usable in BufferAddress.\n"
   properties:
   - buffer_id: str
   - formatter: str
@@ -660,11 +635,8 @@ concepts:
     end: 1007
 - concept_id: C-037
   name: SearchQuery
-  definition: 'Typed search query with kind, value, and options fields.
-
-    Formatter-specific query kinds are allowed.
-
-    '
+  definition: "Typed search query with kind, value, and options fields.\nFormatter-specific
+    query kinds are allowed.\n"
   properties:
   - base_fields:
     - kind
@@ -684,25 +656,15 @@ concepts:
     end: 1040
 - concept_id: C-038
   name: Session
-  definition: 'Collection of open buffers sharing a session directory, session git repo,
-
-    and clipboard. Invariant: one session = one directory on disk; session
-
-    survives process restart as long as directory exists. Operates under an
-
-    EXTERNAL CASession (ca_session_id), supplied at creation; the editor uses but
-
-    does not own that CA session and never calls session_create / session_delete.
-
-    The editor''s session responsibility is exactly two things: lock each fetched
-
-    file (session_open_file) and isolate locked files across CA sessions.
-
-    session.close releases all file locks (session_close_file) and deletes the
-
-    session directory, but never deletes the CA session itself.
-
-    '
+  definition: "Collection of open buffers sharing a session directory, session git
+    repo,\nand clipboard. Invariant: one session = one directory on disk; session\n\
+    survives process restart as long as directory exists. Operates under an\nEXTERNAL
+    CASession (ca_session_id), supplied at creation; the editor uses but\ndoes not
+    own that CA session and never calls session_create / session_delete.\nThe editor's
+    session responsibility is exactly two things: lock each fetched\nfile (session_open_file)
+    and isolate locked files across CA sessions.\nsession.close releases all file
+    locks (session_close_file) and deletes the\nsession directory, but never deletes
+    the CA session itself.\n"
   properties:
   - session_key: SessionKey (UUID4)
   - readonly: bool
@@ -729,11 +691,8 @@ concepts:
     end: 1217
 - concept_id: C-039
   name: SessionDirectory
-  definition: 'Root directory of a session on local disk holding all session artifacts.
-
-    Invariant: session exists iff directory exists.
-
-    '
+  definition: "Root directory of a session on local disk holding all session artifacts.\n\
+    Invariant: session exists iff directory exists.\n"
   properties:
   - path: <sessions_base_dir>/<session_key>/
   - contains:
@@ -747,13 +706,9 @@ concepts:
     end: 1058
 - concept_id: C-040
   name: SessionGit
-  definition: 'Non-bare git repository inside the session directory. One branch per open
-
-    buffer (buf/<buffer_id>). Commit on every mutation and clipboard cut/copy.
-
-    Used for undo/redo.
-
-    '
+  definition: "Non-bare git repository inside the session directory. One branch per
+    open\nbuffer (buf/<buffer_id>). Commit on every mutation and clipboard cut/copy.\n\
+    Used for undo/redo.\n"
   properties:
   - path: <session_dir>/git/
   - branch_per_buffer: buf/<buffer_id>
@@ -769,13 +724,9 @@ concepts:
     end: 1167
 - concept_id: C-041
   name: Clipboard
-  definition: 'Session-scoped clipboard holding the last copied or cut fragment. When
-
-    source formatter differs from target formatter, ConversionRegistry is
-
-    consulted; CLIPBOARD_FORMAT_MISMATCH returned if no rule exists.
-
-    '
+  definition: "Session-scoped clipboard holding the last copied or cut fragment. When\n\
+    source formatter differs from target formatter, ConversionRegistry is\nconsulted;
+    CLIPBOARD_FORMAT_MISMATCH returned if no rule exists.\n"
   properties:
   - storage: <session_dir>/clipboard.json
   - format: '{formatter, body}'
@@ -790,13 +741,8 @@ concepts:
     end: 1194
 - concept_id: C-042
   name: SessionAttributes
-  definition: 'Persistent session state stored in ses_settings.json, including
-
-    session_key, created_at, readonly flag, open buffer descriptors, and
-
-    per-buffer redo_stack.
-
-    '
+  definition: "Persistent session state stored in ses_settings.json, including\nsession_key,
+    created_at, readonly flag, open buffer descriptors, and\nper-buffer redo_stack.\n"
   properties:
   - file: ses_settings.json
   - fields:
@@ -811,13 +757,9 @@ concepts:
     end: 1067
 - concept_id: C-043
   name: BufferFile
-  definition: 'Local copy of a file''s content in the session directory, written by
-
-    write_buf after every mutation. Not the project file — only the session
-
-    working copy.
-
-    '
+  definition: "Local copy of a file's content in the session directory, written by\n\
+    write_buf after every mutation. Not the project file — only the session\nworking
+    copy.\n"
   properties:
   - path: <session_dir>/<buffer_id>.<ext>
   - written_by: write_buf
@@ -827,17 +769,13 @@ concepts:
     end: 64
 - concept_id: C-044
   name: StartupSweep
-  definition: 'Recovery procedure on ai_editor startup that releases stale file locks for all
-
-    locked buffers recorded in orphaned ses_settings.json from previous sessions, and
-
-    removes orphaned session directories. Locks are released via session_close_file
-
-    under the session''s ca_session_id. The external CA session itself is never deleted.
-
-    '
+  definition: "Recovery procedure on ai_editor startup that releases stale file locks
+    for all\nlocked buffers recorded in orphaned ses_settings.json from previous sessions,
+    and\nremoves orphaned session directories. Locks are released via session_close_file\n\
+    under the session's ca_session_id. The external CA session itself is never deleted.\n"
   properties:
-  - lock_release: session_close_file(ca_session_id, project_id, file_id) per buf with locked=True and not saved
+  - lock_release: session_close_file(ca_session_id, project_id, file_id) per buf
+      with locked=True and not saved
   - orphan_cleanup: delete dirs with missing or corrupt ses_settings.json
   - ttl: none; no time-based deletion
   - policy: B — orphaned dirs deleted; dirs with valid ses_settings preserved
@@ -846,13 +784,9 @@ concepts:
     end: 173
 - concept_id: C-045
   name: EditorCommand
-  definition: 'Command unit following metadatastd.md: three-file structure
-
-    (command/schema/metadata), registered via HooksRegister, auto-generates
-
-    JSON-RPC/OpenAPI/MCP surface via mcp_proxy_adapter.
-
-    '
+  definition: "Command unit following metadatastd.md: three-file structure\n(command/schema/metadata),
+    registered via HooksRegister, auto-generates\nJSON-RPC/OpenAPI/MCP surface via
+    mcp_proxy_adapter.\n"
   properties:
   - files:
     - <cmd>_command.py
@@ -870,16 +804,14 @@ concepts:
     end: 1301
 - concept_id: C-046
   name: HooksRegister
-  definition: 'Module hooks_register.py that registers all EditorCommands and all
-
-    Formatters with their respective registries on startup. Also registers
-
-    all ConversionRules in ConversionRegistry.
-
-    '
+  definition: "Module hooks_register.py that registers all EditorCommands and all\n\
+    Formatters with their respective registries on startup. Also registers\nall ConversionRules
+    in ConversionRegistry.\n"
   properties:
-  - registers_commands: all EditorCommand subclasses via register_custom_commands_hook
-  - registers_formatters: TextFormatter, YamlFormatter, JsonFormatter, CSTFormatter, MarkdownFormatter, XmlFormatter, HtmlFormatter
+  - registers_commands: all EditorCommand subclasses via 
+      register_custom_commands_hook
+  - registers_formatters: TextFormatter, YamlFormatter, JsonFormatter, 
+      CSTFormatter, MarkdownFormatter, XmlFormatter, HtmlFormatter
   - registers_conversions: all ConversionRules in ConversionRegistry
   - pattern: register_custom_commands_hook(_register)
   source_ranges:
@@ -887,11 +819,8 @@ concepts:
     end: 1765
 - concept_id: C-047
   name: ApiFacade
-  definition: 'ai_editor/api.py providing thin synchronous wrapper functions over the
-
-    session layer, consumed by CLI and integration tests.
-
-    '
+  definition: "ai_editor/api.py providing thin synchronous wrapper functions over
+    the\nsession layer, consumed by CLI and integration tests.\n"
   properties:
   - delegates_to: Session layer via SessionManager
   - functions:
@@ -921,11 +850,8 @@ concepts:
     end: 1306
 - concept_id: C-048
   name: CLI
-  definition: 'Thin diagnostic wrapper ai_editor/interfaces/cli.py over ApiFacade.
-
-    Console script target: ai_editor.interfaces.cli:main.
-
-    '
+  definition: "Thin diagnostic wrapper ai_editor/interfaces/cli.py over ApiFacade.\n\
+    Console script target: ai_editor.interfaces.cli:main.\n"
   properties:
   - subcommands:
     - connect
@@ -944,11 +870,8 @@ concepts:
     end: 1311
 - concept_id: C-049
   name: StartupSequence
-  definition: 'Ordered initialisation in main.py: load config, validate, build ASGI app,
-
-    register commands and formatters, run server via UnifiedServerRunner.
-
-    '
+  definition: "Ordered initialisation in main.py: load config, validate, build ASGI
+    app,\nregister commands and formatters, run server via UnifiedServerRunner.\n"
   properties:
   - steps:
     - SimpleConfig.load
@@ -966,11 +889,8 @@ concepts:
     end: 1439
 - concept_id: C-050
   name: ProxyRegistration
-  definition: 'Automatic registration of the ai_editor server instance on mcp-proxy at
-
-    startup, with heartbeat and auto-unregister on shutdown.
-
-    '
+  definition: "Automatic registration of the ai_editor server instance on mcp-proxy
+    at\nstartup, with heartbeat and auto-unregister on shutdown.\n"
   properties:
   - auto_on_startup: true
   - auto_on_shutdown: true
@@ -1001,13 +921,9 @@ concepts:
     end: 1407
 - concept_id: C-052
   name: MarkdownFormatter
-  definition: 'Formatter for Markdown files (.md, .markdown) using mistune>=3.0 AST.
-
-    Promotes Markdown from TextFormatter fallback to a first-class structural
-
-    formatter with heading/paragraph/code-block/list/table node types.
-
-    '
+  definition: "Formatter for Markdown files (.md, .markdown) using mistune>=3.0 AST.\n\
+    Promotes Markdown from TextFormatter fallback to a first-class structural\nformatter
+    with heading/paragraph/code-block/list/table node types.\n"
   properties:
   - library: mistune>=3.0
   - document_model: list[MdNode]
@@ -1030,13 +946,12 @@ concepts:
     end: 1511
 - concept_id: C-053
   name: MdNode
-  definition: 'Document model node for MarkdownFormatter wrapping a mistune AST node
-
-    with structural metadata.
-
-    '
+  definition: "Document model node for MarkdownFormatter wrapping a mistune AST node\n\
+    with structural metadata.\n"
   properties:
-  - node_type: str (heading|paragraph|code_block|list|list_item|blockquote| thematic_break|html_block|table|table_head|table_body| table_row|image|link)
+  - node_type: str (heading|paragraph|code_block|list|list_item|blockquote| 
+      thematic_break|html_block|table|table_head|table_body| 
+      table_row|image|link)
   - level: int | None
   - content: str
   - children: list[MdNode]
@@ -1047,13 +962,9 @@ concepts:
     end: 1511
 - concept_id: C-054
   name: XmlFormatter
-  definition: 'Formatter for XML files (.xml, .xsd, .xsl, .xslt, .svg) using lxml>=5.0.
-
-    Preserves comments, processing instructions, and namespace declarations.
-
-    Supports XPath 1.0 addressing and optional XSD schema validation.
-
-    '
+  definition: "Formatter for XML files (.xml, .xsd, .xsl, .xslt, .svg) using lxml>=5.0.\n\
+    Preserves comments, processing instructions, and namespace declarations.\nSupports
+    XPath 1.0 addressing and optional XSD schema validation.\n"
   properties:
   - library: lxml>=5.0
   - document_model: lxml.etree._Element (root element)
@@ -1076,13 +987,9 @@ concepts:
     end: 1561
 - concept_id: C-055
   name: HtmlFormatter
-  definition: 'Formatter for HTML files (.html, .htm, .xhtml) using beautifulsoup4>=4.12
-
-    with lxml parser. Lenient HTML parsing, CSS selector addressing, preserves
-
-    doctype and comments.
-
-    '
+  definition: "Formatter for HTML files (.html, .htm, .xhtml) using beautifulsoup4>=4.12\n\
+    with lxml parser. Lenient HTML parsing, CSS selector addressing, preserves\ndoctype
+    and comments.\n"
   properties:
   - library: beautifulsoup4>=4.12 with lxml parser
   - document_model: bs4.BeautifulSoup object
@@ -1103,19 +1010,15 @@ concepts:
     end: 1611
 - concept_id: C-056
   name: ConversionRegistry
-  definition: 'Registry of cross-formatter conversion rules enabling clipboard paste
-
-    between different formatter types. Called by Clipboard.paste when source
-
-    formatter != target formatter. Returns CLIPBOARD_FORMAT_MISMATCH if no
-
-    rule exists for the pair.
-
-    '
+  definition: "Registry of cross-formatter conversion rules enabling clipboard paste\n\
+    between different formatter types. Called by Clipboard.paste when source\nformatter
+    != target formatter. Returns CLIPBOARD_FORMAT_MISMATCH if no\nrule exists for
+    the pair.\n"
   properties:
   - register: 'register(rule: ConversionRule) -> void'
   - can_convert: can_convert(source_fmt, target_fmt) -> bool
-  - convert: convert(fragment, source_fmt, target_fmt, src_inst, tgt_inst) -> fragment
+  - convert: convert(fragment, source_fmt, target_fmt, src_inst, tgt_inst) -> 
+      fragment
   - list_conversions: list_conversions() -> list[ConversionRule]
   - on_conversion_error: catch all exceptions, return CLIPBOARD_FORMAT_MISMATCH
   source_ranges:
@@ -1127,11 +1030,8 @@ concepts:
     end: 1739
 - concept_id: C-057
   name: ConversionRule
-  definition: 'Single entry in ConversionRegistry describing how to convert a fragment
-
-    from one formatter to another, with lossiness flag and description.
-
-    '
+  definition: "Single entry in ConversionRegistry describing how to convert a fragment\n\
+    from one formatter to another, with lossiness flag and description.\n"
   properties:
   - source_formatter: str
   - target_formatter: str
@@ -1144,61 +1044,65 @@ concepts:
   - start: 1728
     end: 1739
 - concept_id: C-058
-  definition: Set of files copied verbatim from code-analysis-server into ai_editor/ported/ as the starting point for Scenario B adaptation.
+  definition: Set of files copied verbatim from code-analysis-server into 
+    ai_editor/ported/ as the starting point for Scenario B adaptation.
   name: PortedCodeBase
   properties:
   - 'contains universal_file_edit commands: open, edit, write, close'
   - 'contains file_handlers: registry, base, text, json, yaml, python'
   - contains session, format_group, errors, backup_manager
   - copied without business logic changes
-  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
+    union)'
   source_ranges: []
 - concept_id: C-059
-  definition: Set of thin shim modules replacing code-analysis-server infrastructure dependencies so PortedCodeBase runs without DB or mcp_proxy_adapter.
+  definition: Set of thin shim modules replacing code-analysis-server 
+    infrastructure dependencies so PortedCodeBase runs without DB or 
+    mcp_proxy_adapter.
   name: StandaloneAdapter
   properties:
   - project.py replaces BaseMCPCommand._resolve_project_root
   - result.py replaces mcp_proxy_adapter SuccessResult/ErrorResult
   - git.py replaces code_analysis.core.git_integration.commit_after_write
   - import rewrite replaces all code_analysis.* paths
-  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
+    union)'
   source_ranges: []
 - concept_id: C-060
-  definition: Mechanical transformation of import statements in PortedCodeBase files replacing code_analysis and mcp_proxy_adapter namespaces with ai_editor namespaces.
+  definition: Mechanical transformation of import statements in PortedCodeBase 
+    files replacing code_analysis and mcp_proxy_adapter namespaces with 
+    ai_editor namespaces.
   name: ImportRewrite
   properties:
   - applied to all files in ai_editor/ported/
   - no business logic changes
   - ValidationError replaced with ValueError
-  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
+    union)'
   source_ranges: []
 - concept_id: C-061
-  definition: Invariant state where ai_editor/ported/ is importable standalone and the text format group is fully functional without code-analysis-server on the Python path.
+  definition: Invariant state where ai_editor/ported/ is importable standalone 
+    and the text format group is fully functional without code-analysis-server 
+    on the Python path.
   name: TextGroupReadiness
   properties:
   - CST and tree-temp groups remain as lazy imports
   - verified by import test and text group smoke test
-  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS union)'
+  - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
+    union)'
   source_ranges: []
 - concept_id: C-062
-  definition: 'External user/login session on the CA server (e.g. the chat session), identified by
-
-    ca_session_id. Created OUTSIDE ai_editor at user login and shared with other consumers
-
-    (terminal sessions, other tools). ai_editor receives ca_session_id at editor-session
-
-    creation and uses it to acquire/release per-file locks (session_open_file /
-
-    session_close_file) and to enforce cross-session file isolation. ai_editor NEVER calls
-
-    session_create or session_delete and never owns the CA session lifecycle; the CA session
-
-    outlives any editor session.
-
-    '
+  definition: "External user/login session on the CA server (e.g. the chat session),
+    identified by\nca_session_id. Created OUTSIDE ai_editor at user login and shared
+    with other consumers\n(terminal sessions, other tools). ai_editor receives ca_session_id
+    at editor-session\ncreation and uses it to acquire/release per-file locks (session_open_file
+    /\nsession_close_file) and to enforce cross-session file isolation. ai_editor
+    NEVER calls\nsession_create or session_delete and never owns the CA session lifecycle;
+    the CA session\noutlives any editor session.\n"
   name: CASession
   properties:
-  - ca_session_id: UUID4; supplied externally, stored at session level in ses_settings.json
+  - ca_session_id: UUID4; supplied externally, stored at session level in 
+      ses_settings.json
   - ownership: external; ai_editor uses but does not create or delete it
   - lifecycle_calls_forbidden:
     - session_create
@@ -1213,17 +1117,19 @@ concepts:
     end: 316
 - concept_id: C-063
   name: Tree
-  definition: In-memory node tree owned by AbstractFormatter base; produced by open_tree/parse, consumed by render/export; one per open buffer.
+  definition: In-memory node tree owned by AbstractFormatter base; produced by 
+    open_tree/parse, consumed by render/export; one per open buffer.
   properties:
   - 'owner: AbstractFormatter base class'
   - 'root: TreeNode'
   - 'lifecycle: created at open_tree; updated by base structural ops'
   source_ranges:
-  - start: 468
-    end: 501
+  - start: 536
+    end: 554
 - concept_id: C-064
   name: TreeNode
-  definition: 'Single node in the generic Tree: stable_id, node_kind, line range, display_text, metadata, children.'
+  definition: 'Single node in the generic Tree: stable_id, node_kind, line range,
+    display_text, metadata, children.'
   properties:
   - 'stable_id: UUID (base-assigned)'
   - 'node_kind: str (format-defined)'
@@ -1233,38 +1139,63 @@ concepts:
   - 'metadata: dict'
   - 'children: list[TreeNode]'
   source_ranges:
-  - start: 468
-    end: 501
+  - start: 536
+    end: 554
 - concept_id: C-066
   name: SourceOfTruth
-  definition: 'Rule governing which artifact is authoritative: source file at open; tree file once buffer.modified is True.'
+  definition: 'Rule governing which artifact is authoritative: source file at open;
+    tree file once buffer.modified is True.'
   properties:
   - 'at_open: source file'
   - 'after_first_mutation: tree file (sidecar)'
   - 'condition: buffer.modified == True'
   - 'applies_to: all formats'
   source_ranges:
-  - start: 503
-    end: 509
+  - start: 556
+    end: 562
 - concept_id: C-067
   name: AutoCreateTree
-  definition: Automatic tree build when preview finds no tree file, and immediately after fetch from analysis server.
+  definition: Automatic tree build when preview finds no tree file, and 
+    immediately after fetch from analysis server.
   properties:
   - 'on_preview_missing_tree: build tree then operate'
   - 'after_ca_fetch: build tree immediately'
   source_ranges:
-  - start: 511
-    end: 516
+  - start: 564
+    end: 569
 - concept_id: C-068
   name: WritePipeline
-  definition: 'Base-class write orchestration: export via subclass render, diff preview, temp file, subclass linters, atomic rename on success; abort and return errors on lint failure.'
+  definition: 'Base-class write orchestration: export via subclass render, diff preview,
+    temp file, subclass linters, atomic rename on success; abort and return errors
+    on lint failure.'
   properties:
-  - 'steps: [export, diff_preview, temp_write, linters, atomic_rename]'
+  - 'steps: [pre_write_validation, export, diff_preview, temp_write, linters, atomic_rename]'
+  - 'pre_write_validation: step-0; parse on export(tree) + tree invariants; failure
+    -> PRE_WRITE_VALIDATION_FAILED immediately, no diff shown'
   - 'on_lint_error: abort, discard temp, return content+errors'
   - 'uniform_for: all formats'
   source_ranges:
   - start: 386
-    end: 466
+    end: 500
+- concept_id: C-069
+  definition: Degraded buffer mode when a file fails to parse at open time. 
+    format_group falls back to text regardless of extension; is_invalid=True; 
+    model warned via warning field. Commit blocked until re-parse succeeds; on 
+    success format_group restored to original.
+  name: InvalidOnOpen
+  properties:
+  - 'is_invalid: bool — True while file has parse errors'
+  - 'original_format_group: str — format_group that would apply if file were valid'
+  - 'fallback_reason: str — parse error message surfaced to model'
+  - 'warning: str — human-readable notice in every open/edit response'
+  - 'commit_gate: re-parse draft with original formatter before write; FORMAT_INVALID_ON_OPEN
+    on failure'
+  - 'recovery: on successful commit format_group restored, is_invalid cleared, recovered_format_group
+    returned'
+  - 'windowed_preview: always available for navigation in text mode'
+  source_ranges:
+  - end: 535
+    start: 501
 relations:
 - from_concept: C-001
   to_concept: C-003
@@ -1527,3 +1458,9 @@ relations:
 - from_concept: C-032
   to_concept: C-063
   type: consumes
+- from_concept: C-010
+  to_concept: C-069
+  type: uses
+- from_concept: C-021
+  to_concept: C-069
+  type: produces

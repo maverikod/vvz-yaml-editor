@@ -1,9 +1,26 @@
 step_id: T-001
 parent_global_step: G-008
 name: MarkdownFormatter — mistune AST, MdNode model, parse/render/skeleton
-status: needs_review
-description: "Implement MarkdownFormatter using mistune>=3.0. This step covers the\nfoundational layer: parse, render, render_skeleton, address resolution,\nget_unit, iter_units. Mutation and clipboard in T-002.\n\nLibrary choice rationale (see source_spec.md G-008 Part 1):\n  mistune>=3.0: pure Python, AST renderer, GFM support, active maintenance.\n\nMdNode dataclass fields:\n  node_type: str (heading|paragraph|code_block|list|list_item|blockquote|\n             thematic_break|html_block|table|table_head|table_body|\n             table_row|image|link)\n  level: int | None (heading level 1-6)\n  content: str (raw text content)\n  children: list[MdNode]\n  attrs: dict (url, alt, lang, etc.)\n  source_pos: tuple[int,int] | None\n\ndocument model: list[MdNode] (top-level nodes only; children nested)\n\nAddress model:\n  int: top-level node index\n  \"heading:<text>\": first heading whose content matches text\n  \"N.M\": Nth top-level node, Mth child\n  None: whole document (mutate_replace_block\
-  \ only)\n\nrender_skeleton rules:\n  - Headings: \"# Heading text\" (level indicator)\n  - Paragraphs: first 60 chars + \" # N chars\" if longer\n  - Code blocks: \"```<lang>\\n<first line>\\n... N lines\"\n  - Lists: \"- [N items] item1 | item2 | item3...\"\n  - Tables: \"| col1 | col2 | ... | (N rows)\"\n  - Images: \"![alt](url)\"\n  - Links: \"[text](url)\"\n\nvalidate_document: mistune parse round-trip structural check.\nAll Markdown is syntactically valid; validation only checks structural\nround-trip (not byte-identical).\n\nRegistered extensions: .md .markdown (overrides TextFormatter).\n"
+status: frozen
+description: "Implement MarkdownFormatter using mistune>=3.0. This step covers the\n\
+  foundational layer: parse, render, render_skeleton, address resolution,\nget_unit,
+  iter_units. Mutation and clipboard in T-002.\n\nLibrary choice rationale (see source_spec.md
+  G-008 Part 1):\n  mistune>=3.0: pure Python, AST renderer, GFM support, active maintenance.\n\
+  \nMdNode dataclass fields:\n  node_type: str (heading|paragraph|code_block|list|list_item|blockquote|\n\
+  \             thematic_break|html_block|table|table_head|table_body|\n         \
+  \    table_row|image|link)\n  level: int | None (heading level 1-6)\n  content:
+  str (raw text content)\n  children: list[MdNode]\n  attrs: dict (url, alt, lang,
+  etc.)\n  source_pos: tuple[int,int] | None\n\ndocument model: list[MdNode] (top-level
+  nodes only; children nested)\n\nAddress model:\n  int: top-level node index\n  \"\
+  heading:<text>\": first heading whose content matches text\n  \"N.M\": Nth top-level
+  node, Mth child\n  None: whole document (mutate_replace_block only)\n\nrender_skeleton
+  rules:\n  - Headings: \"# Heading text\" (level indicator)\n  - Paragraphs: first
+  60 chars + \" # N chars\" if longer\n  - Code blocks: \"```<lang>\\n<first line>\\
+  n... N lines\"\n  - Lists: \"- [N items] item1 | item2 | item3...\"\n  - Tables:
+  \"| col1 | col2 | ... | (N rows)\"\n  - Images: \"![alt](url)\"\n  - Links: \"[text](url)\"\
+  \n\nvalidate_document: mistune parse round-trip structural check.\nAll Markdown
+  is syntactically valid; validation only checks structural\nround-trip (not byte-identical).\n\
+  \nRegistered extensions: .md .markdown (overrides TextFormatter).\n"
 concepts:
 - C-052
 - C-053
@@ -20,12 +37,17 @@ outputs:
   description: MdNode dataclass.
 - name: ai_editor/formatters/markdown/formatter.py
   type: file
-  description: 'MarkdownFormatter(AbstractFormatter) with formatter_name="markdown". parse, render, render_skeleton, normalize_address, get_unit, iter_units. Mutation methods stubbed as NotImplementedError for T-002.
-
-    '
+  description: "MarkdownFormatter(AbstractFormatter) with formatter_name=\"markdown\"\
+    . parse, render, render_skeleton, normalize_address, get_unit, iter_units. Mutation
+    methods stubbed as NotImplementedError for T-002.\n"
 - name: ai_editor/formatters/markdown/__init__.py
   type: file
   description: Exports MarkdownFormatter.
-atomic_steps: []
-future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation. atomic_steps not written. Implement only after G-001..G-007 complete and G-008 approved in chat.
+atomic_steps:
+- A-001
+- A-002
+- A-003
+future_plan_note: FUTURE PLAN — part of G-008. Not scheduled for implementation.
+  atomic_steps not written. Implement only after G-001..G-007 complete and G-008
+  approved in chat.
 cascade_note: changed — converter-only subclass pattern

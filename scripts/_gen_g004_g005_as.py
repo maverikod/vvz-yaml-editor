@@ -257,7 +257,7 @@ class Search(AbstractSearch):
         if errs:
             return {
                 "success": False,
-                "error_code": ErrorCode.SEARCH_INVALID_QUERY,
+                "error_code": ErrorCode.SEARCH_QUERY_INVALID,
                 "message": "; ".join(errs),
             }
         matches = self.find(session_key, buffer_id, query, scope=scope)
@@ -270,7 +270,7 @@ class Search(AbstractSearch):
         if len(matches) > 1:
             return {
                 "success": False,
-                "error_code": ErrorCode.SEARCH_MULTIPLE_MATCHES,
+                "error_code": ErrorCode.SEARCH_NOT_UNIQUE,
                 "message": f"expected one match, found {len(matches)}",
             }
         return matches[0]

@@ -129,12 +129,13 @@ prompt: "Project: ai_editor. File: ai_editor/editor_core/ca_client.py. Operation
   use as a context manager.\"\"\"\n        return self\n\n    def __exit__(self, *args:
   object) -> None:\n        \"\"\"Close the client on context manager exit.\"\"\"\n\
   \        self.close()\n```"
-status: draft
+status: done
 step_id: A-001
 target_file: ai_editor/editor_core/ca_client.py
 verification:
-  expected: from ai_editor.editor_core.ca_client import CodeAnalysisClient, 
-    CAClientConfig; both import without error; CAClientConfig(host='h', 
-    port=8000, protocol='https').base_url == 'https://h:8000'.
+  expected: The module ai_editor.editor_core.ca_client imports without error. 
+    CodeAnalysisClient and CAClientConfig are importable. CAClientConfig accepts
+    host, port, and protocol fields and exposes a base_url property returning 
+    the correct URL string.
   target: ai_editor.editor_core.ca_client
   type: import

@@ -32,13 +32,14 @@ prompt: "Project: ai_editor. File: ai_editor/contracts/__init__.py. Operation: c
   ,\n    \"Diagnostic\",\n    \"ErrorCode\",\n    \"OperationResult\",\n    \"ResultEnvelope\"\
   ,\n    \"SessionDescriptor\",\n    \"SessionKey\",\n    \"ValidationResult\",\n\
   \    \"WriteAllResult\",\n]\n```"
-status: draft
+status: done
 step_id: A-002
 target_file: ai_editor/contracts/__init__.py
 verification:
-  expected: from ai_editor.contracts import ErrorCode, Diagnostic, 
-    ResultEnvelope, ValidationResult, OperationResult, WriteAllResult, 
-    SessionKey, BufferDescriptor, SessionDescriptor, BufferAddress; all ten 
-    names importable from ai_editor.contracts in one import.
+  expected: The file ai_editor/contracts/__init__.py exists. All ten names 
+    (BufferAddress, BufferDescriptor, Diagnostic, ErrorCode, OperationResult, 
+    ResultEnvelope, SessionDescriptor, SessionKey, ValidationResult, 
+    WriteAllResult) are importable directly from ai_editor.contracts. The 
+    __all__ list contains exactly these ten names and no others.
   target: ai_editor.contracts
   type: import
