@@ -61,11 +61,6 @@ def _register(registry: Any) -> None:
     from ai_editor.commands.buf_validate_command import BufValidateCommand
     from ai_editor.commands.validate_file_command import ValidateFileCommand
     from ai_editor.commands.formatter_commands_command import FormatterCommandsCommand
-    from ai_editor.commands.yaml_get_command_command import YamlGetCommandCommand
-    from ai_editor.commands.yaml_update_command_command import YamlUpdateCommandCommand
-    from ai_editor.commands.yaml_get_verification_command import YamlGetVerificationCommand
-    from ai_editor.commands.yaml_append_verification_command import YamlAppendVerificationCommand
-    from ai_editor.commands.yaml_validate_plan_task_command import YamlValidatePlanTaskCommand
     from ai_editor.commands.buf_new_command import BufNewCommand
     from ai_editor.commands.buf_save_as_command import BufSaveAsCommand
     from ai_editor.commands.buf_reload_command import BufReloadCommand
@@ -93,11 +88,6 @@ def _register(registry: Any) -> None:
     registry.register(BufValidateCommand, "custom")
     registry.register(ValidateFileCommand, "custom")
     registry.register(FormatterCommandsCommand, "custom")
-    registry.register(YamlGetCommandCommand, "custom")
-    registry.register(YamlUpdateCommandCommand, "custom")
-    registry.register(YamlGetVerificationCommand, "custom")
-    registry.register(YamlAppendVerificationCommand, "custom")
-    registry.register(YamlValidatePlanTaskCommand, "custom")
     registry.register(BufNewCommand, "custom")
     registry.register(BufSaveAsCommand, "custom")
     registry.register(BufReloadCommand, "custom")
