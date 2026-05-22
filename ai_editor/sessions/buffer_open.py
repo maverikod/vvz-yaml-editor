@@ -9,7 +9,7 @@ from ai_editor.contracts import Diagnostic, ErrorCode
 from ai_editor.editor_core.ca_client import CodeAnalysisClient
 from ai_editor.editor_core.registry import FormatterRegistry
 from ai_editor.editor_core.writer import Writer
-from ai_editor.formatters.sidecar import save_sidecar, session_sidecar_path
+from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
 from ai_editor.sessions.session_dir import add_buffer_to_settings, read_session_settings
 from ai_editor.sessions.session_git import commit_buffer, create_buffer_branch, get_repo
 
@@ -79,7 +79,10 @@ def open_buffer(
     formatter_inst = fmt_cls()
     try:
         content_bytes, file_id = ca_client.download_content(
-            project_id, file_path, readonly=readonly
+            project_id,
+            file_path,
+            readonly=readonly,
+            ca_session_id=ca_session_id,
         )
     except Exception as exc:
         return {
@@ -88,21 +91,17 @@ def open_buffer(
             "message": str(exc),
         }
     content = content_bytes.decode("utf-8")
-    if not readonly and file_id:
-        try:
-            ca_client.lock_file(ca_session_id, project_id, file_id)
-        except Exception:
-            return {
-                "success": False,
-                "error_code": ErrorCode.BUFFER_LOCKED,
-                "message": "file lock held by another session",
-            }
+    if file_id is None:
+        for row in ca_client.list_project_files(project_id):
+            if row.get("relative_path") == file_path:
+                file_id = row.get("file_id")
+                break
     buffer_id = str(uuid.uuid4())
     suffix = Path(file_path).suffix or ".txt"
     buf_path = session_dir / f"{buffer_id}{suffix}"
     tree = formatter_inst.open_tree(content)
     sidecar_path = session_sidecar_path(session_dir, buffer_id)
-    save_sidecar(sidecar_path, formatter_inst.formatter_name, content, tree)
+    persist_tree_sidecar(sidecar_path, formatter_inst.formatter_name, content, tree.root)
     Writer().write_buf(content, buf_path)
     create_buffer_branch(repo, buffer_id, buf_path)
     commit_buffer(repo, buffer_id, buf_path, f"open: {file_path}")

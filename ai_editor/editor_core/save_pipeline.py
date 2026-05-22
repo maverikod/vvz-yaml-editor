@@ -57,6 +57,8 @@ def run_save_pipeline(
     project_id: str,
     file_id: str | None,
     commit_message: str = "",
+    *,
+    ca_session_id: str = "",
 ) -> OperationResult:
     """Run the full save pipeline for a buffer.
 
@@ -94,8 +96,13 @@ def run_save_pipeline(
             )
         written_path: Path = export_result["path"]
         content = written_path.read_bytes()
-        if file_id is not None:
-            ca_client.upload_content(project_id, file_id, content)
+        ca_client.upload_content(
+            project_id,
+            file_id,
+            content,
+            ca_session_id=ca_session_id,
+            file_path=relative_path,
+        )
         return OperationResult(success=True, message=f"Saved {relative_path}")
     except Exception as exc:
         return OperationResult(
@@ -114,6 +121,8 @@ def run_save_as_pipeline(
     file_id: str | None,
     overwrite: bool,
     commit_message: str = "",
+    *,
+    ca_session_id: str = "",
 ) -> OperationResult:
     """Run the save-as pipeline, writing content to a new project path.
 
@@ -154,8 +163,28 @@ def run_save_as_pipeline(
             )
         written_path: Path = export_result["path"]
         content = written_path.read_bytes()
-        if file_id is not None:
-            ca_client.upload_content(project_id, file_id, content)
+        target_file_id = file_id
+        if target_file_id is None:
+            for row in ca_client.list_project_files(project_id):
+                if row.get("relative_path") == new_relative_path:
+                    target_file_id = row.get("file_id") or row.get("id")
+                    break
+        if target_file_id is not None:
+            ca_client.upload_content(
+                project_id,
+                target_file_id,
+                content,
+                ca_session_id=ca_session_id,
+                file_path=new_relative_path,
+            )
+            return OperationResult(success=True, message=f"Saved as {new_relative_path}")
+        ca_client.upload_content(
+            project_id,
+            None,
+            content,
+            ca_session_id=ca_session_id,
+            file_path=new_relative_path,
+        )
         return OperationResult(success=True, message=f"Saved as {new_relative_path}")
     except Exception as exc:
         return OperationResult(

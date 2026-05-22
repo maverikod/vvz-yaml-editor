@@ -1,69 +1,153 @@
-"""CodeAnalysisClient — single gateway for all project file I/O via CA server API.
+"""CodeAnalysisClient — sync gateway for project file I/O via code-analysis-client.
 
-ai_editor never reads or writes project files directly from disk.
-All file access goes through this client.
+All file access goes through the CA server JSON-RPC API and transfer protocol
+(mcp-proxy-adapter JsonRpcClient), not direct disk or REST /commands/* stubs.
 """
 from __future__ import annotations
 
-import ssl
+import asyncio
+import os
+import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import httpx
+from code_analysis_client import CodeAnalysisAsyncClient
+from code_analysis_client.config import adapter_settings_from_server_config
+from code_analysis_client.exceptions import ClientValidationError
+
+
+def _unwrap(data: dict[str, Any]) -> dict[str, Any]:
+    """Extract inner payload from a CA command response."""
+    if data.get("success"):
+        inner = data.get("data")
+        if isinstance(inner, dict):
+            if inner.get("success") is True and isinstance(inner.get("data"), dict):
+                return inner["data"]
+            return inner
+        return data
+    code_raw = data.get("code")
+    message = data.get("message")
+    err = data.get("error")
+    if code_raw is None and isinstance(err, dict):
+        code_raw = err.get("code")
+        if message is None:
+            message = err.get("message")
+    elif code_raw is None and isinstance(err, str):
+        code_raw = err
+    raise ClientValidationError(
+        str(message or data),
+        field="command",
+        details=data,
+    )
+
+
+class _AsyncRunner:
+    """Run coroutines on a dedicated background event loop."""
+
+    def __init__(self) -> None:
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(
+            target=self._loop.run_forever, name="ca-client-loop", daemon=True
+        )
+        self._thread.start()
+
+    def run(self, coro: Any) -> Any:
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return future.result()
+
+    def close(self) -> None:
+        if self._loop.is_running():
+            self._loop.call_soon_threadsafe(self._loop.stop)
+            self._thread.join(timeout=5.0)
+        self._loop.close()
 
 
 @dataclass
 class CAClientConfig:
-    """Connection configuration for the CA server.
-
-    Attributes:
-        host: CA server hostname.
-        port: CA server port.
-        protocol: 'https' or 'mtls'.
-        ssl_context: SSL context for mTLS; None for plain HTTPS+token.
-        auth_token: Bearer token for HTTPS+token auth; None for mTLS.
-    """
+    """Connection configuration retained for compatibility."""
 
     host: str
     port: int
-    protocol: str  # 'https' | 'mtls'
-    ssl_context: ssl.SSLContext | None = None
+    protocol: str
+    ssl_context: Any = None
     auth_token: str | None = None
 
     @property
     def base_url(self) -> str:
-        """Return the base URL for the CA server."""
         return f"https://{self.host}:{self.port}"
 
 
 class CodeAnalysisClient:
-    """Single gateway for all project file I/O via the CA server API.
+    """Sync façade over :class:`CodeAnalysisAsyncClient` and transfer helpers."""
 
-    ai_editor never reads or writes project files directly from disk.
-    All file access goes through this client.
-
-    Invariant: upload_content writes content only and never releases
-    the file lock. Lock release is always a separate explicit unlock_file call.
-    """
-
-    def __init__(self, config: CAClientConfig) -> None:
-        """Initialise the client with the given connection configuration.
-
-        Args:
-            config: CA server connection configuration.
-        """
+    def __init__(
+        self,
+        async_client: CodeAnalysisAsyncClient,
+        *,
+        config: CAClientConfig | None = None,
+    ) -> None:
+        self._async = async_client
+        self._fs = async_client.file_sessions
+        self._runner = _AsyncRunner()
         self._config = config
-        self._client = httpx.Client(
-            base_url=config.base_url,
-            verify=config.ssl_context or True,
-            headers=(
-                {"Authorization": f"Bearer {config.auth_token}"}
-                if config.auth_token
-                else {}
-            ),
-            timeout=60.0,
+
+    @classmethod
+    def from_config(cls, ca_config: Any) -> CodeAnalysisClient:
+        """Build a client from CodeAnalysisServerConfig or compatible mapping."""
+        from ai_editor.config.config_section import CodeAnalysisServerConfig
+
+        if not isinstance(ca_config, CodeAnalysisServerConfig):
+            ca_config = CodeAnalysisServerConfig.from_dict(dict(ca_config))
+
+        auth_token: str | None = None
+        if ca_config.auth.use_token and ca_config.auth.token_env:
+            auth_token = os.environ.get(ca_config.auth.token_env)
+
+        server_cfg: dict[str, Any] = {
+            "server": {
+                "host": ca_config.host,
+                "port": ca_config.port,
+                "protocol": ca_config.protocol,
+            }
+        }
+        if ca_config.ssl:
+            server_cfg["client"] = {"ssl": ca_config.ssl}
+
+        adapter_settings = adapter_settings_from_server_config(server_cfg)
+        async_client = CodeAnalysisAsyncClient.from_adapter_settings(
+            adapter_settings,
+            check_hostname=ca_config.check_hostname,
+            token=auth_token,
         )
+        cfg = CAClientConfig(
+            host=ca_config.host,
+            port=ca_config.port,
+            protocol=ca_config.protocol,
+            auth_token=auth_token,
+        )
+        return cls(async_client, config=cfg)
+
+    def _run(self, coro: Any) -> Any:
+        return self._runner.run(coro)
+
+    # ------------------------------------------------------------------
+    # Session lifecycle
+    # ------------------------------------------------------------------
+
+    def create_session(
+        self,
+        comment: str = "ai_editor",
+        *,
+        role_ids: list[str] | None = None,
+    ) -> str:
+        """Register a CA client session and return its session_id."""
+        return self._run(self._fs.create_session(comment, role_ids=role_ids))
+
+    def delete_session(self, session_id: str, *, force: bool = False) -> dict[str, Any]:
+        """Delete a CA client session."""
+        return self._run(self._fs.delete_session(session_id, force=force))
 
     # ------------------------------------------------------------------
     # File content I/O
@@ -74,54 +158,94 @@ class CodeAnalysisClient:
         project_id: str,
         file_path: str,
         readonly: bool = False,
+        *,
+        ca_session_id: str,
     ) -> tuple[bytes, str | None]:
-        """Download file content from the CA server.
+        """Download file content via transfer protocol.
 
-        Transfer download with no lock side-effect. The caller is responsible
-        for acquiring the lock separately via lock_file if a write is intended.
+        When ``readonly`` is False, an advisory lock is acquired during download
+        (``lock_mode=full``). The caller must not call :meth:`lock_file` again
+        for the same open flow.
 
         Args:
             project_id: UUID of the project.
             file_path: Project-relative path to the file.
-            readonly: True if the buffer will be opened read-only (advisory).
+            readonly: If True, download without acquiring a lock.
+            ca_session_id: Registered CA session id (from :meth:`create_session`).
 
         Returns:
-            Tuple of (content_bytes, file_id). file_id is None if the server
-            does not return it.
+            Tuple of (content_bytes, file_id). file_id may be None if the server
+            omits it; resolve via :meth:`list_project_files` when needed.
         """
-        resp = self._client.get(
-            "/commands/download_file",
-            params={"project_id": project_id, "file_path": file_path},
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["content"].encode("utf-8"), data.get("file_id")
+        if not ca_session_id:
+            raise ValueError("ca_session_id is required for download_content")
+
+        async def _download() -> tuple[bytes, str | None]:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                dest = tmp.name
+            try:
+                begin, _receipt = await self._fs.download_file_locked(
+                    ca_session_id,
+                    dest,
+                    project_id=project_id,
+                    file_path=file_path,
+                    lock_mode="none" if readonly else "full",
+                )
+                content = Path(dest).read_bytes()
+                file_id = begin.get("file_id")
+                if file_id is not None:
+                    file_id = str(file_id)
+                return content, file_id
+            finally:
+                Path(dest).unlink(missing_ok=True)
+
+        return self._run(_download())
 
     def upload_content(
         self,
         project_id: str,
-        file_id: str,
+        file_id: str | None,
         content: bytes,
+        *,
+        ca_session_id: str,
+        file_path: str | None = None,
     ) -> None:
-        """Upload file content to the CA server.
-
-        Writes file content only. Never releases the file lock.
-        Lock release requires a separate explicit unlock_file call.
+        """Upload file content without releasing the file lock.
 
         Args:
             project_id: UUID of the project.
-            file_id: UUID of the file on the CA server.
+            file_id: UUID of the file on the CA server, or None when unknown.
             content: Raw bytes to write.
+            ca_session_id: Registered CA session id holding the lock.
+            file_path: Project-relative path; required when file_id is None.
         """
-        resp = self._client.post(
-            "/commands/upload_file",
-            json={
-                "project_id": project_id,
-                "file_id": file_id,
-                "content": content.decode("utf-8"),
-            },
-        )
-        resp.raise_for_status()
+        if not ca_session_id:
+            raise ValueError("ca_session_id is required for upload_content")
+        if file_id is None and not file_path:
+            raise ValueError("file_path is required when file_id is None")
+
+        filename = Path(file_path).name if file_path else "payload.bin"
+
+        async def _upload() -> None:
+            receipt = await self._fs.upload_bytes(
+                content, filename=filename, compression="identity"
+            )
+            if not getattr(receipt, "completed", False):
+                raise ClientValidationError(
+                    "upload did not complete",
+                    field="transfer_id",
+                    details={"receipt": repr(receipt)},
+                )
+            await self._fs.save_upload_and_unlock(
+                ca_session_id,
+                str(receipt.transfer_id),
+                project_id=project_id,
+                file_id=file_id if file_id is not None else None,
+                file_path=file_path if file_id is None else None,
+                unlock_after_write=False,
+            )
+
+        self._run(_upload())
 
     # ------------------------------------------------------------------
     # Lock management
@@ -133,25 +257,10 @@ class CodeAnalysisClient:
         project_id: str,
         file_id: str,
     ) -> None:
-        """Acquire a cooperative file lock via session_open_file.
-
-        Raises BUFFER_LOCKED error if the file is already held by another
-        CA session. Idempotent if the same session already holds the lock.
-
-        Args:
-            ca_session_id: External CA session UUID.
-            project_id: UUID of the project.
-            file_id: UUID of the file.
-        """
-        resp = self._client.post(
-            "/commands/session_open_file",
-            json={
-                "session_id": ca_session_id,
-                "project_id": project_id,
-                "file_id": file_id,
-            },
+        """Acquire a cooperative file lock via session_open_file."""
+        self._run(
+            self._fs.lock_file(ca_session_id, project_id, file_id)
         )
-        resp.raise_for_status()
 
     def unlock_file(
         self,
@@ -159,65 +268,34 @@ class CodeAnalysisClient:
         project_id: str,
         file_id: str,
     ) -> None:
-        """Release a cooperative file lock via session_close_file.
-
-        Args:
-            ca_session_id: External CA session UUID.
-            project_id: UUID of the project.
-            file_id: UUID of the file.
-        """
-        resp = self._client.post(
-            "/commands/session_close_file",
-            json={
-                "session_id": ca_session_id,
-                "project_id": project_id,
-                "file_id": file_id,
-            },
+        """Release a cooperative file lock via session_close_file."""
+        self._run(
+            self._fs.unlock_file(ca_session_id, project_id, file_id)
         )
-        resp.raise_for_status()
 
     def list_file_locks(
         self,
         ca_session_id: str,
-        project_id: str,
+        project_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """List all file locks held under the given CA session.
-
-        Used as a pre-check before acquiring a new lock to detect conflicts.
-
-        Args:
-            ca_session_id: External CA session UUID.
-            project_id: UUID of the project.
-
-        Returns:
-            List of lock descriptor dicts from session_list_file_locks.
-        """
-        resp = self._client.get(
-            "/commands/session_list_file_locks",
-            params={"session_id": ca_session_id, "project_id": project_id},
-        )
-        resp.raise_for_status()
-        return resp.json().get("locks", [])
+        """List all file locks held under the given CA session."""
+        _ = project_id
+        payload = self._run(self._fs.list_file_locks(ca_session_id))
+        locks = payload.get("locks", payload.get("file_locks", []))
+        return locks if isinstance(locks, list) else []
 
     # ------------------------------------------------------------------
     # Project file listing
     # ------------------------------------------------------------------
 
     def list_project_files(self, project_id: str) -> list[dict[str, Any]]:
-        """List all files in the project.
-
-        Args:
-            project_id: UUID of the project.
-
-        Returns:
-            List of file descriptor dicts.
-        """
-        resp = self._client.get(
-            "/commands/list_project_files",
-            params={"project_id": project_id},
+        """List all files in the project."""
+        payload = self._run(
+            self._async.call("list_project_files", {"project_id": project_id})
         )
-        resp.raise_for_status()
-        return resp.json().get("files", [])
+        data = _unwrap(payload)
+        files = data.get("files", [])
+        return files if isinstance(files, list) else []
 
     # ------------------------------------------------------------------
     # Backup management
@@ -228,21 +306,16 @@ class CodeAnalysisClient:
         project_id: str,
         file_path: str,
     ) -> list[dict[str, Any]]:
-        """List available backup versions for a file.
-
-        Args:
-            project_id: UUID of the project.
-            file_path: Project-relative path to the file.
-
-        Returns:
-            List of backup version dicts (backup_uuid, created_at, etc.).
-        """
-        resp = self._client.get(
-            "/commands/list_backup_versions",
-            params={"project_id": project_id, "file_path": file_path},
+        """List available backup versions for a file."""
+        payload = self._run(
+            self._async.call(
+                "list_backup_versions",
+                {"project_id": project_id, "file_path": file_path},
+            )
         )
-        resp.raise_for_status()
-        return resp.json().get("versions", [])
+        data = _unwrap(payload)
+        versions = data.get("versions", [])
+        return versions if isinstance(versions, list) else []
 
     def restore_backup_file(
         self,
@@ -250,32 +323,28 @@ class CodeAnalysisClient:
         file_path: str,
         backup_uuid: str,
     ) -> None:
-        """Restore a file from a backup version.
-
-        Args:
-            project_id: UUID of the project.
-            file_path: Project-relative path to the file.
-            backup_uuid: UUID of the backup version to restore.
-        """
-
-        resp = self._client.post(
-            "/commands/restore_backup_file",
-            json={
-                "project_id": project_id,
-                "file_path": file_path,
-                "backup_uuid": backup_uuid,
-            },
+        """Restore a file from a backup version."""
+        payload = self._run(
+            self._async.call(
+                "restore_backup_file",
+                {
+                    "project_id": project_id,
+                    "file_path": file_path,
+                    "backup_uuid": backup_uuid,
+                },
+            )
         )
-        resp.raise_for_status()
+        _unwrap(payload)
 
     def close(self) -> None:
-        """Close the underlying HTTP client."""
-        self._client.close()
+        """Close the underlying async client and background loop."""
+        try:
+            self._run(self._async.close())
+        finally:
+            self._runner.close()
 
     def __enter__(self) -> CodeAnalysisClient:
-        """Return self for use as a context manager."""
         return self
 
     def __exit__(self, *args: object) -> None:
-        """Close the client on context manager exit."""
         self.close()

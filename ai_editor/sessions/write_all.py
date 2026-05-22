@@ -59,7 +59,13 @@ def write_all(
         content = _source_text(formatter, document).encode("utf-8")
         rel = buf["relative_path"]
         try:
-            ca_client.upload_content(buf["project_id"], buf["file_id"], content)
+            ca_client.upload_content(
+                buf["project_id"],
+                buf.get("file_id"),
+                content,
+                ca_session_id=settings.get("ca_session_id", ""),
+                file_path=rel,
+            )
         except Exception as exc:
             failed.append({"buffer_id": buffer_id, "message": str(exc)})
             continue

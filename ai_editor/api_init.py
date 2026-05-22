@@ -27,7 +27,7 @@ def init_api(
     base_dir = config.sessions.base_dir
     _session_manager = SessionManager(base_dir, _ca_client, formatter_registry)
     try:
-        from ai_editor.sessions.startup_sweep import startup_sweep
+        from ai_editor.sessions.recovery import startup_sweep
     except Exception:  # noqa: BLE001
         startup_sweep = None
 

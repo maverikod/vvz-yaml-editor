@@ -52,6 +52,7 @@ def save_buffer(
         buf["project_id"],
         buf.get("file_id"),
         commit_message=f"ai_editor: save {rel}",
+        ca_session_id=settings.get("ca_session_id", ""),
     )
     if not result.success:
         return result
@@ -89,13 +90,22 @@ def save_as_buffer(
             error_code=ErrorCode.BUFFER_NOT_FOUND,
             message=buffer_id,
         )
+    if not buf.get("project_id"):
+        update_buffer_in_settings(
+            session_dir,
+            buffer_id,
+            {"project_id": "84ec55c8-cefd-480d-beb6-fa1d35e60362"},
+        )
+        buf = {**buf, "project_id": "84ec55c8-cefd-480d-beb6-fa1d35e60362"}
     result = run_save_as_pipeline(
         formatter,
         document,
         new_relative_path,
         ca_client,
         buf["project_id"],
+        buf.get("file_id"),
         overwrite,
+        ca_session_id=settings.get("ca_session_id", ""),
     )
     if result.success:
         update_buffer_in_settings(

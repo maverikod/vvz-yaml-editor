@@ -19,7 +19,7 @@ def init_session_git(session_dir: Path) -> Repo:
     git_dir.mkdir(parents=True, exist_ok=True)
     repo = Repo.init(git_dir, bare=False)
     if not repo.head.is_valid():
-        repo.index.commit("session: init", allow_empty=True)
+        repo.index.commit("session: init")
     return repo
 
 

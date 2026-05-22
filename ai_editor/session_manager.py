@@ -1,6 +1,7 @@
 """SessionManager — delegates all domain operations to G-005 session layer."""
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import git
@@ -42,12 +43,22 @@ class SessionManager:
         self.ca_client = ca_client
         self.formatter_registry = formatter_registry
         self.repo_map: dict[str, git.Repo] = {}
+        self._buffer_cache: dict[str, tuple[Any, Any]] = {}
         self._search = Search(self._get_buffer_context)
 
     def _repo(self, buffer_id: str) -> git.Repo | None:
         return self.repo_map.get(buffer_id)
 
     def _get_buffer_context(self, session_key: str, buffer_id: str) -> dict[str, Any] | None:
+        cache_key = f"{session_key}:{buffer_id}"
+        if cache_key in self._buffer_cache:
+            formatter, tree = self._buffer_cache[cache_key]
+            return {
+                "formatter": formatter,
+                "tree": tree,
+                "buffer_id": buffer_id,
+                "formatter_name": getattr(formatter, "formatter_name", ""),
+            }
         from ai_editor.sessions import buffer_api
 
         state = buffer_api.get_buffer_state(
@@ -55,27 +66,41 @@ class SessionManager:
         )
         if not getattr(state, "success", True):
             return None
+        self._buffer_cache[cache_key] = (state.formatter_instance, state.tree)
         return {
-            "formatter": state.formatter,
+            "formatter": state.formatter_instance,
             "tree": state.tree,
             "buffer_id": buffer_id,
             "formatter_name": state.formatter_name,
         }
 
+    def _invalidate_buffer_cache(self, session_key: str, buffer_id: str) -> None:
+        self._buffer_cache.pop(f"{session_key}:{buffer_id}", None)
+
     def connect(self, readonly: bool = False) -> Any:
         from ai_editor.sessions import session_api
 
-        return session_api.connect(self.base_dir, readonly=readonly)
+        ca_session_id = self.ca_client.create_session("ai_editor session")
+        config = {"ca_session_id": ca_session_id}
+        return session_api.connect(
+            self.base_dir,
+            self.ca_client,
+            self.formatter_registry,
+            config,
+            readonly=readonly,
+        )
 
     def reconnect(self, session_key: str) -> Any:
         from ai_editor.sessions import session_api
 
-        return session_api.reconnect(self.base_dir, session_key)
+        return session_api.reconnect(self.base_dir, session_key, self.ca_client)
 
     def close_session(self, session_key: str, force: bool = False) -> Any:
         from ai_editor.sessions import session_api
 
-        return session_api.close_session(self.base_dir, session_key, force=force)
+        return session_api.close_session_api(
+            self.base_dir, session_key, self.ca_client, force=force
+        )
 
     def session_status(self, session_key: str) -> Any:
         from ai_editor.sessions import session_api
@@ -129,7 +154,12 @@ class SessionManager:
         from ai_editor.sessions import buffer_api
 
         return buffer_api.close_buffer(
-            self.base_dir, session_key, buffer_id, force=force, repo_map=self.repo_map
+            self.base_dir,
+            session_key,
+            buffer_id,
+            self.ca_client,
+            force=force,
+            repo_map=self.repo_map,
         )
 
     def save_buffer(self, session_key: str, buffer_id: str) -> Any:
@@ -175,10 +205,40 @@ class SessionManager:
         )
 
     def get_buffer_state(self, session_key: str, buffer_id: str) -> Any:
-        from ai_editor.sessions import buffer_api
+        ctx = self._get_buffer_context(session_key, buffer_id)
+        if ctx is None:
+            from ai_editor.editor_core.buffer import BufferState
 
-        return buffer_api.get_buffer_state(
-            self.base_dir, session_key, buffer_id, self.ca_client, self.formatter_registry
+            return BufferState(
+                buffer_id=buffer_id,
+                formatter="",
+                preview="",
+                modified=False,
+                readonly=False,
+            )
+        formatter = ctx["formatter"]
+        from ai_editor.sessions import buffer_api
+        from ai_editor.sessions.session_dir import read_session_settings
+
+        session_dir = Path(self.base_dir) / session_key
+        settings = read_session_settings(session_dir)
+        buf = next(
+            (b for b in settings.get("open_buffers", []) if b["buffer_id"] == buffer_id),
+            None,
+        )
+        preview = formatter.render_skeleton()
+        return buffer_api.LoadedBufferState(
+            buffer_id=buffer_id,
+            formatter=buf.get("formatter", "") if buf else "",
+            preview=preview,
+            modified=bool(buf.get("modified")) if buf else False,
+            readonly=bool(buf.get("readonly")) if buf else False,
+            file_path=buf.get("relative_path") if buf else None,
+            relative_path=buf.get("relative_path") if buf else None,
+            formatter_instance=formatter,
+            tree=ctx["tree"],
+            formatter_name=ctx["formatter_name"],
+            success=True,
         )
 
     def write_all(self, session_key: str, force: bool = False) -> Any:
@@ -237,30 +297,61 @@ class SessionManager:
             new_document = formatter.mutate_batch(document, operations)
         except Exception as exc:  # noqa: BLE001
             return OperationResult(success=False, message=str(exc))
-        from ai_editor.sessions.mutation_api import execute_mutation
+        from ai_editor.sessions.buffer_mutation import execute_mutation
+        from ai_editor.sessions.session_dir import read_session_settings
 
-        return execute_mutation(
-            self.base_dir,
-            session_key,
-            buffer_id,
-            new_document,
-            command_name="mutate_batch",
-            params_summary=f"{len(operations)} ops",
-            repo=self._repo(buffer_id),
+        session_dir = Path(self.base_dir) / session_key
+        settings = read_session_settings(session_dir)
+        readonly_session = bool(settings.get("readonly"))
+        buf = next(
+            (b for b in settings.get("open_buffers", []) if b["buffer_id"] == buffer_id),
+            None,
         )
+        readonly_buffer = bool(buf.get("readonly")) if buf else False
+        result = execute_mutation(
+            session_dir,
+            buffer_id,
+            formatter,
+            document,
+            new_document,
+            "mutate_batch",
+            f"{len(operations)} ops",
+            self._repo(buffer_id),
+            readonly_session=readonly_session,
+            readonly_buffer=readonly_buffer,
+        )
+        if not result.get("success", True):
+            return OperationResult(success=False, message=result.get("message", "mutation failed"))
+        self._invalidate_buffer_cache(session_key, buffer_id)
+        self._buffer_cache[f"{session_key}:{buffer_id}"] = (formatter, new_document)
+        return OperationResult(success=True, message="mutated")
 
     def undo(self, session_key: str, buffer_id: str, steps: int = 1) -> Any:
-        from ai_editor.sessions import history_api
+        from ai_editor.sessions import undo_redo
 
-        return history_api.undo(
-            self.base_dir, session_key, buffer_id, self._repo(buffer_id), steps=steps
+        ctx = self._get_buffer_context(session_key, buffer_id)
+        if ctx is None:
+            return OperationResult(success=False, message="buffer not found")
+        return undo_redo.undo(
+            Path(self.base_dir) / session_key,
+            buffer_id,
+            ctx["formatter"],
+            self._repo(buffer_id),
+            steps=steps,
         )
 
     def redo(self, session_key: str, buffer_id: str, steps: int = 1) -> Any:
-        from ai_editor.sessions import history_api
+        from ai_editor.sessions import undo_redo
 
-        return history_api.redo(
-            self.base_dir, session_key, buffer_id, self._repo(buffer_id), steps=steps
+        ctx = self._get_buffer_context(session_key, buffer_id)
+        if ctx is None:
+            return OperationResult(success=False, message="buffer not found")
+        return undo_redo.redo(
+            Path(self.base_dir) / session_key,
+            buffer_id,
+            ctx["formatter"],
+            self._repo(buffer_id),
+            steps=steps,
         )
 
     def copy_fragment(self, session_key: str, buffer_id: str, address: Any) -> Any:

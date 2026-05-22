@@ -6,7 +6,7 @@ from typing import Any
 
 from ai_editor.contracts import Diagnostic, ErrorCode
 from ai_editor.editor_core.writer import Writer
-from ai_editor.formatters.sidecar import save_sidecar, session_sidecar_path
+from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
 from ai_editor.sessions.session_dir import read_session_settings, update_buffer_in_settings
 from ai_editor.sessions.session_git import commit_buffer, history_diagnostic
 
@@ -59,7 +59,12 @@ def execute_mutation(
     source = _source_text(formatter, new_document)
     Writer().write_buf(source, buf_path)
     sidecar = session_sidecar_path(session_dir, buffer_id)
-    save_sidecar(sidecar, formatter.formatter_name, source, new_document)
+    if hasattr(new_document, "root"):
+        persist_tree_sidecar(sidecar, formatter.formatter_name, source, new_document.root)
+    else:
+        from ai_editor.formatters.cst.sidecar import save_sidecar as save_cst_sidecar
+
+        save_cst_sidecar(session_dir / f"{buffer_id}.cst", new_document)
     update_buffer_in_settings(
         session_dir,
         buffer_id,

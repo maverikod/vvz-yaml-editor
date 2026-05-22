@@ -8,7 +8,7 @@ from typing import Any
 from ai_editor.contracts import Diagnostic, ErrorCode
 from ai_editor.editor_core.registry import FormatterRegistry
 from ai_editor.editor_core.writer import Writer
-from ai_editor.formatters.sidecar import save_sidecar, session_sidecar_path
+from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
 from ai_editor.sessions.session_dir import add_buffer_to_settings
 from ai_editor.sessions.session_git import commit_buffer, create_buffer_branch, history_diagnostic
 
@@ -55,11 +55,11 @@ def create_new_buffer(
     buffer_id = str(uuid.uuid4())
     buf_path = session_dir / f"{buffer_id}.txt"
     source = _source_text(formatter, tree)
-    save_sidecar(
+    persist_tree_sidecar(
         session_sidecar_path(session_dir, buffer_id),
         formatter.formatter_name,
         source,
-        tree,
+        tree.root,
     )
     Writer().write_buf(source, buf_path)
     create_buffer_branch(repo, buffer_id, buf_path)

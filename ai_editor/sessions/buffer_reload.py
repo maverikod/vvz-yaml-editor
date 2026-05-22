@@ -8,7 +8,7 @@ from ai_editor.contracts import Diagnostic, ErrorCode
 from ai_editor.editor_core.ca_client import CodeAnalysisClient
 from ai_editor.editor_core.registry import FormatterRegistry
 from ai_editor.editor_core.writer import Writer
-from ai_editor.formatters.sidecar import save_sidecar, session_sidecar_path
+from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
 from ai_editor.sessions.session_dir import read_session_settings, update_buffer_in_settings
 from ai_editor.sessions.session_git import commit_buffer, history_diagnostic
 
@@ -54,9 +54,13 @@ def reload_buffer(
         }
     rel = buf["relative_path"]
     project_id = buf["project_id"]
+    ca_session_id = settings.get("ca_session_id", "")
     try:
         content_bytes, _fid = ca_client.download_content(
-            project_id, rel, readonly=True
+            project_id,
+            rel,
+            readonly=True,
+            ca_session_id=ca_session_id,
         )
     except Exception as exc:
         return {
@@ -83,11 +87,11 @@ def reload_buffer(
         }
     buf_path = Path(buf["buf_file_path"])
     Writer().write_buf(content, buf_path)
-    save_sidecar(
+    persist_tree_sidecar(
         session_sidecar_path(session_dir, buffer_id),
         formatter.formatter_name,
         content,
-        tree,
+        tree.root,
     )
     try:
         commit_buffer(repo, buffer_id, buf_path, f"reload: {rel}")

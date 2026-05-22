@@ -97,6 +97,8 @@ test-env*/
 *.pem.pub.key.crt.csr.key
 
 mtls_certificates/
+mtls_certs/
+mtls-certs/
 docker/data/certs/
 certs/
 
@@ -110,3 +112,6 @@ cst-code/
 old_code/
 .cst/  
 .terminals/
+*.pid
+tmp/
+tmp*.json

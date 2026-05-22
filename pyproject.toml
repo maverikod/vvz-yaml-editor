@@ -1,52 +1,31 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "vvz-ai-editor"
 version = "0.1.0"
-description = "AI editor: structural YAML documents by tree paths — load, validate, get/set, safe batched writes (plan_task_v1)."
-readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-keywords = ["ai", "yaml", "editor", "ruamel", "jsonpath", "validation", "mcp"]
-classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Typing :: Typed",
-]
+description = "Universal document editor for AI models and MCP servers."
+requires-python = ">=3.11"
 dependencies = [
-  "ruamel.yaml>=0.18.0",
-  "jsonpath-ng>=1.6.0",
-  "jsonschema>=4.0.0",
+    "beautifulsoup4>=4.12",
+    "code-analysis-client>=1.0.1",
+    "cryptography>=41.0.0",
+    "gitpython>=3.1.0",
+    "html2text>=2020.1.16",
+    "jsonpath-ng>=1.6.0",
+    "jsonschema>=4.0.0",
+    "lark>=1.1.0",
+    "libcst>=1.1.0",
+    "lxml>=5.0",
+    "mcp-proxy-adapter",
+    "mistune>=3.0",
+    "ruamel.yaml>=0.18.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-  "pytest>=7.0.0",
-  "ruff>=0.4.0",
-]
+[project.scripts]
+ai-editor = "ai_editor.interfaces.cli:main"
+aiedmgr = "ai_editor.interfaces.service_manager:main"
 
-[project.urls]
-Homepage = "https://github.com/vvz/ai_editor"
-Documentation = "https://github.com/vvz/ai_editor/tree/main/docs"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["ai_editor*"]
-
-[tool.setuptools.package-data]
-ai_editor = ["py.typed"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py310"
-src = ["ai_editor", "tests"]
+[tool.hatch.build.targets.wheel]
+packages = ["ai_editor"]
