@@ -14,33 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from code_analysis_client import CodeAnalysisAsyncClient
-from code_analysis_client.config import adapter_settings_from_server_config
 from code_analysis_client.exceptions import ClientValidationError
-
-
-def _unwrap(data: dict[str, Any]) -> dict[str, Any]:
-    """Extract inner payload from a CA command response."""
-    if data.get("success"):
-        inner = data.get("data")
-        if isinstance(inner, dict):
-            if inner.get("success") is True and isinstance(inner.get("data"), dict):
-                return inner["data"]
-            return inner
-        return data
-    code_raw = data.get("code")
-    message = data.get("message")
-    err = data.get("error")
-    if code_raw is None and isinstance(err, dict):
-        code_raw = err.get("code")
-        if message is None:
-            message = err.get("message")
-    elif code_raw is None and isinstance(err, str):
-        code_raw = err
-    raise ClientValidationError(
-        str(message or data),
-        field="command",
-        details=data,
-    )
+from code_analysis_client.file_session import _unwrap as unwrap_command_response
 
 
 class _AsyncRunner:
@@ -105,19 +80,8 @@ class CodeAnalysisClient:
         if ca_config.auth.use_token and ca_config.auth.token_env:
             auth_token = os.environ.get(ca_config.auth.token_env)
 
-        server_cfg: dict[str, Any] = {
-            "server": {
-                "host": ca_config.host,
-                "port": ca_config.port,
-                "protocol": ca_config.protocol,
-            }
-        }
-        if ca_config.ssl:
-            server_cfg["client"] = {"ssl": ca_config.ssl}
-
-        adapter_settings = adapter_settings_from_server_config(server_cfg)
-        async_client = CodeAnalysisAsyncClient.from_adapter_settings(
-            adapter_settings,
+        async_client = CodeAnalysisAsyncClient.from_server_config(
+            ca_config.to_server_config_dict(),
             check_hostname=ca_config.check_hostname,
             token=auth_token,
         )
@@ -227,21 +191,13 @@ class CodeAnalysisClient:
         filename = Path(file_path).name if file_path else "payload.bin"
 
         async def _upload() -> None:
-            receipt = await self._fs.upload_bytes(
-                content, filename=filename, compression="identity"
-            )
-            if not getattr(receipt, "completed", False):
-                raise ClientValidationError(
-                    "upload did not complete",
-                    field="transfer_id",
-                    details={"receipt": repr(receipt)},
-                )
-            await self._fs.save_upload_and_unlock(
+            await self._fs.upload_file_and_unlock(
                 ca_session_id,
-                str(receipt.transfer_id),
+                content,
                 project_id=project_id,
-                file_id=file_id if file_id is not None else None,
+                file_id=file_id,
                 file_path=file_path if file_id is None else None,
+                filename=filename,
                 unlock_after_write=False,
             )
 
@@ -291,9 +247,11 @@ class CodeAnalysisClient:
     def list_project_files(self, project_id: str) -> list[dict[str, Any]]:
         """List all files in the project."""
         payload = self._run(
-            self._async.call("list_project_files", {"project_id": project_id})
+            self._async.call_validated(
+                "list_project_files", {"project_id": project_id}
+            )
         )
-        data = _unwrap(payload)
+        data = unwrap_command_response(payload)
         files = data.get("files", [])
         return files if isinstance(files, list) else []
 
@@ -308,12 +266,12 @@ class CodeAnalysisClient:
     ) -> list[dict[str, Any]]:
         """List available backup versions for a file."""
         payload = self._run(
-            self._async.call(
+            self._async.call_validated(
                 "list_backup_versions",
                 {"project_id": project_id, "file_path": file_path},
             )
         )
-        data = _unwrap(payload)
+        data = unwrap_command_response(payload)
         versions = data.get("versions", [])
         return versions if isinstance(versions, list) else []
 
@@ -325,7 +283,7 @@ class CodeAnalysisClient:
     ) -> None:
         """Restore a file from a backup version."""
         payload = self._run(
-            self._async.call(
+            self._async.call_validated(
                 "restore_backup_file",
                 {
                     "project_id": project_id,
@@ -334,7 +292,7 @@ class CodeAnalysisClient:
                 },
             )
         )
-        _unwrap(payload)
+        unwrap_command_response(payload)
 
     def close(self) -> None:
         """Close the underlying async client and background loop."""

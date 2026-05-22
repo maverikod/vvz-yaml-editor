@@ -1,7 +1,7 @@
 """Typed dataclass models for ai_editor and code_analysis_server config sections."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any
 
 try:
@@ -146,3 +146,28 @@ class CodeAnalysisServerConfig:
     ) -> CodeAnalysisServerConfig:
         """Build from a full config.json dict (reads 'code_analysis_server' key)."""
         return cls.from_dict(config.get("code_analysis_server", {}))
+
+    def to_server_config_dict(self) -> dict[str, Any]:
+        """Build a code-analysis-server config dict for CodeAnalysisAsyncClient."""
+        server_cfg: dict[str, Any] = {
+            "server": {
+                "host": self.host,
+                "port": self.port,
+                "protocol": self.protocol,
+            }
+        }
+        ssl_dict = _ssl_section_to_dict(self.ssl)
+        if ssl_dict:
+            server_cfg["client"] = {"ssl": ssl_dict}
+        return server_cfg
+
+
+def _ssl_section_to_dict(ssl: Any) -> dict[str, Any] | None:
+    """Normalize SSLConfig, dataclass, or dict into client.ssl mapping."""
+    if ssl is None:
+        return None
+    if isinstance(ssl, dict):
+        return {k: v for k, v in ssl.items() if v is not None}
+    if is_dataclass(ssl):
+        return {k: v for k, v in asdict(ssl).items() if v is not None}
+    return None
