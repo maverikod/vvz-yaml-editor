@@ -1,0 +1,33 @@
+step_id: T-011
+parent_global_step: G-009
+name: Export diff preview and write approve/reject gate
+status: draft
+description: >
+  ExportDiffResult (C-084) and ExportDiffPreview (C-085). file_write(approve=None)
+  exports to .pending temp and returns diff. approve=True promotes temp to native file.
+  approve=False deletes .pending temp; baseline, modified, and tree unchanged (model
+  rejected). identical export skips temp entirely. file_export_diff is in-memory only.
+concepts:
+- C-084
+- C-085
+- C-081
+- C-078
+inputs:
+- name: T-002 tree + baseline storage at ingest
+  type: tactical_dependency
+  description: baseline_native_path set at open; updated only on approve=True.
+outputs:
+- name: ai_editor/sessions/export_diff.py
+  type: file
+  description: compute_export_diff, ExportDiffResult dataclass.
+- name: ai_editor/commands/file_export_diff_command.py
+  type: file
+  description: Standalone diff API command; no .pending file.
+- name: ai_editor/commands/buf_export_diff_command.py
+  type: file
+  description: Buffer-scoped diff command alias.
+- name: ai_editor/sessions/buffer_save.py
+  type: file
+  description: file_write approve/reject gate; pending temp lifecycle.
+atomic_steps: []
+cascade_note: reject deletes pending temp 2026-05-23

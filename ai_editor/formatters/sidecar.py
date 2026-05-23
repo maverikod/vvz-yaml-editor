@@ -104,6 +104,43 @@ def tree_node_map(root: TreeNode) -> dict[str, dict[str, Any]]:
     }
 
 
+def find_root_stable_id(node_map: dict[str, dict[str, Any]]) -> str | None:
+    """Return the sidecar root node stable_id."""
+    referenced: set[str] = set()
+    for entry in node_map.values():
+        for child_id in entry.get("children", []):
+            referenced.add(str(child_id))
+    roots = [sid for sid in node_map if sid not in referenced]
+    if len(roots) == 1:
+        return roots[0]
+    for sid, entry in node_map.items():
+        if entry.get("node_kind") == "root":
+            return sid
+    return roots[0] if roots else None
+
+
+def apply_sidecar_ids(
+    node: TreeNode,
+    stable_id: str,
+    node_map: dict[str, dict[str, Any]],
+    id_index: dict[str, TreeNode],
+) -> None:
+    """Assign stable_ids from a TREE_V1 node map onto a parsed tree."""
+    entry = node_map.get(stable_id)
+    if entry is None:
+        raise ValueError(f"sidecar node missing: {stable_id}")
+    node.stable_id = stable_id
+    id_index[stable_id] = node
+    child_ids = [str(child_id) for child_id in entry.get("children", [])]
+    if len(child_ids) != len(node.children):
+        raise ValueError(
+            f"sidecar child count mismatch for {stable_id}: "
+            f"{len(child_ids)} != {len(node.children)}"
+        )
+    for child, child_id in zip(node.children, child_ids, strict=True):
+        apply_sidecar_ids(child, child_id, node_map, id_index)
+
+
 def persist_tree_sidecar(
     path: Path,
     formatter_name: str,

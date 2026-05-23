@@ -9,7 +9,54 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ai_editor.sessions.session_git import ensure_session_git
+
 SETTINGS_NAME = "ses_settings.json"
+_BUFFERS_LIVE_DIR = "buffers"
+_GIT_WORKTREE_DIR = "git"
+
+
+def buffer_storage_dir(session_dir: Path) -> Path:
+    """Directory for live buffer files (outside the git worktree)."""
+    path = session_dir / _BUFFERS_LIVE_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def buffer_file_path(session_dir: Path, buffer_id: str, suffix: str = ".txt") -> Path:
+    """Return live buf file path edited by formatters and mutations."""
+    return buffer_storage_dir(session_dir) / f"{buffer_id}{suffix}"
+
+
+def git_buffer_track_path(session_dir: Path, buffer_id: str, suffix: str = ".txt") -> Path:
+    """Return git-worktree copy used for version control commits."""
+    path = session_dir / _GIT_WORKTREE_DIR / _BUFFERS_LIVE_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path / f"{buffer_id}{suffix}"
+
+
+def git_buffer_relpath(buffer_id: str, suffix: str = ".txt") -> str:
+    """Project-relative path of a buffer file inside the session git worktree."""
+    return f"{_BUFFERS_LIVE_DIR}/{buffer_id}{suffix}"
+
+
+def resolve_buffer_file_path(session_dir: Path, buf: dict[str, Any]) -> Path:
+    """Resolve live buf file path, falling back to legacy layouts."""
+    stored = Path(str(buf.get("buf_file_path") or ""))
+    if stored.is_file():
+        return stored
+    buffer_id = str(buf.get("buffer_id") or "")
+    if not buffer_id:
+        return stored
+    suffix = stored.suffix or ".txt"
+    for candidate in (
+        buffer_file_path(session_dir, buffer_id, suffix),
+        session_dir / _GIT_WORKTREE_DIR / _BUFFERS_LIVE_DIR / f"{buffer_id}{suffix}",
+        session_dir / f"{buffer_id}{suffix}",
+    ):
+        if candidate.is_file():
+            return candidate
+    return stored if stored else buffer_file_path(session_dir, buffer_id, suffix)
 
 
 def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
@@ -46,7 +93,6 @@ def create_session_dir(
     key = session_key or str(uuid.uuid4())
     session_dir = base / key
     session_dir.mkdir(parents=True, exist_ok=True)
-    (session_dir / "git").mkdir(exist_ok=True)
     settings: dict[str, Any] = {
         "session_key": key,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -54,7 +100,29 @@ def create_session_dir(
         "open_buffers": [],
     }
     _atomic_write_json(session_dir / SETTINGS_NAME, settings)
+    ensure_session_git(session_dir)
     return session_dir
+
+
+def find_open_buffer_for_path(
+    settings: dict[str, Any],
+    project_id: str,
+    file_path: str,
+) -> dict[str, Any] | None:
+    """Return open buffer already bound to the same project file, if any."""
+    from ai_editor.sessions.project_paths import normalize_project_relative_path
+
+    try:
+        rel = normalize_project_relative_path(file_path)
+    except ValueError:
+        return None
+    pid = str(project_id or "").strip()
+    for buf in settings.get("open_buffers", []):
+        buf_rel = str(buf.get("relative_path") or "").strip()
+        buf_pid = str(buf.get("project_id") or "").strip()
+        if buf_rel == rel and buf_pid == pid:
+            return buf
+    return None
 
 
 def read_session_settings(session_dir: Path) -> dict[str, Any]:

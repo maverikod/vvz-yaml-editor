@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.buf_undo_metadata import get_buf_undo_metadata
 from ai_editor.commands.buf_undo_schema import get_buf_undo_schema
 from ai_editor import api
 
 
-class BufUndoCommand(Command):
+class BufUndoCommand(EditorSessionCommand):
     """MCP command: buf_undo."""
 
     name = "buf_undo"

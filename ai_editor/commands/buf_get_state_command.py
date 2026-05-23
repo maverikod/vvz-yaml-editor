@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.buf_get_state_metadata import get_buf_get_state_metadata
 from ai_editor.commands.buf_get_state_schema import get_buf_get_state_schema
 from ai_editor import api
 
 
-class BufGetStateCommand(Command):
+class BufGetStateCommand(EditorSessionCommand):
     """MCP command: buf_get_state."""
 
     name = "buf_get_state"

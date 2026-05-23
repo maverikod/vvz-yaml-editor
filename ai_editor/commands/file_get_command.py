@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.file_get_metadata import get_file_get_metadata
 from ai_editor.commands.file_get_schema import get_file_get_schema
 from ai_editor import api
 
 
-class FileGetCommand(Command):
+class FileGetCommand(EditorSessionCommand):
     """MCP command: file_get."""
 
     name = "file_get"
@@ -31,7 +33,11 @@ class FileGetCommand(Command):
     async def execute(self, **params: Any) -> CommandResult:
         from ai_editor.commands._result import command_result_from_api
 
-        result = api.get_buffer_state(session_key=params['session_key'], buffer_id=params['buffer_id'])
+        result = api.get_buffer_file(
+            session_key=params["session_key"],
+            buffer_id=params["buffer_id"],
+            lock=params.get("lock", True),
+        )
         return command_result_from_api(result)
 
     @classmethod

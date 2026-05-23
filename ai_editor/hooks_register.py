@@ -44,6 +44,7 @@ def _register(registry: Any) -> None:
     from ai_editor.commands.session_connect_command import SessionConnectCommand
     from ai_editor.commands.session_reconnect_command import SessionReconnectCommand
     from ai_editor.commands.session_close_command import SessionCloseCommand
+    from ai_editor.commands.session_close_invalid_command import SessionCloseInvalidCommand
     from ai_editor.commands.session_status_command import SessionStatusCommand
     from ai_editor.commands.file_open_command import FileOpenCommand
     from ai_editor.commands.file_close_command import FileCloseCommand
@@ -71,6 +72,7 @@ def _register(registry: Any) -> None:
     registry.register(SessionConnectCommand, "custom")
     registry.register(SessionReconnectCommand, "custom")
     registry.register(SessionCloseCommand, "custom")
+    registry.register(SessionCloseInvalidCommand, "custom")
     registry.register(SessionStatusCommand, "custom")
     registry.register(FileOpenCommand, "custom")
     registry.register(FileCloseCommand, "custom")

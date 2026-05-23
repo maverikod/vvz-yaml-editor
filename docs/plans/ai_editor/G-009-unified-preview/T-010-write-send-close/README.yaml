@@ -1,0 +1,35 @@
+step_id: T-010
+parent_global_step: G-009
+name: Write, send, close command split and session artifact layout
+status: draft
+description: >
+  Implement NativeExport (C-081), FileRelay (C-082), BufferClose (C-083) command
+  semantics. file_write exports tree to native session file; modified=False.
+  file_send relays native file only; precondition modified=False; file_id resolves
+  project; optional unlock. file_close deletes .tree + .ext + unlock. Session dir
+  layout two artifacts per buffer. Decompose legacy save into write+send+close.
+concepts:
+- C-081
+- C-082
+- C-083
+- C-080
+- C-038
+inputs:
+- name: T-002 tree file persistence
+  type: tactical_dependency
+  description: Mutations persist tree; write exports to separate native file.
+outputs:
+- name: ai_editor/sessions/buffer_save.py
+  type: file
+  description: write/export only; no CA upload.
+- name: ai_editor/commands/file_send_command.py
+  type: file
+  description: relay native session file; no Exporter.
+- name: ai_editor/commands/file_close_command.py
+  type: file
+  description: delete tree + native; unlock.
+- name: ai_editor/sessions/buffer_close.py
+  type: file
+  description: artifact deletion both files.
+atomic_steps: []
+cascade_note: write/send/close split 2026-05-23

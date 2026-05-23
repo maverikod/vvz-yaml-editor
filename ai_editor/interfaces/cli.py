@@ -41,6 +41,7 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("connect")
+    p.add_argument("--ca-session-id", required=True)
     p.add_argument("--readonly", action="store_true")
 
     p = sub.add_parser("disconnect")
@@ -93,7 +94,7 @@ def main(argv: list[str] | None = None) -> None:
 
     try:
         if args.command == "connect":
-            _out(api.connect(readonly=args.readonly))
+            _out(api.connect(ca_session_id=args.ca_session_id, readonly=args.readonly))
         elif args.command == "disconnect":
             _out(api.close_session(args.session_key, force=args.force))
         elif args.command == "open":

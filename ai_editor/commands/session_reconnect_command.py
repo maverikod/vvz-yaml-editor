@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.session_reconnect_metadata import get_session_reconnect_metadata
 from ai_editor.commands.session_reconnect_schema import get_session_reconnect_schema
 from ai_editor import api
 
 
-class SessionReconnectCommand(Command):
+class SessionReconnectCommand(EditorSessionCommand):
     """MCP command: session_reconnect."""
 
     name = "session_reconnect"

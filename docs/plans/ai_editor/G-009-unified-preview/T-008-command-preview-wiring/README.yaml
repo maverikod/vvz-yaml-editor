@@ -1,0 +1,31 @@
+step_id: T-008
+parent_global_step: G-009
+name: Preview wiring and mutate command path
+status: draft
+description: >
+  Wire build_preview into buffer open and buf_get_state. Mutate commands call
+  tree mutation path only (write_tree_file + git commit); must not invoke Exporter
+  or file_send. PreviewEnvelope in command schemas.
+concepts:
+- C-071
+- C-080
+- C-038
+inputs:
+- name: T-002 tree persistence
+  type: tactical_dependency
+  description: Mutations persist tree file not native.
+- name: T-003 build_preview
+  type: tactical_dependency
+  description: Preview envelope shape.
+outputs:
+- name: ai_editor/sessions/buffer_open.py
+  type: file
+  description: ingest + PreviewEnvelope return.
+- name: ai_editor/sessions/buffer_api.py
+  type: file
+  description: get_state preview; load tree file.
+- name: ai_editor/commands/buf_get_state_schema.py
+  type: file
+  description: preview object schema + node_ref drilldown.
+atomic_steps: []
+cascade_note: mutate vs write separation 2026-05-23

@@ -1,1 +1,65 @@
-{}
+meta:
+  plan: ai_editor
+  global_step: G-009
+  purpose: Local preview parity tracker for ai_editor vs code-analysis universal_file_preview
+  ca_live_ref:
+    project: code_analysis
+    file_path: docs/plans/ai_editor/viewer_features.yaml
+    sections:
+    - /feature_gaps
+    - /preview_envelope
+    - /bugs
+preview_envelope:
+  status: planned
+  parity_target: universal_file_preview
+  fields:
+  - focus.text
+  - focus.node_ref
+  - focus.start_line
+  - focus.end_line
+  - blocks[].node_ref
+  - blocks[].node_kind
+  - blocks[].display_text
+  - navigation.drilldown_param
+  - navigation.collapsed
+  - navigation.total_blocks
+feature_gaps:
+- id: dual_tree_cst
+  status: open
+  description: Parallel TreeNode and CSTTree; G-009 T-002/T-004 unify via Reader triad
+- id: string_preview_api
+  status: open
+  description: Buffer commands return render_skeleton string; G-009 T-003/T-008 close
+- id: json_object_prop
+  status: open
+  description: JSON keys not objectProp nodes; G-009 T-005 Classifier kinds
+- id: session_key_mismatch_check
+  status: open
+  description: reconnect must verify ses_settings.session_key == directory name; G-005 C-086
+- id: reject_pending_temp
+  status: planned
+  description: approve=False deletes .pending temp; no baseline/modified/tree changes
+- id: write_without_diff_preview
+  status: open
+  description: write exports without baseline diff gate; G-009 T-011 adds confirm + file_export_diff
+- id: ro_blocks_all_mutations
+  status: open
+  description: RO incorrectly blocks mutations; plan fix buffer.readonly gates write/send only
+- id: lock_readonly_decoupled
+  status: open
+  description: open may treat lock and readonly independently; G-009 enforces no lock => RO
+- id: send_conflates_write
+  status: open
+  description: file_send currently exports tree; G-009 T-010 splits write then relay
+- id: mutation_writes_native
+  status: open
+  description: buffer_mutation re-exports native to .buf each change; G-009 T-002 writes tree file only
+- id: formatter_triad_drift
+  status: open
+  description: Implementation uses ad hoc parse/render classes; G-009 formalises Reader/Classifier/Exporter
+- id: elif_else_drilldown
+  status: upstream
+  description: CA preview may not expose elif/else body stable_ids; see CA viewer_features
+invariants:
+- id: NQ-008
+  description: no-self-content-child — blocks list children only, not focus body duplicate

@@ -9,14 +9,28 @@ def _get_session_manager() -> Any:
     return get_session_manager()
 
 
-def connect(readonly: bool = False) -> Any:
-    return _get_session_manager().connect(readonly=readonly)
+def connect(*, ca_session_id: str, readonly: bool = False) -> Any:
+    return _get_session_manager().connect(readonly=readonly, ca_session_id=ca_session_id)
 
 def reconnect(session_key: str) -> Any:
     return _get_session_manager().reconnect(session_key)
 
 def close_session(session_key: str, force: bool = False) -> Any:
     return _get_session_manager().close_session(session_key, force=force)
+
+def close_invalid_sessions(
+    session_key: str,
+    *,
+    mode: str = "local_only",
+    force: bool = False,
+    dry_run: bool = False,
+) -> Any:
+    return _get_session_manager().close_invalid_sessions(
+        session_key,
+        mode=mode,
+        force=force,
+        dry_run=dry_run,
+    )
 
 def session_status(session_key: str) -> Any:
     return _get_session_manager().session_status(session_key)
@@ -53,10 +67,27 @@ def close_buffer(
 def get_buffer_state(session_key: str, buffer_id: str) -> Any:
     return _get_session_manager().get_buffer_state(session_key, buffer_id)
 
-def save_buffer(session_key: str, buffer_id: str, dry_run: bool = False) -> Any:
+def get_buffer_file(session_key: str, buffer_id: str, *, lock: bool = True) -> Any:
+    return _get_session_manager().get_buffer_file(session_key, buffer_id, lock=lock)
+
+def save_buffer(
+    session_key: str,
+    buffer_id: str,
+    dry_run: bool = False,
+    *,
+    project_id: str | None = None,
+    file_path: str | None = None,
+    release_lock: bool = False,
+) -> Any:
     if dry_run:
         return {"success": True, "dry_run": True}
-    return _get_session_manager().save_buffer(session_key, buffer_id)
+    return _get_session_manager().save_buffer(
+        session_key,
+        buffer_id,
+        project_id=project_id,
+        file_path=file_path,
+        release_lock=release_lock,
+    )
 
 def save_as_buffer(
     session_key: str,

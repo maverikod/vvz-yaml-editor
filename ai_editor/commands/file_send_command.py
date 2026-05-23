@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.file_send_metadata import get_file_send_metadata
 from ai_editor.commands.file_send_schema import get_file_send_schema
 from ai_editor import api
 
 
-class FileSendCommand(Command):
+class FileSendCommand(EditorSessionCommand):
     """MCP command: file_send."""
 
     name = "file_send"
@@ -31,7 +33,14 @@ class FileSendCommand(Command):
     async def execute(self, **params: Any) -> CommandResult:
         from ai_editor.commands._result import command_result_from_api
 
-        result = api.save_buffer(session_key=params['session_key'], buffer_id=params['buffer_id'], dry_run=params.get('dry_run',False))
+        result = api.save_buffer(
+            session_key=params["session_key"],
+            buffer_id=params["buffer_id"],
+            dry_run=params.get("dry_run", False),
+            project_id=params.get("project_id"),
+            file_path=params.get("file_path"),
+            release_lock=params.get("release_lock", False),
+        )
         return command_result_from_api(result)
 
     @classmethod

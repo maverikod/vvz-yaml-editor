@@ -10,7 +10,8 @@ from ai_editor.editor_core.ca_client import CodeAnalysisClient
 from ai_editor.editor_core.registry import FormatterRegistry
 from ai_editor.editor_core.writer import Writer
 from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
-from ai_editor.sessions.session_dir import add_buffer_to_settings, read_session_settings
+from ai_editor.sessions.ca_session import work_ca_session_id
+from ai_editor.sessions.session_dir import add_buffer_to_settings, buffer_file_path, read_session_settings
 from ai_editor.sessions.session_git import commit_buffer, create_buffer_branch, get_repo
 
 
@@ -42,7 +43,7 @@ def _resolve_formatter(
         cls = registry.get_by_extension(ext)
     if cls is None:
         raise ValueError(ErrorCode.FORMATTER_NOT_FOUND.value)
-    return cls()
+    return cls
 
 
 def open_buffer(
@@ -67,16 +68,16 @@ def open_buffer(
         buf_dict on success or error dict with success=False.
     """
     settings = read_session_settings(session_dir)
-    ca_session_id = settings.get("ca_session_id") or config.get("ca_session_id", "")
+    ca_session_id = work_ca_session_id(settings) or config.get("ca_session_id", "")
     try:
-        fmt_cls = _resolve_formatter(formatter_registry, file_path, formatter, open_as_text)
+        formatter_cls = _resolve_formatter(formatter_registry, file_path, formatter, open_as_text)
     except ValueError:
         return {
             "success": False,
             "error_code": ErrorCode.FORMATTER_NOT_FOUND,
             "message": f"no formatter for {file_path}",
         }
-    formatter_inst = fmt_cls()
+    formatter_inst = formatter_cls()
     try:
         content_bytes, file_id = ca_client.download_content(
             project_id,
@@ -91,20 +92,17 @@ def open_buffer(
             "message": str(exc),
         }
     content = content_bytes.decode("utf-8")
-    if file_id is None:
-        for row in ca_client.list_project_files(project_id):
-            if row.get("relative_path") == file_path:
-                file_id = row.get("file_id")
-                break
     buffer_id = str(uuid.uuid4())
     suffix = Path(file_path).suffix or ".txt"
-    buf_path = session_dir / f"{buffer_id}{suffix}"
+    buf_path = buffer_file_path(session_dir, buffer_id, suffix)
     tree = formatter_inst.open_tree(content)
     sidecar_path = session_sidecar_path(session_dir, buffer_id)
     persist_tree_sidecar(sidecar_path, formatter_inst.formatter_name, content, tree.root)
     Writer().write_buf(content, buf_path)
     create_buffer_branch(repo, buffer_id, buf_path)
-    commit_buffer(repo, buffer_id, buf_path, f"open: {file_path}")
+    commit_buffer(
+        repo, buffer_id, buf_path, f"open: {file_path}", session_dir=session_dir
+    )
     buf_dict: dict[str, Any] = {
         "buffer_id": buffer_id,
         "relative_path": file_path,
@@ -122,6 +120,19 @@ def open_buffer(
         "redo_stack": [],
     }
     add_buffer_to_settings(session_dir, buf_dict)
+    if not readonly and ca_session_id:
+        locks = ca_client.list_file_locks(ca_session_id)
+        held_ids = {
+            str(item.get("file_id") or item.get("id") or "")
+            for item in locks
+            if isinstance(item, dict)
+        }
+        if file_id not in held_ids:
+            return {
+                "success": False,
+                "error_code": ErrorCode.SESSION_LOCK_CONFLICT,
+                "message": f"CA lock not found for file_id={file_id} after download",
+            }
     view = formatter_inst.render_skeleton()
     return {
         "success": True,

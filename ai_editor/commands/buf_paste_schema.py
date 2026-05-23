@@ -3,16 +3,27 @@ from __future__ import annotations
 
 from typing import Any
 
+from ai_editor.commands._schema_common import (
+    DRY_RUN_PROP,
+    PASTE_MODES,
+    SESSION_KEY_PROP,
+    TARGET_PROP,
+)
+
 
 def get_buf_paste_schema() -> dict[str, Any]:
     """Return machine-readable input schema for buf_paste."""
     return {
         "type": "object",
         "properties": {
-            "session_key": {"type": "string", "description": "UUID4 session identifier."},
-            "target": {"type": "object", "properties": {"buffer_id": {"type": "string"}, "address": {}}, "required": ["buffer_id", "address"], "additionalProperties": False},
-            "mode": {"type": "string", "enum": ["set", "replace_block", "append", "insert_before", "insert_after", "insert", "replace_range", "prepend", "replace", "delete"]},
-            "dry_run": {"type": "boolean", "default": False, "description": "Preview without mutating state."},
+            "session_key": SESSION_KEY_PROP,
+            "target": TARGET_PROP,
+            "mode": {
+                "type": "string",
+                "enum": PASTE_MODES,
+                "description": "Paste mode controlling how clipboard content merges at target.",
+            },
+            "dry_run": DRY_RUN_PROP,
         },
         "required": ["session_key", "target", "mode"],
         "additionalProperties": False,

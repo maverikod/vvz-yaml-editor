@@ -1,0 +1,29 @@
+step_id: T-004
+parent_global_step: G-009
+name: Python Reader/Classifier/Exporter and StableIdTransfer
+status: draft
+description: >
+  CST backend as triad on DocumentNode libcst kinds. StableIdTransfer (C-079):
+  embed # @node-id from metadata before libcst mutation, mutate, strip before
+  export/write. Object-identity reuse where libcst preserves references. Remove
+  CSTTree as parallel document owner; sidecar .cst is Python path variant of
+  unified stable_id map.
+concepts:
+- C-070
+- C-073
+- C-076
+- C-078
+- C-079
+- C-029
+- C-030
+- C-031
+inputs:
+- name: T-002 DocumentGraph and stable_id base protocol
+  type: tactical_dependency
+  description: Embed/extract orchestrated by base around subclass Reader/Exporter.
+outputs:
+- name: ai_editor/formatters/cst/
+  type: directory
+  description: Reader parse, Exporter render, StableIdTransfer helpers; no CSTTree document class.
+atomic_steps: []
+cascade_note: reframed triad + StableIdTransfer 2026-05-23

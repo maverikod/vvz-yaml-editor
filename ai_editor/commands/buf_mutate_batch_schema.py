@@ -3,16 +3,27 @@ from __future__ import annotations
 
 from typing import Any
 
+from ai_editor.commands._schema_common import (
+    BUFFER_ID_PROP,
+    DRY_RUN_PROP,
+    MUTATION_OP_ITEM,
+    SESSION_KEY_PROP,
+)
+
 
 def get_buf_mutate_batch_schema() -> dict[str, Any]:
     """Return machine-readable input schema for buf_mutate_batch."""
     return {
         "type": "object",
         "properties": {
-            "session_key": {"type": "string", "description": "UUID4 session identifier."},
-            "buffer_id": {"type": "string", "description": "Open buffer identifier."},
-            "operations": {"type": "array", "items": {"type": "object", "properties": {"op": {"type": "string"}, "address": {}, "value": {}}, "required": ["op", "address"]}},
-            "dry_run": {"type": "boolean", "default": False, "description": "Preview without mutating state."},
+            "session_key": SESSION_KEY_PROP,
+            "buffer_id": BUFFER_ID_PROP,
+            "operations": {
+                "type": "array",
+                "description": "Ordered formatter mutation operations.",
+                "items": MUTATION_OP_ITEM,
+            },
+            "dry_run": DRY_RUN_PROP,
         },
         "required": ["session_key", "buffer_id", "operations"],
         "additionalProperties": False,

@@ -18,6 +18,8 @@ def init_api(
     config: AiEditorConfig,
     ca_config: CodeAnalysisServerConfig,
     formatter_registry: FormatterRegistry,
+    *,
+    editor_server_uuid: str = "",
 ) -> None:
     """Build CA client and SessionManager; run startup_sweep once."""
     global _ca_client, _session_manager
@@ -25,7 +27,12 @@ def init_api(
 
     _ca_client = CodeAnalysisClient.from_config(ca_config)
     base_dir = config.sessions.base_dir
-    _session_manager = SessionManager(base_dir, _ca_client, formatter_registry)
+    _session_manager = SessionManager(
+        base_dir,
+        _ca_client,
+        formatter_registry,
+        editor_server_uuid=editor_server_uuid,
+    )
     try:
         from ai_editor.sessions.recovery import startup_sweep
     except Exception:  # noqa: BLE001

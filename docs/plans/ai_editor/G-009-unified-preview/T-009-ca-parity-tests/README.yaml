@@ -1,0 +1,26 @@
+step_id: T-009
+parent_global_step: G-009
+name: CA preview parity tests and viewer_features tracker
+status: draft
+description: >
+  Populate ai_editor docs/plans/ai_editor/viewer_features.yaml with preview parity
+  checklist and known gaps. Add tests comparing PreviewEnvelope shape and per-format
+  samples against code-analysis universal_file_preview golden fixtures (CAPreviewParity
+  C-075). Document elif/else drilldown as upstream gap not blocking editor parity
+  on supported node_refs.
+concepts:
+- C-075
+- C-071
+inputs:
+- name: T-004 through T-008 format backends wired
+  type: tactical_dependency
+  description: Parity tests need working build_preview per format.
+outputs:
+- name: docs/plans/ai_editor/viewer_features.yaml
+  type: file
+  description: Local parity gaps, NQ references, CA cross-check pointers.
+- name: tests/formatters/test_preview_parity.py
+  type: file
+  description: Envelope shape and sample file parity assertions.
+atomic_steps: []
+cascade_note: draft 2026-05-23

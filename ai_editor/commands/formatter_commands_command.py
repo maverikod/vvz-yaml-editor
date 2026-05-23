@@ -26,6 +26,8 @@ class FormatterCommandsCommand(Command):
 
     def validate_params(self, params: dict[str, Any]) -> dict[str, Any]:
         params = super().validate_params(params)
+        if not params.get("buffer_id") and not params.get("formatter"):
+            raise ValueError("At least one of buffer_id or formatter must be provided")
         return params
 
     async def execute(self, **params: Any) -> CommandResult:

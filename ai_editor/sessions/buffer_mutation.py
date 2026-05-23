@@ -7,7 +7,11 @@ from typing import Any
 from ai_editor.contracts import Diagnostic, ErrorCode
 from ai_editor.editor_core.writer import Writer
 from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
-from ai_editor.sessions.session_dir import read_session_settings, update_buffer_in_settings
+from ai_editor.sessions.session_dir import (
+    read_session_settings,
+    resolve_buffer_file_path,
+    update_buffer_in_settings,
+)
 from ai_editor.sessions.session_git import commit_buffer, history_diagnostic
 
 
@@ -34,6 +38,8 @@ def execute_mutation(
     repo: Any,
     readonly_session: bool = False,
     readonly_buffer: bool = False,
+    *,
+    source_before: str | None = None,
 ) -> dict[str, Any]:
     """Apply mutation: write buf, session sidecar, ses_settings, git commit."""
     if readonly_session or readonly_buffer:
@@ -42,7 +48,9 @@ def execute_mutation(
             "error_code": ErrorCode.BUFFER_READONLY,
             "message": "readonly",
         }
-    if document is new_document:
+    old_source = source_before if source_before is not None else _source_text(formatter, document)
+    new_source = _source_text(formatter, new_document)
+    if old_source == new_source:
         return {"success": True, "message": "unchanged", "diagnostics": []}
     settings = read_session_settings(session_dir)
     buf_meta = next(
@@ -55,7 +63,7 @@ def execute_mutation(
             "error_code": ErrorCode.BUFFER_NOT_FOUND,
             "message": buffer_id,
         }
-    buf_path = Path(buf_meta["buf_file_path"])
+    buf_path = resolve_buffer_file_path(session_dir, buf_meta)
     source = _source_text(formatter, new_document)
     Writer().write_buf(source, buf_path)
     sidecar = session_sidecar_path(session_dir, buffer_id)
@@ -68,7 +76,15 @@ def execute_mutation(
     update_buffer_in_settings(
         session_dir,
         buffer_id,
-        {"modified": True, "redo_stack": []},
+        {
+            "modified": True,
+            "redo_stack": [],
+            **(
+                {"saved": False}
+                if buf_meta.get("file_type") == "remote"
+                else {}
+            ),
+        },
     )
     diagnostics: list[Diagnostic] = []
     try:
@@ -77,6 +93,7 @@ def execute_mutation(
             buffer_id,
             buf_path,
             f"{command_name}: {params_summary}",
+            session_dir=session_dir,
         )
     except Exception as exc:
         diagnostics.append(history_diagnostic(exc))

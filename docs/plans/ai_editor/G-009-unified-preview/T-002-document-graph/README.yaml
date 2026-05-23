@@ -1,0 +1,36 @@
+step_id: T-002
+parent_global_step: G-009
+name: DocumentGraph, tree file persistence, and mutation commit path
+status: draft
+description: >
+  DocumentGraph (C-074) with TreeFileAuthority (C-080): ingest assigns stable_id
+  once and write_tree_file; every mutation write_tree_file + git commit without
+  Exporter. load_tree_file on edit. Structural insert at parent + position.
+  Refactor buffer_mutation to persist tree not native re-export. Unified ingest;
+  forbid CSTTree fork.
+concepts:
+- C-074
+- C-080
+- C-070
+- C-031
+- C-032
+- C-038
+inputs:
+- name: T-001 triad hooks and DocumentNode
+  type: tactical_dependency
+  description: Tree serialisation format uses DocumentNode graph.
+outputs:
+- name: ai_editor/formatters/document_graph.py
+  type: file
+  description: DocumentGraph; load/save tree file with stable_id map.
+- name: ai_editor/formatters/sidecar.py
+  type: file
+  description: write_tree_file / load_tree_file unified TREE_V1 protocol.
+- name: ai_editor/sessions/buffer_mutation.py
+  type: file
+  description: mutation commits tree file + git; no Exporter on mutate path.
+- name: ai_editor/sessions/buffer_open.py
+  type: file
+  description: ingest native once; assign ids; write_tree_file.
+atomic_steps: []
+cascade_note: tree file authority 2026-05-23

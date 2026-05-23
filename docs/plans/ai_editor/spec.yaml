@@ -3,19 +3,21 @@ meta:
   source_spec: docs/plans/ai_editor/source_spec.md
   standard: plan_standard_machine.yaml v1.0
   note: "Original tz G-006 (CST) merged into G-003 (Formatters).\nOriginal tz G-008
-    (Session) + buffer lifecycle merged into G-005.\nFinal plan has 8 global steps
-    G-001..G-008.\nG-008 adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\n\
-    the cross-formatter ConversionRegistry (clipboard paste matrix).\nC-025 TextFormatter
-    registered extensions updated: .md .markdown\nremoved (now owned by C-052 MarkdownFormatter).\n\
+    (Session) + buffer lifecycle merged into G-005.\nPlan global steps G-001..G-009.\nG-008
+    adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\n\
+    the cross-formatter ConversionRegistry (clipboard paste matrix).\nG-009
+    unifies DocumentNode graph and CA-aligned PreviewEnvelope (corrective).\nC-025
+    TextFormatter registered extensions updated: .md .markdown\nremoved (now owned
+    by C-052 MarkdownFormatter).\n\
     \nNON-BINDING LINES (excluded from G-step coverage):\n  - 1-16:   HTML-comment
     header with plan standard notes (preamble).\n  - 65-67, 100-102, 155, 176-178,
     380-381, 974-975, 998-1003, 1041-1042, 1179-1181, 1218-1220, 1323-1325, 1363-1364,
-    1399-1401, 1439-1440, 1725-1727, 1765-1766, 1819-1897 (quirks appendix; HRS marks
+    1399-1401, 1439-1440, 1725-1727, 1765-1766, 2006-2084 (quirks appendix; HRS marks
     non-binding):\n            section dividers ('---' and blank lines between G-NNN
     sections).\nThese ranges are intentionally not covered by any G-step.\n\nNON-BINDING
     (additional): blank lines and '---' dividers between ### subsections;\n  line
-    1817 (HTML non-binding marker before quirks appendix).\n  1819-1897: quirks appendix
-    (HRS explicit non-binding).\nGS-ONLY CONCEPTS (excluded from I1c HRS line union):\n\
+    before quirks appendix (HTML non-binding marker).\n  quirks appendix (HRS explicit
+    non-binding).\nGS-ONLY CONCEPTS (excluded from I1c HRS line union):\n\
     \  C-058 PortedCodeBase, C-059 StandaloneAdapter, C-060 ImportRewrite, C-061 TextGroupReadiness\n\
     \  — defined in G-000 only; no binding HRS text.\n"
 concepts:
@@ -171,8 +173,10 @@ concepts:
   - relative_path: str | None
   - formatter: str
   - modified: bool
-  - readonly: bool
-  - locked: bool - file locked on CA server under session-level ca_session_id
+  - locked: bool - CA file lock held under ca_session_id; True only on writable remote open
+  - readonly: bool - immutable after open; forced True when locked=False (remote).
+      Blocks write (NativeExport) and file_send (FileRelay) only; local mutations allowed.
+  - lock_readonly_invariant: 'remote: locked=False => readonly=True; writable requires lock'
   - buf_file_path: str
   source_ranges:
   - start: 150
@@ -691,26 +695,51 @@ concepts:
     end: 1217
 - concept_id: C-039
   name: SessionDirectory
-  definition: "Root directory of a session on local disk holding all session artifacts.\n\
-    Invariant: session exists iff directory exists.\n"
+  definition: Root directory of one session on local disk; exclusive container for
+    all session artifacts; no cross-session path sharing.
   properties:
-  - path: <sessions_base_dir>/<session_key>/
+  - 'path: <sessions_base_dir>/<session_key>/'
+  - 'directory_name_equals_session_key: true — folder basename IS session id'
+  - 'create_order: mkdir session dir -> ses_settings.json -> init git/ inside dir'
+  - 'isolation: one session_key maps to exactly one directory; no overlap between sessions'
+  - 'access_gate: API resolves session_dir from session_key; foreign key denied'
+  - 'ses_settings.session_key must match directory name'
   - contains:
     - ses_settings.json
     - git/
-    - buffer files
+    - buffer tree/native/baseline/pending files
     - clipboard.json
   - lifetime: until explicit close_session or startup_sweep orphan cleanup
   source_ranges:
+  - start: 43
+    end: 95
   - start: 1050
     end: 1058
+  - start: 1143
+    end: 1180
+- concept_id: C-086
+  name: SessionIsolation
+  definition: Invariant that session artifacts are confined to one session directory
+    per session_key; cross-session access via wrong session_key is forbidden.
+  properties:
+  - 'resolve_session_dir: validates path, directory, ses_settings.session_key match'
+  - 'resolve_buffer: buffer_id scoped to session open_buffers list'
+  - 'no_shared_artifacts: tree, git, clipboard, native files never cross sessions'
+  - 'errors: SESSION_NOT_FOUND for wrong/missing session; BUFFER_NOT_FOUND for foreign buffer_id'
+  - 'path_traversal: rejected on session_key'
+  source_ranges:
+  - start: 43
+    end: 95
+  - start: 1143
+    end: 1180
 - concept_id: C-040
   name: SessionGit
-  definition: "Non-bare git repository inside the session directory. One branch per
-    open\nbuffer (buf/<buffer_id>). Commit on every mutation and clipboard cut/copy.\n\
-    Used for undo/redo.\n"
+  definition: Non-bare git repository inside the session directory. Initialized by
+    session_connect AFTER session directory creation. One branch per open buffer.
   properties:
-  - path: <session_dir>/git/
+  - 'path: <session_dir>/git/'
+  - 'init_trigger: session_connect on new session; step 4 after mkdir + ses_settings'
+  - 'init_command: init_session_git(session_dir) — not before directory exists'
   - branch_per_buffer: buf/<buffer_id>
   - commit_trigger: every mutation + clipboard cut/copy
   - undo_redo: implemented via branch commits and redo_stack in ses_settings
@@ -1196,6 +1225,204 @@ concepts:
   source_ranges:
   - end: 535
     start: 501
+- concept_id: C-070
+  name: DocumentNode
+  definition: Unified typed node for all formatter backends; single graph element
+    replacing the split between generic TreeNode and CSTTree implementation paths.
+  properties:
+  - 'stable_id: UUID4 base-assigned address'
+  - 'node_ref: str navigation key for preview drilldown'
+  - 'node_kind: str format-registered kind from FormatNodeKindRegistry'
+  - 'type: str coarse structural class'
+  - 'start_line, end_line: 1-based inclusive span'
+  - 'display_text: str one-line block summary'
+  - 'metadata: dict format-specific attrs'
+  - 'children: list[DocumentNode]'
+  - 'source_span: optional render round-trip span'
+  source_ranges:
+  - start: 1810
+    end: 1848
+- concept_id: C-071
+  name: PreviewEnvelope
+  definition: Structured model-facing preview response with focus text, blocks list,
+    and navigation metadata; replaces bare string preview in command API surface.
+  properties:
+  - 'focus: annotated text + node_ref + line span'
+  - 'blocks: list of child summaries for drilldown'
+  - 'navigation: drilldown_param, collapsed, total_blocks'
+  - 'format_meta: formatter_name, format_group'
+  source_ranges:
+  - start: 1850
+    end: 1895
+- concept_id: C-072
+  name: PreviewNavigator
+  definition: Collapse policy and node_ref drilldown producing PreviewEnvelope views
+    for large files without token burn.
+  properties:
+  - 'build_preview(document, node_ref=None) -> PreviewEnvelope'
+  - 'small_file: full annotated focus + blocks'
+  - 'large_file: blocks-only root; drilldown narrows scope'
+  - 'NQ-008: no-self-content-child enforced'
+  source_ranges:
+  - start: 1897
+    end: 1910
+- concept_id: C-073
+  name: FormatterClassifier
+  definition: Part 2 of formatter backend; per-format node_kind catalog and
+    parent-child validation rules applied when Reader builds DocumentNode trees.
+  properties:
+  - 'python: libcst type names as kinds'
+  - 'json: root, object, objectProp, array, primitive'
+  - 'yaml: mapping, sequence, scalar, mappingItem'
+  - 'text: document, paragraph, line'
+  - 'markdown: document, heading, paragraph, code_block, list, list_item'
+  - 'validate_parent_child: enforced on read and after block insert'
+  source_ranges:
+  - start: 1920
+    end: 1935
+- concept_id: C-074
+  name: DocumentGraph
+  definition: Single in-memory node graph owned by AbstractFormatter; root is DocumentNode;
+    loaded from and persisted to session tree file on disk after every mutation.
+  properties:
+  - 'owner: AbstractFormatter base class'
+  - 'root: DocumentNode'
+  - 'session_tree_file: <session_dir>/<buffer_id>.tree (or .cst for Python)'
+  - 'ingest: native read once; assign_stable_ids once; write_tree_file'
+  - 'edit: load tree file; mutate; write_tree_file + git commit each change'
+  - 'export: Exporter.render only on explicit save/send'
+  source_ranges:
+  - start: 1805
+    end: 1808
+  - start: 1847
+    end: 1895
+  - start: 1995
+    end: 2010
+- concept_id: C-075
+  name: CAPreviewParity
+  definition: Invariant that ai_editor PreviewEnvelope field semantics match
+    code-analysis-server universal_file_preview for the same file bytes and node_ref.
+  properties:
+  - 'cross_check_ref: code_analysis docs/plans/ai_editor/viewer_features.yaml'
+  - 'local_tracker: ai_editor docs/plans/ai_editor/viewer_features.yaml'
+  source_ranges:
+  - start: 1912
+    end: 1914
+- concept_id: C-076
+  name: FormatterReader
+  definition: Part 1 of formatter backend; transforms source bytes into un-ID'd
+    DocumentNode structure via parse() and node_from_source().
+  properties:
+  - 'parse(raw_content) -> tree nodes without stable_id'
+  - 'node_from_source(raw_block) -> node without stable_id'
+  - 'never assigns stable_id or structural ops'
+  source_ranges:
+  - start: 1803
+    end: 1818
+- concept_id: C-078
+  name: FormatterExporter
+  definition: Part 3 of formatter backend; transforms DocumentGraph back to source
+    via render() and node_to_source().
+  properties:
+  - 'render(tree) -> raw_content'
+  - 'node_to_source(node) -> raw_block'
+  - 'no persistent stable_id markers in committed output'
+  source_ranges:
+  - start: 1820
+    end: 1830
+  - start: 1832
+    end: 1845
+- concept_id: C-079
+  name: StableIdTransfer
+  definition: In-memory embed-extract aid for re-parse mutations within one operation;
+    ids authoritative in tree file on disk, never in native source export.
+  properties:
+  - 'embed: graph stable_id -> transient parse string markers'
+  - 'mutate: backend on transient string only'
+  - 'extract: reconcile into graph before write_tree_file'
+  - 'python_transient_marker: # @node-id: <uuid4> in memory only'
+  - 'tree_file_persistence: stable_id in serialised tree body on disk'
+  - 'native_export: never contains markers'
+  source_ranges:
+  - start: 1920
+    end: 1945
+- concept_id: C-080
+  name: TreeFileAuthority
+  definition: Session tree file is working copy during edit; stable_ids live in tree
+    file on disk; native file read at ingest, written only on export; undo via git
+    snapshots of tree file.
+  properties:
+  - 'tree_file: session_dir/<buffer_id>.tree or .cst'
+  - 'assign_ids_once: at ingest/reload only'
+  - 'mutation_persist: write_tree_file + git commit after every change'
+  - 'export_separate: Exporter.render on file_send/save/write_all only'
+  - 'native_source: no stable_id markers on disk'
+  source_ranges:
+  - start: 1847
+    end: 1895
+- concept_id: C-081
+  name: NativeExport
+  definition: Write command exports DocumentGraph to native session file via Exporter;
+    gated by ExportDiff against baseline; identical skips write; changes require confirm.
+  properties:
+  - 'commands: file_write, buf_write_all'
+  - 'approve_param: None=preview (.pending temp+diff); True=commit; False=reject delete temp'
+  - 'reject: delete .pending; no baseline/modified/tree changes'
+  - 'identical: no temp; skip write; modified=False'
+  - 'does_not: file_send, tree mutation'
+  source_ranges:
+  - start: 351
+    end: 378
+  - start: 2239
+    end: 2275
+- concept_id: C-084
+  name: ExportDiffResult
+  definition: Structured comparison of baseline native bytes vs candidate export from tree;
+    returned by file_export_diff and by file_write when confirm=False.
+  properties:
+  - 'identical: bool'
+  - 'has_changes: bool'
+  - 'unified_diff: str'
+  - 'hunks: list of op/start_line/end_line/preview'
+  - 'baseline_sha256, candidate_sha256: str'
+  source_ranges:
+  - start: 2239
+    end: 2275
+- concept_id: C-085
+  name: ExportDiffPreview
+  definition: Standalone API command computing export diff without write; allowed in RO.
+  properties:
+  - 'commands: file_export_diff, buf_export_diff'
+  - 'no side effects on disk or modified flag'
+  - 'uses: baseline_native + Exporter.render candidate'
+  source_ranges:
+  - start: 368
+    end: 373
+  - start: 2239
+    end: 2275
+- concept_id: C-082
+  name: FileRelay
+  definition: file_send relays native session file bytes to CA by file_id; no tree
+    access; optional unlock; precondition modified=False.
+  properties:
+  - 'precondition: modified=False; native session file present'
+  - 'action: read native session file; ca upload by file_id'
+  - 'optional: unlock via session_close_file'
+  - 'does_not: Exporter.render, write_tree_file, assign stable_id'
+  source_ranges:
+  - start: 2109
+    end: 2185
+- concept_id: C-083
+  name: BufferClose
+  definition: file_close deletes tree file and native session file; unlocks CA lock
+    if held; removes git branch and buffer entry.
+  properties:
+  - 'deletes: <buffer_id>.tree, <buffer_id>.<ext>, git branch'
+  - 'unlock: session_close_file when locked'
+  - 'modified=True without force: FILE_HAS_UNSENT_CHANGES'
+  source_ranges:
+  - start: 2109
+    end: 2185
 relations:
 - from_concept: C-001
   to_concept: C-003
@@ -1464,3 +1691,102 @@ relations:
 - from_concept: C-021
   to_concept: C-069
   type: produces
+- from_concept: C-021
+  to_concept: C-074
+  type: owns
+- from_concept: C-074
+  to_concept: C-070
+  type: owns
+- from_concept: C-021
+  to_concept: C-072
+  type: owns
+- from_concept: C-072
+  to_concept: C-071
+  type: produces
+- from_concept: C-072
+  to_concept: C-070
+  type: consumes
+- from_concept: C-073
+  to_concept: C-070
+  type: uses
+- from_concept: C-070
+  to_concept: C-064
+  type: extends
+- from_concept: C-074
+  to_concept: C-063
+  type: extends
+- from_concept: C-075
+  to_concept: C-071
+  type: depends_on
+- from_concept: C-032
+  to_concept: C-074
+  type: consumes
+- from_concept: C-021
+  to_concept: C-076
+  type: uses
+- from_concept: C-021
+  to_concept: C-073
+  type: uses
+- from_concept: C-021
+  to_concept: C-078
+  type: uses
+- from_concept: C-076
+  to_concept: C-074
+  type: produces
+- from_concept: C-078
+  to_concept: C-074
+  type: consumes
+- from_concept: C-073
+  to_concept: C-076
+  type: uses
+- from_concept: C-029
+  to_concept: C-079
+  type: uses
+- from_concept: C-079
+  to_concept: C-031
+  type: uses
+- from_concept: C-021
+  to_concept: C-031
+  type: owns
+- from_concept: C-080
+  to_concept: C-074
+  type: owns
+- from_concept: C-032
+  to_concept: C-080
+  type: implements
+- from_concept: C-038
+  to_concept: C-080
+  type: uses
+- from_concept: C-081
+  to_concept: C-078
+  type: uses
+- from_concept: C-081
+  to_concept: C-074
+  type: consumes
+- from_concept: C-082
+  to_concept: C-081
+  type: depends_on
+- from_concept: C-038
+  to_concept: C-081
+  type: uses
+- from_concept: C-038
+  to_concept: C-082
+  type: uses
+- from_concept: C-081
+  to_concept: C-084
+  type: produces
+- from_concept: C-085
+  to_concept: C-084
+  type: produces
+- from_concept: C-085
+  to_concept: C-078
+  type: uses
+- from_concept: C-038
+  to_concept: C-086
+  type: owns
+- from_concept: C-086
+  to_concept: C-039
+  type: uses
+- from_concept: C-010
+  to_concept: C-086
+  type: depends_on

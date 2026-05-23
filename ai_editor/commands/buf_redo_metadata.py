@@ -3,50 +3,74 @@ from __future__ import annotations
 
 from typing import Any, Type
 
+from ai_editor.commands._metadata_common import (
+    buffer_id_param,
+    build_metadata,
+    error_block,
+    example_buffer_id,
+    example_session_key,
+    return_operation_result,
+    session_key_param,
+)
+
 
 def get_buf_redo_metadata(cls: Type[Any]) -> dict[str, Any]:
     """Return AI/documentation metadata for buf_redo."""
-    return {
-        "name": cls.name,
-        "version": cls.version,
-        "description": cls.descr,
-        "category": cls.category,
-        "author": cls.author,
-        "email": cls.email,
-        "detailed_description": (
-            "History command buf_redo. Delegates to api.redo (parent tactical step). UNDO_AT_BEGINNING / REDO_AT_END on boundary."
+    sk = example_session_key()
+    bid = example_buffer_id()
+    return build_metadata(
+        cls,
+        detailed_description=(
+            "Redo one or more previously undone commits from redo_stack (LIFO), "
+            "restoring .buf content on the buffer git branch. Does not upload to CA."
         ),
-        "parameters": {
-"session_key": {"type": "string", "description": "UUID4 session identifier."},
-"buffer_id": {"type": "string", "description": "Open buffer identifier."},
-    },
-        "return_value": {
-            "success": {
-                "description": "Operation succeeded.",
-                "data": "{result fields from api layer}",
-            },
-            "error": {
-                "description": "Operation failed.",
-                "code": "ErrorCode string",
-                "message": "Human-readable message",
+        parameters={
+            "session_key": session_key_param(),
+            "buffer_id": buffer_id_param(),
+            "steps": {
+                "type": "integer",
+                "description": "Number of redo steps to apply (minimum 1).",
+                "required": False,
+                "default": 1,
+                "examples": [1],
             },
         },
-        "usage_examples": [
+        return_value=return_operation_result(
+            data_fields={
+                "success": "True when redo completed.",
+                "message": "Human-readable status.",
+            },
+            example={"success": True, "message": "redo"},
+        ),
+        usage_examples=[
             {
-                "description": "Typical buf_redo invocation",
-                "command": {},
-                "explanation": "Returns success envelope with result data.",
+                "description": "Redo last undone step",
+                "command": {"session_key": sk, "buffer_id": bid, "steps": 1},
+                "explanation": "Pops one SHA from redo_stack and restores that commit.",
+            },
+            {
+                "description": "Redo after accidental undo",
+                "command": {"session_key": sk, "buffer_id": bid},
+                "explanation": "Default steps=1 re-applies the most recently undone edit.",
             },
         ],
-        "error_cases": {
-            "OPERATION_FAILED": {
-                "description": "Underlying api call returned success=False.",
-                "message": "{message from OperationResult}",
-                "solution": "Check session_key and buffer_id; verify session is open.",
-            },
+        error_cases={
+            "BUFFER_NOT_FOUND": error_block(
+                "BUFFER_NOT_FOUND",
+                "Buffer not found: {buffer_id}",
+                "Verify buffer_id via session_status.",
+                description="buffer_id is not open in the session.",
+            ),
+            "REDO_AT_END": error_block(
+                "REDO_AT_END",
+                "redo stack empty",
+                "Nothing to redo; perform buf_undo first or make new edits.",
+                description="redo_stack has no entries.",
+            ),
         },
-        "best_practices": [
-            "Call init_api() before executing commands (handled by main.py startup).",
-            "Use dry_run=True on destructive commands to preview changes.",
+        best_practices=[
+            "Redo stack is cleared on new mutations (buf_mutate_batch, cut, paste).",
+            "Verify content with buf_get_state after redo.",
+            "New edits after undo invalidate redo beyond the stack semantics.",
         ],
-    }
+    )

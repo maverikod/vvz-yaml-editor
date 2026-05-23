@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.file_open_metadata import get_file_open_metadata
 from ai_editor.commands.file_open_schema import get_file_open_schema
 from ai_editor import api
 
 
-class FileOpenCommand(Command):
+class FileOpenCommand(EditorSessionCommand):
     """MCP command: file_open."""
 
     name = "file_open"
@@ -31,7 +33,14 @@ class FileOpenCommand(Command):
     async def execute(self, **params: Any) -> CommandResult:
         from ai_editor.commands._result import command_result_from_api
 
-        result = api.open_buffer(session_key=..., project_id=..., file_path=..., formatter=params.get('formatter','auto'), open_as_text=params.get('open_as_text',False), readonly=params.get('readonly',False))
+        result = api.open_buffer(
+            session_key=params["session_key"],
+            project_id=params["project_id"],
+            file_path=params["file_path"],
+            formatter=params.get("formatter", "auto"),
+            open_as_text=params.get("open_as_text", False),
+            readonly=params.get("readonly", False),
+        )
         return command_result_from_api(result)
 
     @classmethod

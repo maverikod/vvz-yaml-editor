@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -95,6 +96,150 @@ def _pid_alive(pid: int | None) -> bool:
         return True
     except OSError:
         return False
+
+
+def _server_bind_addr(raw: dict[str, Any]) -> tuple[str, int]:
+    server = raw.get("server") or {}
+    host = str(server.get("host") or "127.0.0.1")
+    port = int(server.get("port", 8080))
+    return host, port
+
+
+def _find_listener_pid(host: str, port: int) -> int | None:
+    """Return PID listening on host:port, or None if not found."""
+    addr = f"{host}:{port}"
+    try:
+        result = subprocess.run(
+            ["ss", "-tlnp", f"sport = :{port}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return _find_listener_pid_lsof(host, port)
+    for line in result.stdout.splitlines():
+        if addr not in line:
+            continue
+        match = re.search(r"pid=(\d+)", line)
+        if match:
+            return int(match.group(1))
+    return _find_listener_pid_lsof(host, port)
+
+
+def _find_listener_pid_lsof(host: str, port: int) -> int | None:
+    try:
+        result = subprocess.run(
+            ["lsof", "-i", f"TCP@{host}:{port}", "-sTCP:LISTEN", "-t"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.isdigit():
+            return int(line)
+    return None
+
+
+def _read_proc_args(pid: int) -> list[str]:
+    cmdline_path = Path("/proc") / str(pid) / "cmdline"
+    try:
+        raw = cmdline_path.read_bytes()
+    except OSError:
+        return []
+    return [part.decode() for part in raw.split(b"\x00") if part]
+
+
+def _config_path_matches_cmdline(config_path: str, args: list[str]) -> bool:
+    if not args:
+        return False
+    try:
+        module_idx = args.index("-m")
+    except ValueError:
+        return False
+    if module_idx + 1 >= len(args) or args[module_idx + 1] != "ai_editor.main":
+        return False
+    try:
+        config_idx = args.index("--config")
+    except ValueError:
+        return False
+    if config_idx + 1 >= len(args):
+        return False
+    proc_config = args[config_idx + 1]
+    resolved = str(Path(config_path).resolve())
+    rel = str(Path(config_path))
+    if proc_config in {resolved, rel}:
+        return True
+    if not Path(config_path).is_absolute() and proc_config == Path(config_path).name:
+        return True
+    return False
+
+
+def _find_pids_for_config(config_path: str) -> list[int]:
+    """PIDs for ai_editor.main using the same config (Linux /proc scan)."""
+    pids: list[int] = []
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return pids
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit():
+            continue
+        args = _read_proc_args(int(entry.name))
+        if _config_path_matches_cmdline(config_path, args):
+            pids.append(int(entry.name))
+    return sorted(set(pids))
+
+
+def _resolve_stop_pids(args: argparse.Namespace, state: ServiceState) -> list[int]:
+    """Choose PIDs to terminate: PID file, then listener port, then config scan."""
+    if state.pid_alive and state.pid is not None:
+        return [state.pid]
+
+    config_path = _config_path(args)
+    raw = _load_raw_config(config_path)
+    host, port = _server_bind_addr(raw)
+    discovered: list[int] = []
+
+    if state.running:
+        listener = _find_listener_pid(host, port)
+        if listener is not None:
+            discovered.append(listener)
+        for pid in _find_pids_for_config(config_path):
+            if pid not in discovered:
+                discovered.append(pid)
+
+    return discovered
+
+
+def _terminate_pids(pids: list[int], pid_file: Path) -> None:
+    if not pids:
+        return
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            continue
+
+    for _ in range(30):
+        alive = [pid for pid in pids if _pid_alive(pid)]
+        if not alive:
+            pid_file.unlink(missing_ok=True)
+            print("stopped")
+            return
+        time.sleep(1)
+
+    for pid in pids:
+        if _pid_alive(pid):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                continue
+    pid_file.unlink(missing_ok=True)
+    print("killed")
 
 
 def _inspect_service(args: argparse.Namespace) -> ServiceState:
@@ -197,32 +342,21 @@ def cmd_start(args: argparse.Namespace) -> None:
 def cmd_stop(args: argparse.Namespace) -> None:
     pid_file = Path(args.pid_file)
     state = _inspect_service(args)
+    pids = _resolve_stop_pids(args, state)
 
-    if not state.pid_alive:
-        if state.running:
-            print(
-                "health=ok but pid file missing or stale; "
-                "stop the process manually",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    if not pids:
         pid_file.unlink(missing_ok=True)
         print("not running")
         return
 
-    pid = state.pid
-    assert pid is not None
-    os.kill(pid, signal.SIGTERM)
-    for _ in range(30):
-        if not _pid_alive(pid):
-            pid_file.unlink(missing_ok=True)
-            print("stopped")
-            return
-        time.sleep(1)
+    if state.running and not state.pid_alive:
+        print(
+            f"health=ok but pid file missing or stale; "
+            f"stopping discovered pid(s): {', '.join(map(str, pids))}",
+            file=sys.stderr,
+        )
 
-    os.kill(pid, signal.SIGKILL)
-    pid_file.unlink(missing_ok=True)
-    print("killed")
+    _terminate_pids(pids, pid_file)
 
 
 def cmd_status(args: argparse.Namespace) -> None:

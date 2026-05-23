@@ -40,7 +40,9 @@ def main(config_path: str | None = None) -> None:
     # (3) Build ai_editor singletons and run startup_sweep
     ai_cfg = AiEditorConfig.from_config_json(raw)
     ca_cfg = CodeAnalysisServerConfig.from_config_json(raw)
-    init_api(ai_cfg, ca_cfg, formatter_registry)
+    init_api(ai_cfg, ca_cfg, formatter_registry, editor_server_uuid=str(
+        raw.get("registration", {}).get("instance_uuid") or ""
+    ).strip())
 
     # (4) Adapter creates ASGI app; lifespan handles proxy auto-registration
     app = create_app(

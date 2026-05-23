@@ -18,7 +18,12 @@ from ai_editor.sessions.buffer_open import open_buffer as _open_buffer
 from ai_editor.sessions.buffer_reload import reload_buffer as _reload_buffer
 from ai_editor.sessions.buffer_save import save_as_buffer as _save_as_buffer
 from ai_editor.sessions.buffer_save import save_buffer as _save_buffer
-from ai_editor.sessions.session_dir import read_session_settings
+from ai_editor.sessions.ca_session import work_ca_session_id
+from ai_editor.sessions.session_dir import (
+    find_open_buffer_for_path,
+    read_session_settings,
+    resolve_buffer_file_path,
+)
 from ai_editor.sessions.session_git import get_repo
 from ai_editor.sessions.write_all import write_all as _write_all
 
@@ -64,12 +69,12 @@ def _load_document(
     if cls is None:
         raise ValueError(ErrorCode.FORMATTER_NOT_FOUND.value)
     formatter = cls()
-    buf_path = Path(buf["buf_file_path"])
+    buf_path = resolve_buffer_file_path(session_dir, buf)
     source = buf_path.read_text(encoding="utf-8")
     sidecar_path = session_sidecar_path(session_dir, buf["buffer_id"])
     sidecar = load_sidecar(sidecar_path, source)
-    if sidecar is not None and hasattr(formatter, "open_tree"):
-        document = formatter.open_tree(source)
+    if sidecar is not None:
+        document = formatter.open_tree_with_sidecar(source, sidecar)
     elif fmt_name == "cst":
         from ai_editor.formatters.cst.tree_builder import create_tree_from_code
 
@@ -95,9 +100,19 @@ def open_buffer(
 ) -> dict[str, Any]:
     session_dir = _session_dir(base_dir, session_key)
     repo_map = repo_map if repo_map is not None else {}
-    repo = _repo_for_session(session_dir, repo_map)
     settings = read_session_settings(session_dir)
-    config = {"ca_session_id": settings.get("ca_session_id", "")}
+    existing = find_open_buffer_for_path(settings, project_id, file_path)
+    if existing is not None:
+        return {
+            "success": False,
+            "error_code": ErrorCode.BUFFER_ALREADY_OPEN,
+            "message": (
+                f"file already open: {file_path} "
+                f"(buffer_id={existing['buffer_id']})"
+            ),
+        }
+    repo = _repo_for_session(session_dir, repo_map)
+    config = {"ca_session_id": work_ca_session_id(settings)}
     result = _open_buffer(
         session_dir,
         session_key,
@@ -184,6 +199,9 @@ def save_buffer(
     *,
     repo: Any | None = None,
     repo_map: dict[str, Any] | None = None,
+    project_id: str | None = None,
+    file_path: str | None = None,
+    release_lock: bool = False,
 ) -> OperationResult:
     session_dir = _session_dir(base_dir, session_key)
     repo_map = repo_map if repo_map is not None else {}
@@ -204,7 +222,10 @@ def save_buffer(
     if repo is None:
         repo = _repo_for_buffer(session_dir, buffer_id, repo_map)
     return _save_buffer(
-        session_dir, buffer_id, formatter, document, ca_client, repo
+        session_dir, buffer_id, formatter, document, ca_client, repo,
+        project_id=project_id,
+        file_path=file_path,
+        release_lock=release_lock,
     )
 
 
@@ -266,6 +287,52 @@ def reload_buffer(
     return _reload_buffer(
         session_dir, session_key, buffer_id, ca_client, formatter_registry, repo
     )
+
+
+def get_buffer_file_content(
+    base_dir: str | Path,
+    session_key: str,
+    buffer_id: str,
+    *,
+    lock: bool = True,
+) -> dict[str, Any]:
+    """Read local buffer file bytes/text; optional shared advisory flock."""
+    import fcntl
+
+    session_dir = _session_dir(base_dir, session_key)
+    settings = read_session_settings(session_dir)
+    buf = next(
+        (b for b in settings.get("open_buffers", []) if b["buffer_id"] == buffer_id),
+        None,
+    )
+    if not buf:
+        return {
+            "success": False,
+            "error_code": ErrorCode.BUFFER_NOT_FOUND,
+            "message": buffer_id,
+        }
+    buf_path = resolve_buffer_file_path(session_dir, buf)
+    if not buf_path.is_file():
+        return {
+            "success": False,
+            "error_code": ErrorCode.BUFFER_NOT_FOUND,
+            "message": str(buf_path),
+        }
+    with buf_path.open("r", encoding="utf-8") as fh:
+        if lock:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_SH)
+        try:
+            content = fh.read()
+        finally:
+            if lock:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+    return {
+        "success": True,
+        "content": content,
+        "relative_path": buf.get("relative_path"),
+        "file_type": buf.get("file_type"),
+        "modified": bool(buf.get("modified")),
+    }
 
 
 def get_buffer_state(

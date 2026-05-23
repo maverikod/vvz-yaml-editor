@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.file_create_metadata import get_file_create_metadata
 from ai_editor.commands.file_create_schema import get_file_create_schema
 from ai_editor import api
 
 
-class FileCreateCommand(Command):
+class FileCreateCommand(EditorSessionCommand):
     """MCP command: file_create."""
 
     name = "file_create"
@@ -26,6 +28,8 @@ class FileCreateCommand(Command):
 
     def validate_params(self, params: dict[str, Any]) -> dict[str, Any]:
         params = super().validate_params(params)
+        if not str(params.get("content", "")).strip():
+            raise ValueError("content is required and must be non-empty")
         return params
 
     async def execute(self, **params: Any) -> CommandResult:

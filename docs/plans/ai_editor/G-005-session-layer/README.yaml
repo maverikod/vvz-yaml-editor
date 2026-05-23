@@ -2,7 +2,12 @@ step_id: G-005
 name: Session layer — infrastructure, buffer lifecycle, clipboard, recovery, and
   public API
 status: frozen
-cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings"
+  session_isolation:
+  - directory name equals session_key (UUID); ses_settings.session_key must match
+  - resolve_session_dir validates session_key, directory, ses_settings match
+  - buffer_id scoped to session; no cross-session artifact paths
+  session_create_order:
+  - session_connect mkdir <base>/<session_key>/ then ses_settings then init git/
 description: 'Session infrastructure and full buffer lifecycle. SourceOfTruth rule
   applies to all formats: source file at open; tree Sidecar becomes authoritative
   once buffer.modified=True. AutoCreateTree builds tree on CA fetch and when preview
@@ -21,6 +26,7 @@ concepts:
 - C-066
 - C-067
 - C-032
+- C-086
 relations:
 - from_concept: C-038
   to_concept: C-039

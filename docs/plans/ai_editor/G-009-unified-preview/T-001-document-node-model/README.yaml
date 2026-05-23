@@ -1,0 +1,33 @@
+step_id: T-001
+parent_global_step: G-009
+name: DocumentNode, FormatterClassifier, and Reader/Exporter hook contract
+status: draft
+description: >
+  Define DocumentNode (C-070) and FormatterClassifier (C-073) registry. Document
+  abstract Reader (C-076) and Exporter (C-078) hook signatures on AbstractFormatter
+  subclass contract: parse/node_from_source vs render/node_to_source. Classifier
+  validates node_kind and parent-child rules after Reader output. Base class never
+  calls subclass for structural ops or stable_id assignment.
+concepts:
+- C-070
+- C-073
+- C-076
+- C-078
+- C-064
+- C-021
+inputs:
+- name: G-003 AbstractFormatter hook names
+  type: ai_editor.formatters.base
+  description: parse/render/node_from_source/node_to_source map to triad roles.
+outputs:
+- name: ai_editor/formatters/document_node.py
+  type: file
+  description: DocumentNode dataclass and node_ref helpers.
+- name: ai_editor/formatters/node_kind_registry.py
+  type: file
+  description: FormatterClassifier registry with validate_parent_child.
+- name: ai_editor/formatters/base.py
+  type: file
+  description: ABC documents Reader/Classifier/Exporter roles; hook method contracts.
+atomic_steps: []
+cascade_note: reframed triad 2026-05-23

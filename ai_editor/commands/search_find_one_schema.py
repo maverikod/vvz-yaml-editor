@@ -3,16 +3,21 @@ from __future__ import annotations
 
 from typing import Any
 
+from ai_editor.commands._schema_common import BUFFER_ID_PROP, QUERY_PROP, SESSION_KEY_PROP
+
 
 def get_search_find_one_schema() -> dict[str, Any]:
     """Return machine-readable input schema for search_find_one."""
     return {
         "type": "object",
         "properties": {
-            "session_key": {"type": "string", "description": "UUID4 session identifier."},
-            "buffer_id": {"type": "string", "description": "Open buffer identifier."},
-            "query": {"type": "object", "properties": {"kind": {"type": "string"}, "value": {}, "options": {"type": "object"}}, "required": ["kind"], "additionalProperties": False},
-            "scope": {"type": "string", "description": "Optional search scope."},
+            "session_key": SESSION_KEY_PROP,
+            "buffer_id": BUFFER_ID_PROP,
+            "query": QUERY_PROP,
+            "scope": {
+                "type": "string",
+                "description": "Optional formatter-specific scope limiting iteration.",
+            },
         },
         "required": ["session_key", "buffer_id", "query"],
         "additionalProperties": False,

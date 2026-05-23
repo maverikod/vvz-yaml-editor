@@ -48,12 +48,14 @@ class OperationResult:
         success: True if the operation succeeded.
         error_code: Typed error code when success is False; None otherwise.
         message: Human-readable result or error description.
+        file_id: CA database ``files.id`` when a save created or updated a remote file.
         diagnostics: List of structured diagnostic messages.
     """
 
     success: bool
     error_code: ErrorCode | None = None
     message: str = ""
+    file_id: str | None = None
     diagnostics: list[Diagnostic] = field(default_factory=list)
 
 

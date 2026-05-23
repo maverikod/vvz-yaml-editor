@@ -9,7 +9,11 @@ from git import Commit
 
 from ai_editor.contracts import Diagnostic, ErrorCode, OperationResult
 from ai_editor.editor_core.writer import Writer
-from ai_editor.sessions.session_dir import read_session_settings, update_buffer_in_settings
+from ai_editor.sessions.session_dir import (
+    git_buffer_relpath,
+    read_session_settings,
+    update_buffer_in_settings,
+)
 from ai_editor.sessions.session_git import branch_name, history_diagnostic
 
 
@@ -36,6 +40,26 @@ def _branch(repo: Any, buffer_id: str) -> Any:
     return repo.heads[branch_name(buffer_id)]
 
 
+def _tree_path_for_buffer(buf: dict[str, Any], buffer_id: str) -> str:
+    buf_path = Path(buf["buf_file_path"])
+    return git_buffer_relpath(buffer_id, buf_path.suffix or ".txt")
+
+
+def _commit_has_buffer(commit: Commit, tree_path: str) -> bool:
+    try:
+        commit.tree[tree_path]
+        return True
+    except (KeyError, AttributeError):
+        return False
+
+
+def _read_buffer_from_commit(commit: Commit, tree_path: str) -> str | None:
+    try:
+        return commit.tree[tree_path].data_stream.read().decode("utf-8")
+    except (KeyError, AttributeError):
+        return None
+
+
 def undo(
     session_dir: Path,
     buffer_id: str,
@@ -56,6 +80,7 @@ def undo(
             message=buffer_id,
         )
     branch = _branch(repo, buffer_id)
+    tree_path = _tree_path_for_buffer(buf, buffer_id)
     target = branch.commit
     for _ in range(steps):
         if not target.parents:
@@ -64,10 +89,23 @@ def undo(
                 error_code=ErrorCode.UNDO_AT_BEGINNING,
                 message="at first commit",
             )
-        target = target.parents[0]
+        candidate = target.parents[0]
+        if not _commit_has_buffer(candidate, tree_path):
+            return OperationResult(
+                success=False,
+                error_code=ErrorCode.UNDO_AT_BEGINNING,
+                message="at first commit",
+            )
+        target = candidate
     prior_hexsha = branch.commit.hexsha
     buf_path = Path(buf["buf_file_path"])
-    content = target.tree[str(buf_path.name)].data_stream.read().decode("utf-8")
+    content = _read_buffer_from_commit(target, tree_path)
+    if content is None:
+        return OperationResult(
+            success=False,
+            error_code=ErrorCode.UNDO_AT_BEGINNING,
+            message="at first commit",
+        )
     Writer().write_buf(content, buf_path)
     branch.set_commit(target)
     redo = list(buf.get("redo_stack", []))
@@ -104,6 +142,8 @@ def redo(
         )
     diagnostics: list[Diagnostic] = []
     branch = _branch(repo, buffer_id)
+    tree_path = _tree_path_for_buffer(buf, buffer_id)
+    buf_path = Path(buf["buf_file_path"])
     for _ in range(steps):
         if not redo_stack:
             return OperationResult(
@@ -126,8 +166,20 @@ def redo(
                     )
                 ],
             )
-        buf_path = Path(buf["buf_file_path"])
-        content = commit.tree[str(buf_path.name)].data_stream.read().decode("utf-8")
+        content = _read_buffer_from_commit(commit, tree_path)
+        if content is None:
+            update_buffer_in_settings(session_dir, buffer_id, {"redo_stack": []})
+            return OperationResult(
+                success=False,
+                error_code=None,
+                message="redo commit lost",
+                diagnostics=[
+                    Diagnostic(
+                        code="HISTORY_UNAVAILABLE",
+                        message="buffer snapshot missing in commit",
+                    )
+                ],
+            )
         Writer().write_buf(content, buf_path)
         branch.set_commit(commit)
     update_buffer_in_settings(session_dir, buffer_id, {"redo_stack": redo_stack})
@@ -193,7 +245,16 @@ def buf_checkout(
             ],
         )
     buf_path = Path(buf["buf_file_path"])
-    content = commit.tree[str(buf_path.name)].data_stream.read().decode("utf-8")
+    tree_path = _tree_path_for_buffer(buf, buffer_id)
+    content = _read_buffer_from_commit(commit, tree_path)
+    if content is None:
+        return OperationResult(
+            success=False,
+            message="commit has no buffer snapshot",
+            diagnostics=[
+                Diagnostic(code="HISTORY_UNAVAILABLE", message="buffer missing in tree")
+            ],
+        )
     Writer().write_buf(content, buf_path)
     branch.set_commit(commit)
     return OperationResult(success=True, message="checkout")

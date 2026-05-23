@@ -12,7 +12,12 @@ from typing import Any, Protocol
 from ai_editor.contracts.diagnostic import Diagnostic
 from ai_editor.contracts.error_codes import ErrorCode
 from ai_editor.contracts.results import OperationResult, ValidationResult
-from ai_editor.formatters.sidecar import persist_tree_sidecar, save_sidecar
+from ai_editor.formatters.sidecar import (
+    apply_sidecar_ids,
+    find_root_stable_id,
+    persist_tree_sidecar,
+    save_sidecar,
+)
 from ai_editor.formatters.tree import Tree, TreeNode
 from ai_editor.writer import Writer
 
@@ -99,6 +104,27 @@ class AbstractFormatter(ABC):
         root = self.parse(raw_content)
         self._id_index.clear()
         self._assign_stable_ids(root)
+        self._tree = Tree(root=root)
+        self._source_sha256 = hashlib.sha256(raw_content.encode("utf-8")).hexdigest()
+        return self._tree
+
+    def open_tree_with_sidecar(
+        self,
+        raw_content: str,
+        node_map: dict[str, dict[str, Any]],
+    ) -> Tree:
+        """Parse source and restore stable_ids from a TREE_V1 sidecar node map."""
+        root = self.parse(raw_content)
+        self._id_index.clear()
+        root_id = find_root_stable_id(node_map)
+        if not root_id:
+            return self.open_tree(raw_content)
+        try:
+            apply_sidecar_ids(root, root_id, node_map, self._id_index)
+            if len(self._id_index) != len(node_map):
+                raise ValueError("sidecar node count mismatch")
+        except ValueError:
+            return self.open_tree(raw_content)
         self._tree = Tree(root=root)
         self._source_sha256 = hashlib.sha256(raw_content.encode("utf-8")).hexdigest()
         return self._tree

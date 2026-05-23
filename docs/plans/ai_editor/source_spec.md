@@ -3,7 +3,7 @@
 <!--
   PLAN STANDARD NOTES:
   - Canonical session identifier: session_key (UUID4). Do NOT use session_id.
-  - G-step numbering in this file follows plan file structure (G-001..G-007, G-008).
+  - G-step numbering in this file follows plan file structure (G-001..G-008, G-009).
     Original draft used G-001..G-010 with gaps; mapping in docs/ai_reports/2026-05-10_tz_analysis.md.
   - startup_sweep policy B: release stale locks + delete orphaned dirs
     (dirs with missing or corrupt ses_settings.json). No TTL.
@@ -40,13 +40,53 @@ Formatters do not know about sessions or buffers.
 Buffers do not know about other buffers or sessions.
 Sessions coordinate buffers and own session git history and clipboard.
 
-### Session git (single repository)
+### Session directory isolation (binding)
+
+Each session is a **separate directory** on disk. Session artifacts never share
+paths and never mix between sessions.
+
+```
+Layout:
+  <sessions_base_dir>/
+    <session_key_A>/   — all artifacts for session A only
+    <session_key_B>/   — all artifacts for session B only; no overlap with A
+```
+
+Invariants:
+- **I1. One session, one directory:** path = `<sessions_base_dir>/<session_key>/`.
+  **Directory name equals session id:** `session_key` (UUID4) is both the canonical
+  session identifier and the on-disk directory name. Session exists iff this
+  directory exists and contains valid `ses_settings.json`.
+- **I2. No cross-session files:** tree, native, baseline, `.pending`, git repo,
+  clipboard, and buffer files live **only** under their session directory.
+  No global shared buffer store. No hardlinks/symlinks between session dirs.
+- **I3. session_key is the access gate:** every API call carries `session_key`.
+  Resolver computes `session_dir = base_dir / session_key` and rejects:
+  - missing directory → `SESSION_NOT_FOUND`
+  - `ses_settings.json.session_key != session_key` (path/dir mismatch) → `SESSION_NOT_FOUND`
+  - malformed session_key (path traversal, `/`, `..`) → `SESSION_NOT_FOUND`
+- **I4. buffer_id scoped to session:** `(session_key, buffer_id)` resolves buffer
+  metadata from **that** session's `open_buffers` only. Same buffer_id in another
+  session's directory is a different buffer → `BUFFER_NOT_FOUND` if used with
+  wrong session_key.
+- **I5. No foreign directory access:** commands must never open, read, or write
+  paths outside the resolved `session_dir` for the given `session_key`.
+  Passing another session's UUID as session_key without that directory → denied.
+
+CA file lock isolation (separate concern): a project file locked under one
+`ca_session_id` is unavailable to other CA sessions (`BUFFER_LOCKED`). Session
+directory isolation is **local disk** isolation; both apply.
+
+All session-layer path helpers (`buffer_file_path`, `write_tree_file`, etc.)
+take `session_dir` derived from validated `session_key` — never a raw path from
+the caller.
 
 The system uses **one git repository per session**, located at `<session_dir>/git/`.
 There is no project git. The CA server manages its own versioning (backup + commit on upload).
 
 **Session git:**
-- Created when a session is created (non-bare repository).
+- Created when a session is created: **after** session directory exists (`session_connect`).
+- Repository path: `<session_dir>/git/` (non-bare).
 - One branch per open buffer: `buf/<buffer_id>`.
 - A commit is made on every operation that mutates the buffer.
 - This is the undo/redo mechanism — any buffer state can be recovered as long as the session exists.
@@ -58,10 +98,14 @@ There is no project git. The CA server manages its own versioning (backup + comm
   No file lock. On `file_close` without `file_send` + `modified=True` + `force=False` → `FILE_HAS_UNSENT_CHANGES`.
   On `force=True` → delete artifacts, no unlock.
 - `relative_path!=None` → **remote**: downloaded via `file_open`, or became remote after `file_send`.
-  Has a file lock under `ca_session_id`. On `file_close` without `file_send` + `modified=True` + `force=False` → `FILE_HAS_UNSENT_CHANGES`.
-  On `force=True` → `session_close_file` + delete artifacts.
-- `readonly=True`: close freely regardless of `modified`. Not counted in unsent-files check.
-- `modified` is set `True` after every mutation; reset to `False` only after `file_send`.
+  Writable remote: `locked=True` (lock acquired at open). Read-only remote: `locked=False`,
+  `readonly=True` forced. On `file_close` without write+send + `modified=True` + `force=False`
+  → `FILE_HAS_UNSENT_CHANGES`.
+- `readonly=True`: close freely regardless of `modified`. Includes all `lock=False` opens.
+  Not counted in unsent-files check. No CA lock to release on close.
+- `modified` is set `True` after every **tree mutation**; reset to `False` only after
+  **write/export** (tree → native session file). `file_send` is relay only and does
+  not clear `modified` or touch the tree (see G-009 buffer command semantics).
 
 ---
 
@@ -191,11 +235,14 @@ buffer fields:
   filename           bare filename, e.g. README.yaml
   relative_path      path relative to project root (null for local buffers never sent)
   formatter          formatter name, set at open, never changes
-  modified           bool — True after any mutation; False after file_send
-  readonly           bool — set at open, never changes
-  readonly           bool
-  buf_file_path      str — session-space path to .buf file
-  saved              bool — True after upload_save
+  modified           bool — True after tree mutation; False after write/export
+  locked             bool — CA lock held; True only on writable remote open (lock=True)
+  readonly           bool — immutable after open; forced True when locked=False (remote).
+                         Blocks write and file_send only; local tree edit still allowed.
+  buf_file_path      str — session path to native session file (<buffer_id>.<ext>); absent until write
+  tree_file_path     str — session path to tree file (<buffer_id>.tree)
+  baseline_native_path str — native bytes at open/last write; diff baseline
+  saved              bool — True after file_send relay completed
   redo_stack         list[str] — SHA list for redo
 ```
 
@@ -203,7 +250,9 @@ buffer fields:
 
 ```
 open(session_key, project_id, file_path, formatter=auto,
-  open_as_text=False, readonly=False) -> buffer_id
+  open_as_text=False, lock=True) -> buffer_id
+  # lock=True (default): session_open_file + writable buffer.
+  # lock=False: download only; readonly=True forced.
 new(session_key, formatter_name, initial_content, display_name=None) -> buffer_id
 save(session_key, buffer_id, close=False) -> OperationResult
 save_as(session_key, buffer_id, relative_path, overwrite=False, close=False) -> OperationResult
@@ -242,9 +291,24 @@ Registration happens in HooksRegister (G-006) at startup — not at import time.
 
 ### Open rules
 
-- On open: `ca_client.lock_file(ca_session_id, project_id, file_id)` + `download_content(...)`
-  → `{content_bytes, file_id}`. `BUFFER_LOCKED` if held by another CA session.
-- `readonly=True` → no lock acquired, buffer not counted in isolation checks.
+Remote buffer open (`file_open`) — **lock and writability are coupled:**
+
+```
+lock=True  (default for edit intent):
+  session_open_file → buffer.locked=True, buffer.readonly=False
+  Mutations, write, send allowed (subject to session.readonly).
+
+lock=False:
+  download only — NO session_open_file
+  buffer.locked=False, buffer.readonly=True  (forced; not overridable)
+  Local editing allowed: tree mutate, undo/redo, preview, search, clipboard, close.
+  Forbidden only: **write** (export to native session file) and **file_send** (relay to CA)
+  → BUFFER_READONLY on write/send attempts.
+```
+
+Invariant for remote buffers: **`locked=False` ⇔ `readonly=True`**. Writable open
+always acquires CA lock first. `BUFFER_LOCKED` if another CA session holds the file.
+
 - `formatter=auto`: `get_by_extension(ext)`. `open_as_text=True`: always text.
 - Small file (len < threshold): text formatter.
 - Parse error: fallback text, status=format_fallback.
@@ -265,14 +329,22 @@ in `ses_settings.json` (not per buffer). The lock is a server-side cooperative D
 2. Hard-isolate file access between sessions: a file locked by one session is unavailable to
    another (`BUFFER_LOCKED`).
 
-**Acquiring a lock — on remote buffer open:**
+**Acquiring a lock — on remote buffer open (writable path only):**
 
+- Caller requests writable open (`lock=True`, default for edit).
 - Pre-check existing locks via `session_list_file_locks`. If the file is held by a different
   CA session → `BUFFER_LOCKED`, no content is fetched.
 - Otherwise `session_open_file(ca_session_id, project_id, file_id)` acquires the lock (idempotent;
   `acquired=false` if this same session already holds it), then transfer-download fetches content.
 - `file_id` is resolved via `list_project_files`; required for `session_open_file`.
-- `readonly=True` → no lock acquired; the buffer is not counted in isolation checks.
+- On success: `buffer.locked=True`, `buffer.readonly=False`.
+
+**Read-only open (`lock=False`):**
+
+- No `session_open_file`. Download content.
+- `buffer.locked=False`, `buffer.readonly=True` — **mandatory coupling**.
+- All local session operations allowed (tree mutate, git, preview, undo, close).
+- **write** and **file_send** rejected (`BUFFER_READONLY`). No CA upload, no native export.
 
 **Releasing a lock — on save (upload):**
 
@@ -298,14 +370,16 @@ session directory. The CA session itself is never deleted (it outlives the edito
 **Lifecycle summary:**
 
 ```
-open(readonly=False)  → session_open_file(ca_session_id, file_id)   → file locked, buffer.locked=True
-open(readonly=True)   → no lock
-save(close=False)     → transfer_upload_save                       → content written, lock kept
-save(close=True)      → transfer_upload_save → session_close_file   → content written, lock released, buffer removed
-write_all()           → transfer_upload_save                       → lock kept, buffer stays open
-close()               → session_close_file(ca_session_id, file_id) → lock released, local copy + branch removed
-session.close()       → session_close_file for ALL locked files     → then delete entire session dir (git + artifacts)
-startup_sweep         → session_close_file for orphaned ses_settings locks → then delete session dir
+open(lock=True)       → session_open_file + download  → locked=True, readonly=False
+open(lock=False)      → download only                 → locked=False, readonly=True (forced)
+file_write/send       → rejected when buffer.readonly=True (or session.readonly)
+mutate/undo/preview   → allowed when buffer.readonly=True; blocked only by session.readonly
+save(close=False)     → write + optional file_send    → lock kept if locked
+save(close=True)      → write + file_send + close     → lock released, buffer removed
+write_all()           → write per buffer              → lock kept
+close()               → session_close_file if locked  → artifacts removed
+session.close()       → session_close_file for ALL locked files → delete session dir
+startup_sweep         → session_close_file for orphaned locks → delete session dir
 ```
 
 CA session itself (`session_delete`) is **never** touched — it outlives the editor.
@@ -315,18 +389,49 @@ and survive process restart, enabling lock release on startup_sweep even if the 
 acquired the lock has crashed.
 
 
-### save pipeline
+### save pipeline (write / export — NOT send)
+
+Every write/export compares **baseline native** (source at open or last successful
+write) against **candidate native** (Exporter.render from current tree). Write
+proceeds only when there are changes AND caller confirms.
 
 ```
+Baseline: stored at ingest (<buffer_id>.baseline.<ext>).
+Pending:  <buffer_id>.<ext>.pending — temp candidate after preview; deleted on reject.
+
 1. formatter.validate_document(document) → abort on failure
-2. raw_content = formatter.render(document)
-3. ca_client.upload_file(project_id, relative_path, raw_content.encode(),
-   commit_message)  → content written; lock kept (unlock is a separate step)
-4. buffer.modified = False, buffer.saved = True
-5. If buffer was local (relative_path=None): set relative_path from response → now remote.
-6. If close=True: ca_client.unlock_file(ca_session_id, project_id, file_id)
-   → remove buffer from ses_settings.json. Otherwise buffer stays open with lock held.
+2. candidate = formatter.export(document)
+3. diff = compute_export_diff(baseline, candidate)
+4. If diff.identical:
+     return success OK; no temp; no native write; modified=False
+5. Preview (approve not True, no pending yet):
+     write candidate to .pending temp; return diff for model review
+6. approve=True (model agreed):
+     promote .pending → native session file; update baseline; delete .pending; modified=False
+7. approve=False (model rejected):
+     delete .pending if exists; no baseline change; modified unchanged; tree unchanged
+     return success cancelled
 ```
+
+**file_export_diff** — export+diff in memory only; never creates `.pending`.
+
+**file_write** params: `approve: bool | None = None`
+```
+None / omitted  → preview: create .pending + return diff (if has_changes)
+approve=True    → commit pending temp to native file
+approve=False   → reject: delete .pending, no other side effects
+```
+
+**file_send (relay — separate command, no tree/export):**
+```
+Precondition: buffer.modified == False (write must have run).
+1. Read native session file bytes
+2. ca_client.upload_file(...) by file_id (project resolved from file_id)
+3. buffer.saved = True
+4. If unlock=True: session_close_file; may chain to file_close
+```
+
+Legacy `save(close=True)` decomposes to: write (steps 1–4) + optional file_send + file_close.
 
 `validate(buffer_id)` calls `formatter.validate_document` only, no write.
 
@@ -346,11 +451,16 @@ Editor core never parses address content.
 
 Two write paths:
 
-- `write_buf(content, path)` — atomic write, no backup. For `.buf` session files only.
+- `write_tree_file(graph, path)` — atomic write of serialised DocumentGraph to
+  `<buffer_id>.tree` (or `.cst`). After every tree mutation and on ingest.
+- `write_native_session_file(content, path)` — atomic write of exported native
+  bytes to `<buffer_id>.<ext>`. After write/export command only.
 - `write_result(content, path)` — backup + atomic write + read-back verification.
-  For local derived artifacts only (e.g. CST sidecar). NOT for project files.
+  For project-side derived artifacts (e.g. `.tree/<stem>.tree` on save). NOT for
+  session tree file (use write_tree_file).
 
-Project files: written only via `ca_client.upload_file`. Never via write_result.
+Project/CA files: uploaded only via **file_send** relay of native session file.
+Never write project paths directly from mutation path.
 
 ### Config
 
@@ -1071,15 +1181,58 @@ Query examples:
 Owns: `ai_editor/sessions/`, `tests/sessions/`.
 
 A session is a directory on disk. It exists as long as its directory exists.
-No TTL. No auto-deletion.
+No TTL. No auto-deletion. **Sessions do not share files** — see architecture
+section "Session directory isolation".
 
-Session directory layout:
+### Session directory isolation (enforcement)
+
+Every session-layer entry point calls `resolve_session_dir(base_dir, session_key)`:
+```
+1. Reject session_key containing '/', '\\', '..', or empty → SESSION_NOT_FOUND
+2. session_dir = base_dir / session_key; must be existing directory
+3. Load ses_settings.json; settings["session_key"] must equal session_key
+4. Return session_dir
+```
+
+Every buffer operation calls `resolve_buffer(session_dir, buffer_id)`:
+```
+1. Find buffer_id in settings["open_buffers"] for THIS session only
+2. Compute artifact paths as children of session_dir (never absolute external paths)
+3. Missing buffer → BUFFER_NOT_FOUND
+```
+
+`reconnect(session_key)` uses the same resolver; no access to sibling session dirs.
+
+### Session create (`session_connect`) — directory then git
+
+Binding order when a **new** session is created (command `session_connect` /
+API `connect()`):
+
+```
+1. Allocate session_key (UUID4) — this IS the future directory name.
+2. Create session directory: mkdir <sessions_base_dir>/<session_key>/
+3. Write ses_settings.json with session_key field == directory name (same UUID).
+4. Initialize session git INSIDE the directory: init <session_dir>/git/
+   (non-bare repo, empty initial commit on branch master).
+5. Return SessionDescriptor { session_key, open_buffers: [] }.
+```
+
+Rules:
+- Git init runs **after** the session directory exists; never before.
+- Git lives at `<session_dir>/git/` only; not at sessions_base_dir root.
+- Reconnect to existing session: skip mkdir; ensure git exists (lazy repair if missing).
+- `session_key` in every API call must match the directory basename exactly.
+
+### Session directory layout
 ```
 <sessions_base_dir>/<session_key>/
   ses_settings.json       — session attributes and open buffer list
   git/                    — non-bare git repository
-    buf/<buffer_id>       — one branch per open buffer
-  <buffer_id>.<ext>       — buf file (full source, not skeleton)
+    buf/<buffer_id>       — one branch per open buffer (tree snapshots)
+  <buffer_id>.tree        — DocumentGraph + stable_ids (authoritative for edit)
+  <buffer_id>.<ext>            — native session copy (after approved write)
+  <buffer_id>.<ext>.pending    — temp candidate awaiting approve/reject; deleted on reject
+  <buffer_id>.baseline.<ext>   — diff baseline
   clipboard.json          — current clipboard state
 ```
 
@@ -1103,65 +1256,81 @@ Undo/redo implemented via branch commits + `redo_stack` in ses_settings.
 **open (file from CA server):**
 ```
 1. Determine formatter by extension (FormatterRegistry).
-2. ca_client.lock_file(ca_session_id, project_id, file_id); content_bytes, file_id = ca_client.download_content(
-     project_id, relative_path, readonly=False, ca_session_id=ca_session_id)
-   readonly=True: no lock acquired (no session_open_file).
-3. formatter.parse(content) -> document.
-4. write_buf(source_content, buf_file_path).
-5. Git commit on buf/<buffer_id>: "open: <relative_path>".
-6. add_buffer_to_settings: file_type='remote', locked=True, redo_stack=[].
-7. Return buffer_id and render_skeleton(document).
+2. If lock=True (writable): session_open_file + download → locked=True, readonly=False.
+   If lock=False: download only → locked=False, readonly=True (forced).
+   BUFFER_LOCKED if another CA session holds the file (writable path only).
+3. ingest: Reader.parse -> assign_stable_ids ONCE -> DocumentGraph.
+   Store baseline_native from downloaded bytes.
+4. write_tree_file; git commit "open: …"; modified=False.
+5. add_buffer_to_settings: file_type='remote', locked/readonly per step 2, redo_stack=[].
+6. Return buffer_id and PreviewEnvelope.
 ```
 
-**new (unsaved buffer):**
+**new (unsaved buffer / file_create):**
 ```
 1. FormatterRegistry.get_by_name(formatter_name).
 2. No CA download. No file lock.
-3. formatter.parse(initial_content) -> document.
-4. write_buf(source_content, buf_file_path).
-5. Git commit: "new: <display_name>".
-6. add_buffer_to_settings: relative_path=None, file_type='local',
-   readonly=False, modified=True, redo_stack=[].
-7. Return buffer_id and render_skeleton(document).
-```
-
-**mutation (MANDATORY write+commit after every change):**
-```
-1. Readonly check: session.readonly or buffer.readonly -> BUFFER_READONLY.
-2. Execute formatter method.
-3. If unchanged: return, no write, no commit.
-4. write_buf(source_content, buf_file_path).
-5. modified=True, redo_stack=[] written atomically to ses_settings.
-6. Git commit: "<command>: <params_summary>".
-   gitpython failure -> HISTORY_UNAVAILABLE diagnostic, continue.
-   Upload to CA server does NOT happen here.
-```
-
-**save (always explicit — no auto-save):**
-```
-1. formatter.validate_document(document) -> abort on failure.
-2. raw_content = formatter.render(document).
-3. ca_client.upload_content(...) -> content written; lock kept (no auto-unlock).
-4. modified=False, saved=True in ses_settings.
-5. If close=True: ca_client.unlock_file(ca_session_id, project_id, file_id),
-   then remove buffer from ses_settings.json. Otherwise buffer stays open with lock held.
+3. ingest from initial_content -> tree; modified=True (no native session file yet).
+4. write_tree_file; git commit "new: <display_name>".
+5. add_buffer_to_settings: relative_path=None until first file_send, file_type='local'.
+6. Return buffer_id and PreviewEnvelope.
 ```
 
 **reload (remote buffers only):**
 ```
 1. Validate file_type='remote'. Local -> BUFFER_INVALID.
-2. ca_client.download_content(..., readonly=True). No lock (no session_open_file).
-3. formatter.parse(content). Error -> BUFFER_INVALID.
-4. write_buf. Git commit: "reload: <relative_path>".
-5. modified=False, redo_stack=[] in ses_settings.
-6. Return render_skeleton(document).
+2. ca_client.download_content(..., readonly=True). No lock.
+3. Re-ingest: Reader.parse -> assign_stable_ids (reload discards old tree ids policy: preserve where semantically match OR full re-index — implementation in T-002).
+4. write_tree_file; git commit "reload: <relative_path>"; modified=False; redo_stack=[].
+5. Return PreviewEnvelope.
 ```
+
+**mutation (tree file + git commit — native unchanged):**
+```
+1. Readonly check: session.readonly -> SESSION_READONLY.
+   buffer.readonly does NOT block mutations (RO allows local tree edit).
+2. Load tree file -> in-memory graph.
+3. Execute formatter tree mutation.
+4. If unchanged: return, no write, no commit.
+5. write_tree_file(graph).
+6. modified=True, redo_stack=[] written atomically to ses_settings.
+7. Git commit: "<command>: <params_summary>".
+   Native session file NOT updated. CA upload does NOT happen here.
+```
+
+**write / export (tree -> native session file):**
+```
+1. Readonly check: session.readonly or buffer.readonly -> BUFFER_READONLY.
+2. Run save pipeline (preview / approve / reject per approve param).
+3. approve=None: if has_changes write .pending temp, return diff.
+4. approve=True: promote .pending -> .<ext>, update baseline, delete .pending.
+5. approve=False: delete .pending; return cancelled; modified and tree unchanged.
+```
+
+**file_export_diff (preview only — no write):**
+```
+1. Load tree; candidate = formatter.export(document).
+2. diff = compute_export_diff(baseline_native, candidate).
+3. Return ExportDiffResult (unified_diff + structured hunks: added/removed/changed ranges).
+   Allowed in RO. Does not change modified or write files.
+```
+
+**file_send (relay only — after write):**
+```
+Precondition: modified=False.
+1. Readonly check: session.readonly or buffer.readonly -> BUFFER_READONLY.
+2. Read native session file; upload to CA by file_id.
+3. saved=True. Optional unlock + close per params.
+```
+
+**save (deprecated composite):** write + optional file_send + optional close.
+Prefer explicit file_write and file_send commands.
 
 **close:**
 ```
-1. modified=True without force -> error.
-2. formatter.delete(buf_file_path).  # removes buf file + derived artifacts
-3. if locked and not saved: ca_client.unlock_file(ca_session_id, project_id, file_id).
+1. modified=True without force -> FILE_HAS_UNSENT_CHANGES.
+2. Delete <buffer_id>.tree and <buffer_id>.<ext>.
+3. if locked: session_close_file(ca_session_id, project_id, file_id).
 4. Delete branch buf/<buffer_id> from session git.
 5. remove_buffer_from_settings(session_dir, buffer_id).
 ```
@@ -1181,12 +1350,12 @@ Readonly buffers excluded from modified check.
 ```
 undo(session_key, buffer_id, steps=1):
   Walk back commit.parents. Push current SHA to redo_stack.
-  branch.set_commit(target). write_buf. Persist redo_stack.
+  branch.set_commit(target). write_tree_file from commit snapshot. Persist redo_stack.
   UNDO_AT_BEGINNING if no parents.
 
 redo(session_key, buffer_id, steps=1):
   Pop SHA from redo_stack (LIFO). REDO_AT_END if empty.
-  branch.set_commit(target). write_buf. Persist redo_stack.
+  branch.set_commit(target). write_tree_file from commit snapshot. Persist redo_stack.
   redo_stack survives restart (lives in ses_settings.json).
 
 New mutation clears redo_stack atomically.
@@ -1199,9 +1368,9 @@ Session-scoped. Stored in `<session_dir>/clipboard.json` as `{formatter, body}`.
 ```
 copy: copy_fragment -> to_string -> clipboard.json -> git commit.
      Does NOT mutate document. Does NOT set modified=True.
-cut:  cut_fragment -> to_string -> clipboard.json -> write_buf -> commit.
+cut:  cut_fragment -> to_string -> clipboard.json -> write_tree_file -> commit.
      Sets modified=True and redo_stack=[] atomically.
-paste: read clipboard -> check formatter match -> from_string -> paste_fragment -> write_buf -> commit.
+paste: read clipboard -> from_string -> paste_fragment -> write_tree_file -> commit.
       Sets modified=True and redo_stack=[] atomically.
       CLIPBOARD_FORMAT_MISMATCH if formatter differs.
 ```
@@ -1223,15 +1392,13 @@ Cross-session paste not supported. Clipboard deleted with session directory.
 
 ```
 write_all(session_key, force=False) -> WriteAllResult
-For each open buffer where readonly=False:
-  if not modified: skipped.
-  validate_document -> failure: failed_buffers.
-  transfer_upload_save(unlock_after_write=False) -> failure: failed_buffers.
-  success: written_buffers, modified=False.
-  relative_path=None (local, unsaved): skipped silently.
-  File lock NOT released (session_close_file is a separate close step).
-Result: success=True only if all eligible buffers succeeded.
+For each open buffer where readonly=False and modified=True:
+  run write/export (tree -> native session file); modified=False per buffer.
+  Does NOT file_send. Does NOT unlock.
+Result: success=True only if all eligible buffers exported.
 ```
+
+Separate batch send (if needed) is explicit file_send per buffer after write_all.
 
 ### Session public API
 
@@ -1305,8 +1472,9 @@ Do not implement HTTP routes or API handlers manually.
 
 ```
 Session:    session_connect, session_reconnect, session_close, session_status
-File:       file_open, file_close, file_get, file_send, file_create
-Buffer:     buf_new, buf_save_as, buf_reload, buf_get_state, buf_write_all, buf_mutate_batch
+File:       file_open, file_close, file_get, file_send, file_create, file_export_diff
+Buffer:     buf_new, buf_save_as, buf_reload, buf_get_state, buf_write_all, buf_mutate_batch,
+            buf_export_diff
 History:    undo, redo
 Edit:       copy, cut, paste
 Search:     find, find_one, list_units
@@ -1787,6 +1955,445 @@ Updated `pyproject.toml` dependencies (additions only):
 
 `small_file_formatter` config option extended: now accepts `text`, `yaml`, `cst`,
 `markdown`, `xml`, `html` (any registered formatter name).
+
+---
+
+## G-009 — Unified DocumentNode graph and CA-aligned preview envelope
+
+Owns: `ai_editor/formatters/` (refactor), `ai_editor/sessions/` (preview wiring),
+`tests/formatters/`, `tests/sessions/`, `docs/plans/ai_editor/viewer_features.yaml`.
+
+Corrective global step: closes the gap between G-003 design (one Tree, one preview
+protocol) and implementation drift (parallel `TreeNode` graph vs `CSTTree`, string
+`render_skeleton` instead of structured navigation). Does not change session git,
+clipboard, or command registration semantics.
+
+### Formatter three-part architecture
+
+Every formatter backend is exactly three cooperating parts plus a shared base.
+The base class owns the in-memory graph, stable identifiers, structural mutations,
+preview navigation, and sidecar persistence. Subclasses supply conversion only.
+
+```
+Part 1 — Reader (C-076):
+  read(source) -> un-ID'd tree structure
+  Maps raw file bytes/text into DocumentNode subtree(s) without stable_id.
+  Whole-file entry: parse(raw_content). Block entry: node_from_source(raw_block).
+  Reader never assigns stable_id and never performs structural ops.
+
+Part 2 — Classifier (C-073 FormatterClassifier):
+  Per-format node_kind vocabulary and parent-child rules.
+  Reader output is classified: each node gets node_kind from the registry.
+  Python: libcst type names. JSON: root, object, objectProp, array, primitive.
+  YAML: mapping, sequence, scalar, mappingItem. Text: document, paragraph, line.
+  Classifier validates that children match allowed kinds for the parent kind.
+
+Part 3 — Exporter (C-078):
+  export(tree) -> native source bytes
+  Maps DocumentGraph back to native file format. Called only on explicit export
+  (write / write_all) — NOT on every edit mutation; NOT on file_send.
+  Whole-file: render(tree). Block: node_to_source(node).
+  Output never contains stable_id markers.
+```
+
+AbstractFormatter orchestration:
+```
+ingest(raw_native):
+  nodes = Reader.parse(raw_native)
+  Classifier.validate_and_tag(nodes)
+  graph = base.assign_stable_ids(nodes)   # ONCE per open/reload
+  write_tree_file(graph)
+  return graph
+
+mutate(graph, op):
+  graph = base.apply_op(graph, op)
+  write_tree_file(graph)                  # every change; ids in tree file
+  return graph
+
+export(graph):                            # write command only
+  raw = Exporter.render(graph)            # no stable_id markers
+  write_native_session_file(raw)          # <buffer_id>.<ext>
+  modified = False
+  # file_send relays this file separately; does not call export
+```
+
+Subclass implements Reader + Classifier hooks + Exporter hooks only.
+Base never parses syntax; subclass never insert/delete/move or assign stable_id.
+
+### Tree file — session working copy (binding)
+
+Native project file and session tree file are **different artifacts** with
+different roles. stable_id markers live in the **tree file on disk**, never in
+committed native source.
+
+```
+Lifecycle:
+
+1. INGEST (once per open/reload):
+   native_bytes = read project or CA download
+   graph = Reader.parse(native_bytes) -> Classifier -> assign_stable_ids ONCE
+   write_tree_file(session_dir/<buffer_id>.tree, graph)   # ids persisted here
+   git commit "open: ..."                                  # snapshot for undo
+
+2. EDIT (all subsequent operations):
+   graph = load_tree_file(session_dir/<buffer_id>.tree)   # ids restored from disk
+   graph = mutate(graph, ...)                              # in-memory only
+   write_tree_file(session_dir/<buffer_id>.tree, graph)   # after EVERY change
+   git commit "<op>: ..."                                    # undo/redo via session git
+   # Native format is NOT written here. Exporter is NOT called here.
+
+3. EXPORT (explicit **write** / `write_all` only — NOT send, NOT mutate):
+   native_bytes = Exporter.render(graph)
+   validate -> write native session file (<buffer_id>.<ext> in session dir)
+   modified=False
+   # Project/CA upload is a separate **send** step.
+```
+
+Invariants:
+- stable_id assigned **once** at first ingest indexing; stored in tree file body.
+- Tree file is **source of truth** for editing after first ingest; native file
+  is read once, written only on export.
+- Every tree or node-data mutation → `write_tree_file` + git commit (unchanged
+  count → skip both).
+- Undo/redo: git branch `buf/<buffer_id>` + redo_stack; restores tree file
+  snapshot from commit, not re-parse from native source.
+- Native source never contains stable_id markers (no `# @node-id`, no embedded
+  UUID blocks in `.py`, `.json`, etc.).
+
+Tree file format (all formatters, unified protocol):
+```
+TREE_V1 fmt=<formatter_name> sha256=<native_sha_at_last_export_or_ingest> tree_sha256=<body>
+<JSON or format-specific serialisation of DocumentGraph including stable_id per node>
+```
+Python may use `.cst` extension and `CST_TREE_V1` header variant; same semantics.
+
+Session `.buf` file (if retained): holds **last exported native snapshot** for
+CA diff/display only, OR is removed in favour of tree-only session storage —
+implementation choice in T-002/T-008. Editing mutations do **not** require
+re-exporting native content to `.buf`.
+
+### Structural insert protocol (base class, all formats)
+
+Uniform address model: `stable_id` (UUID4). Insert target: parent stable_id +
+position token:
+
+```
+position:
+  "first"              — first child
+  "last"               — last child (default)
+  "before:<stable_id>" — immediately before sibling
+  "after:<stable_id>"  — immediately after sibling
+  <0-based integer>    — explicit sibling index
+
+content: raw block source; base calls Reader.node_from_source(content),
+         Classifier tags kind, base links under parent at position.
+```
+
+Same position vocabulary for `paste_fragment`. `replace_node` preserves the
+target node's stable_id; only body/subtree content changes via Exporter/Reader
+block conversion.
+
+### stable_id — static identity in tree file (base class)
+
+**Invariant:** stable_id is assigned once at first ingest indexing and never
+reassigned. IDs are persisted **in the tree file on disk** and in-memory
+DocumentNode. They do **not** appear in native source on disk.
+
+Persistence model (primary):
+```
+ingest  -> assign_stable_ids -> write_tree_file (ids in tree body)
+mutate  -> update graph      -> write_tree_file (same ids preserved where identity preserved)
+export  -> Exporter.render   -> native bytes WITHOUT id markers
+```
+
+Survival through in-memory mutation (secondary, CST and similar):
+
+When a backend must re-parse a **temporary** native string inside one operation
+(e.g. libcst string round-trip), **StableIdTransfer** (C-079) may embed ids into
+that transient string, mutate, then reconcile back into the graph before
+`write_tree_file`. This is an in-memory implementation aid only:
+```
+(a) embed:  read stable_id from graph -> inject into transient parse string
+(b) mutate: backend operates on transient string
+(c) extract: reconcile ids into graph; transient string discarded
+```
+Transient Python markers: `# @node-id: <uuid4>`. Never written to tree file as
+source text substitution; never written to native export. Tree file stores ids
+in its serialised node map directly.
+
+Object-identity reuse (when parser returns same object references without
+re-parse string): snapshot metadata_map -> mutate -> re-index -> inherit stable_id.
+
+Structural delete removes node and descendants from graph and tree file map.
+Insert creates new nodes with new UUID4 only. Move/reparent preserves stable_id.
+replace_node preserves target stable_id; only subtree content changes.
+
+### Design intent
+
+Every supported format is a **typed node graph**, not a format-specific second
+document model. Python CST is one **node_kind vocabulary** among several; libcst
+is the parse/render backend for `.py`, not a separate structural paradigm.
+
+AbstractFormatter owns exactly one in-memory **DocumentGraph** (C-074) whose nodes
+are **DocumentNode** (C-070). Subclasses implement **Reader** (C-076), **Classifier**
+(C-073), and **Exporter** (C-078) hooks; they populate DocumentNode trees with
+format-specific `node_kind` values from **FormatterClassifier** registry.
+
+### DocumentNode
+
+Single node type for all formats. Replaces the split where generic buffers used
+`TreeNode` while Python buffers loaded `CSTTree`.
+
+```
+DocumentNode:
+  stable_id     str UUID4          — address for mutations and drilldown (base-assigned)
+  node_ref      str                — stable navigation key exposed in preview (UUID or path slug)
+  node_kind     str                — format-registered kind (see FormatNodeKindRegistry)
+  type          str                — coarse class: module | mapping | sequence | scalar | block | line | ...
+  start_line    int 1-based inclusive
+  end_line      int 1-based inclusive
+  display_text  str                — one-line summary for blocks list
+  metadata      dict               — format-specific attrs (name, key, docstring, json_pointer, ...)
+  children      list[DocumentNode] — eager or lazy-loaded; same type recursively
+  source_span   optional byte/line span for render round-trip
+```
+
+Invariants (base class enforced):
+- Every node has unique `stable_id`; assigned once at ingest, persisted in tree file.
+- `node_ref` stable across `replace_node`; delete drops ids from tree file map.
+- Subclasses never assign stable_id or perform structural ops.
+- Edit mutations persist tree file + git commit; Exporter not invoked.
+- Native source never contains stable_id markers.
+
+### FormatterClassifier (node_kind registry)
+
+Per-format catalog of allowed `node_kind` values and parent-child rules (Part 2).
+
+```
+Python (.py):  Module, FunctionDef, ClassDef, If, For, While, Try, With,
+               SimpleStatementLine, Import, Assign, AnnAssign, ... (libcst type names)
+JSON (.json):  root, object, objectProp, array, primitive
+YAML (.yaml):  mapping, sequence, scalar, mappingItem (key+value pair node)
+Text (.txt):   document, paragraph, line
+Markdown (.md): document, heading, paragraph, code_block, list, list_item, ...
+```
+
+JSON **objectProp** is mandatory: each object key is a node whose children are
+key scalar + value subtree (not key embedded only in metadata).
+
+Sidecar / tree file serialisation stores full DocumentGraph including stable_id
+map. CST `.cst` path is Python extension variant of the same tree-file protocol.
+
+`ingest` / buffer open: Reader.parse → assign_stable_ids once → write_tree_file.
+Forbidden: open empty stub tree then fork parallel CSTTree on first mutate.
+Forbidden: call Exporter on every mutation (native re-export is export-only).
+
+### PreviewEnvelope (replaces string-only model API preview)
+
+Model-facing preview is a structured envelope aligned 1:1 with code-analysis-server
+`universal_file_preview` semantics (focus + blocks + drilldown). Internal
+`render_skeleton(...) -> str` may remain as a debug/legacy helper but **must not**
+be the sole preview returned by buffer/session commands.
+
+```
+PreviewEnvelope:
+  focus:
+    text          str    — annotated source for the current view (line UUIDs, JSON pointer
+                           prefixes, or MD slug markers as appropriate)
+    node_ref      str | null — ref of the focused node; null at file root
+    start_line    int
+    end_line      int
+    total_lines   int
+  blocks:
+    - node_ref    str
+      node_kind   str
+      display_text str
+      start_line  int
+      end_line    int
+      child_count int | null
+  navigation:
+    drilldown_param   str   — parameter name accepted by preview command ("node_ref")
+    collapsed         bool  — true when children omitted due to size policy
+    total_blocks      int
+  format_meta:
+    formatter_name    str
+    format_group      str
+```
+
+**PreviewNavigator** (C-072) implements collapse policy and drilldown:
+- Small file: full annotated `focus.text` + complete `blocks` list.
+- Large file at root: `focus.text` may be omitted or truncated; `blocks` carries
+  top-level summaries only; model drills via `node_ref`.
+- Drilldown request with `node_ref` returns a new PreviewEnvelope scoped to that
+  subtree (same shape, narrower focus).
+- NQ-008 (no-self-content-child): when focus node has children, `blocks` lists
+  children only; scalar leaf returns `total_blocks=0`, `blocks=[]`.
+
+Parity target: for the same file bytes and `node_ref`, ai_editor PreviewEnvelope
+field semantics match code-analysis `universal_file_preview` (C-075 CAPreviewParity).
+Live cross-check reference: `code_analysis` project
+`docs/plans/ai_editor/viewer_features.yaml` sections `/feature_gaps`, `/preview_envelope`.
+
+Per-format preview behaviour (binding):
+- **Python**: line-annotated `focus.text` with `[uuid]` prefixes; top-level
+  `FunctionDef`/`ClassDef` in `blocks`; drilldown by stable UUID.
+- **JSON**: JSON Pointer prefixes `[/path]` in text; large root may expose full
+  text; drilldown e.g. `/server` returns annotated subtree.
+- **YAML**: large root returns `blocks` summaries only; drilldown yields annotated
+  subtree; small files may return full annotated text.
+- **Markdown**: small files — annotated lines + block list; large files — section
+  slug tree; `node_ref` is uuid5 or slug path.
+- **Text / InvalidOnOpen**: `windowed_preview(offset, limit)` unchanged; PreviewEnvelope
+  wraps sliding window in `focus.text` with line numbers.
+
+### AbstractFormatter preview contract (updated)
+
+```
+build_preview(document, node_ref=None, options=None) -> PreviewEnvelope
+get_unit(document, address) -> FormatterUnit   # address = stable_id; unchanged
+```
+
+`build_preview` replaces `render_skeleton` as the command-layer entry point.
+`BufferState.preview`, `file_open` return value, and `buf_get_state.preview` field
+carry PreviewEnvelope (serialised dict), not a bare string.
+
+`ingest` / buffer load: load tree file → in-memory DocumentGraph. On first open
+from native: Reader.parse → assign_stable_ids once → write_tree_file.
+Forbidden: parallel CSTTree fork. Native export on **write** only; send is relay.
+
+### Buffer command semantics (write / send / close / mutate)
+
+G-009 defines authoritative semantics for the tree-era buffer model. Supersedes
+G-005 buffer lifecycle steps where they conflate mutation, export, and relay.
+
+**Session artifacts per open buffer:**
+
+```
+  <buffer_id>.tree        — DocumentGraph + stable_ids (authoritative for edit)
+  <buffer_id>.<ext>            — native session copy (after approved write)
+  <buffer_id>.<ext>.pending    — temp export awaiting model approve/reject
+  <buffer_id>.baseline.<ext>   — diff baseline
+  git branch buf/<buffer_id> — undo/redo snapshots of tree file commits
+```
+
+**modified flag:**
+
+```
+False — after ingest (tree written, no edits yet) OR after write/export (native file current)
+True  — after any tree mutation; native session file stale or absent
+```
+
+**Four command classes:**
+
+| Command class | API examples | Operates on | Persists | modified |
+|---------------|--------------|-------------|----------|----------|
+| **Tree mutate** | buf_mutate_batch, copy, cut, paste, undo, redo | in-memory tree | tree file + git commit | → True |
+| **Write (export)** | file_write, buf_write_all | tree → native | diff gate + confirm; skip if identical | → False |
+| **Export diff** | file_export_diff, buf_export_diff | tree vs baseline | preview only; no write | unchanged |
+| **Send (relay)** | file_send | native session file only | CA upload | unchanged |
+| **Close** | file_close | session artifacts | deletes tree + native | n/a |
+
+**Send never touches the tree.** Send never exports. Preconditions for send:
+`modified=False` (write/export must have run first). Send uploads the native
+session file to CA by `file_id` (project resolved from file_id). Optional
+`unlock=True` releases CA lock after successful upload.
+
+**Close** deletes `<buffer_id>.tree`, `<buffer_id>.<ext>`, git branch, buffer
+entry. If buffer is CA-locked → `session_close_file` (unlock). Close after
+edit without send is allowed with `force=True` or when `modified=False`; with
+`modified=True` and `force=False` → `FILE_HAS_UNSENT_CHANGES`.
+
+#### Existing file in project (remote open)
+
+```
+ 1. file_open(lock=True|False):
+      lock=True  → session_open_file + download; locked=True, readonly=False
+      lock=False → download only; locked=False, readonly=True (no lock ⇒ RO)
+ 2. ingest: Reader.parse → assign_stable_ids ONCE
+ 3. write_tree_file; git commit "open: …"; modified=False
+ 4. [edit loop — allowed in RO and RW]
+    4a. tree mutate (write_tree_file + git commit; modified=True)
+ 5. file_write(approve=None): diff + .pending temp if has_changes
+    file_write(approve=True): promote .pending → native; modified=False
+    file_write(approve=False): delete .pending; nothing else changes
+ 6. file_send: relay native file — **RW only**
+ 7. file_close: delete tree + native; unlock if locked
+```
+
+RO open (`lock=False`): steps 5–6 forbidden. Step 4 and 7 allowed. Close freely even if modified.
+
+#### New file (not yet in project)
+
+```
+ 1. file_create / buf_new: tree from initial_content; modified=True (no native yet)
+ 2. file_write: export tree → native session file; modified=False
+ 3. file_send(project_id, relative_path, file_id after create?, lock?=flag):
+      upload to CA; optionally session_open_file (lock)
+    - if lock requested: buffer stays open, locked=True
+    - if lock NOT requested: file_close immediately (delete tree + native; no unlock needed)
+```
+
+Send for new files uses `project_id` + project-relative `file_path`. CA returns
+`file_id` stored on buffer for subsequent send/close/unlock.
+
+#### Close without send (edited remote file)
+
+```
+file_close(force=False): modified=True → FILE_HAS_UNSENT_CHANGES
+file_close(force=True):  delete tree + native session file; session_close_file if locked
+```
+
+Readonly buffers: close freely; no lock; tree + native removed.
+
+### Export diff before write (binding)
+
+Any **write/export** and the standalone diff command share one comparison:
+
+```
+baseline_native  — bytes at file_open ingest (CA download) or after last confirmed write
+candidate_native — Exporter.render(current tree)
+
+ExportDiffResult:
+  identical          bool   — true when baseline == candidate (no write needed)
+  has_changes        bool
+  unified_diff       str    — unified diff text for model display
+  hunks              list   — structured [{op, start_line, end_line, lines_added, lines_removed, preview}]
+  baseline_sha256    str
+  candidate_sha256   str
+  baseline_line_count int
+  candidate_line_count int
+```
+
+Rules:
+- **identical** → no `.pending` created; return OK; `modified=False`.
+- **preview** (`approve=None`, has_changes) → write `.pending` temp; return diff.
+- **approve=True** → promote `.pending` to native file; update baseline; delete temp.
+- **approve=False** (model rejected) → **delete `.pending` temp**; baseline, tree,
+  `modified`, native session file unchanged; return `success=True, cancelled`.
+- **file_export_diff** — in-memory diff only; never creates `.pending`.
+- Diff callable in RO mode (preview only; cannot approve).
+- `write_all` applies same gate per buffer (batch `approve` param).
+
+Ingest stores baseline: copy downloaded bytes to `<buffer_id>.baseline.<ext>` at open.
+New buffer: baseline empty or equals `initial_content` until first write updates it.
+
+### Migration constraints
+
+- Refactor in place under `ai_editor/formatters/`; no new parallel `cst/` document
+  class hierarchy alongside DocumentGraph.
+- Existing stable_id sidecar JSON remains valid; loader migrates records to
+  DocumentNode without changing UUIDs.
+- Command schemas updated: `preview` property type becomes object (PreviewEnvelope),
+  not string; metadata documents drilldown worked example per format.
+- G-008 extended formatters (Markdown, XML, HTML) consume DocumentNode kinds when
+  implemented; G-009 does not implement G-008 backends but defines the node model
+  they must use.
+
+### viewer_features.yaml (ai_editor plan)
+
+Project-local tracker for preview parity gaps and CA cross-checks. Updated as
+G-009 implementation progresses. Binding for G-009 coverage; references CA live
+file for upstream gaps (elif/else drilldown, etc.).
 
 ---
 

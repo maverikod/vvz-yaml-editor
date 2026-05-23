@@ -101,7 +101,11 @@ def cut_to_clipboard(
     )
     try:
         commit_buffer(
-            repo, buffer_id, buf_path, f"clipboard: cut {source_address}"
+            repo,
+            buffer_id,
+            buf_path,
+            f"clipboard: cut {source_address}",
+            session_dir=session_dir,
         )
     except Exception as exc:
         pass
@@ -160,6 +164,7 @@ def paste_from_clipboard(
             buffer_id,
             buf_path,
             f"clipboard: paste {mode} {target_address}",
+            session_dir=session_dir,
         )
     except Exception as exc:
         diagnostics.append(history_diagnostic(exc))

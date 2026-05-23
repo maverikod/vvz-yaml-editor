@@ -1,0 +1,27 @@
+step_id: T-007
+parent_global_step: G-009
+name: Text and Markdown DocumentNode preview
+status: draft
+description: >
+  Refactor TextFormatter to document/paragraph/line DocumentNode kinds; windowed_preview
+  wraps into PreviewEnvelope focus. Markdown formatter (when present) uses heading,
+  paragraph, code_block, list kinds with slug or uuid5 node_ref drilldown. InvalidOnOpen
+  text fallback returns PreviewEnvelope with line-numbered focus window.
+concepts:
+- C-070
+- C-073
+- C-025
+- C-069
+inputs:
+- name: T-003 build_preview
+  type: tactical_dependency
+  description: Envelope shape for text/md navigation.
+outputs:
+- name: ai_editor/formatters/text/
+  type: directory
+  description: DocumentNode paragraph/line model.
+- name: ai_editor/formatters/markdown/
+  type: directory
+  description: DocumentNode section tree when G-008 markdown backend exists.
+atomic_steps: []
+cascade_note: draft 2026-05-23; markdown path optional until G-008

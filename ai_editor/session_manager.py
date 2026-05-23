@@ -38,16 +38,31 @@ class SessionManager:
         base_dir: str,
         ca_client: CodeAnalysisClient,
         formatter_registry: FormatterRegistry,
+        *,
+        editor_server_uuid: str = "",
     ) -> None:
         self.base_dir = base_dir
         self.ca_client = ca_client
         self.formatter_registry = formatter_registry
+        self.editor_server_uuid = str(editor_server_uuid or "").strip()
         self.repo_map: dict[str, git.Repo] = {}
         self._buffer_cache: dict[str, tuple[Any, Any]] = {}
         self._search = Search(self._get_buffer_context)
 
     def _repo(self, buffer_id: str) -> git.Repo | None:
         return self.repo_map.get(buffer_id)
+
+    def _ensure_repo(self, session_key: str, buffer_id: str) -> git.Repo:
+        """Return git repo for buffer, loading from session dir when not cached."""
+        cached = self.repo_map.get(buffer_id)
+        if cached is not None:
+            return cached
+        from ai_editor.sessions.buffer_api import _repo_for_buffer
+
+        session_dir = Path(self.base_dir) / session_key
+        if not session_dir.is_dir():
+            raise ValueError("session not found")
+        return _repo_for_buffer(session_dir, buffer_id, self.repo_map)
 
     def _get_buffer_context(self, session_key: str, buffer_id: str) -> dict[str, Any] | None:
         cache_key = f"{session_key}:{buffer_id}"
@@ -77,11 +92,27 @@ class SessionManager:
     def _invalidate_buffer_cache(self, session_key: str, buffer_id: str) -> None:
         self._buffer_cache.pop(f"{session_key}:{buffer_id}", None)
 
-    def connect(self, readonly: bool = False) -> Any:
-        from ai_editor.sessions import session_api
+    def connect(self, readonly: bool = False, ca_session_id: str = "") -> Any:
+        from code_analysis_client import SessionNotFoundError
 
-        ca_session_id = self.ca_client.create_session("ai_editor session")
-        config = {"ca_session_id": ca_session_id}
+        from ai_editor.contracts import ErrorCode
+        from ai_editor.sessions import session_api
+        from ai_editor.sessions.ca_session import verify_parent_ca_session
+
+        ca_session_id = str(ca_session_id or "").strip()
+        if not ca_session_id:
+            raise ValueError(ErrorCode.SESSION_NOT_FOUND.value)
+        try:
+            verify_parent_ca_session(self.ca_client, ca_session_id)
+        except ValueError:
+            raise
+        except SessionNotFoundError as exc:
+            raise ValueError(ErrorCode.SESSION_NOT_FOUND.value) from exc
+
+        config = {
+            "ca_session_id": ca_session_id,
+            "editor_server_uuid": self.editor_server_uuid,
+        }
         return session_api.connect(
             self.base_dir,
             self.ca_client,
@@ -95,11 +126,48 @@ class SessionManager:
 
         return session_api.reconnect(self.base_dir, session_key, self.ca_client)
 
+    def _evict_session_state(self, session_key: str) -> None:
+        """Drop cached formatter state and git handles for a closed session."""
+        prefix = f"{session_key}:"
+        for key in list(self._buffer_cache):
+            if key.startswith(prefix):
+                self._buffer_cache.pop(key, None)
+        session_git = (Path(self.base_dir) / session_key / "git").resolve()
+        for key, repo in list(self.repo_map.items()):
+            try:
+                if Path(repo.git_dir).resolve() == session_git:
+                    self.repo_map.pop(key, None)
+            except Exception:
+                continue
+
     def close_session(self, session_key: str, force: bool = False) -> Any:
         from ai_editor.sessions import session_api
 
-        return session_api.close_session_api(
+        result = session_api.close_session_api(
             self.base_dir, session_key, self.ca_client, force=force
+        )
+        session_gone = not (Path(self.base_dir) / session_key).exists()
+        if session_gone:
+            self._evict_session_state(session_key)
+        return result
+
+    def close_invalid_sessions(
+        self,
+        session_key: str,
+        *,
+        mode: str = "local_only",
+        force: bool = False,
+        dry_run: bool = False,
+    ) -> Any:
+        from ai_editor.sessions.invalid_session import close_invalid_sessions
+
+        return close_invalid_sessions(
+            self.base_dir,
+            self.ca_client,
+            session_key=session_key,
+            mode=mode,  # type: ignore[arg-type]
+            force=force,
+            dry_run=dry_run,
         )
 
     def session_status(self, session_key: str) -> Any:
@@ -162,7 +230,15 @@ class SessionManager:
             repo_map=self.repo_map,
         )
 
-    def save_buffer(self, session_key: str, buffer_id: str) -> Any:
+    def save_buffer(
+        self,
+        session_key: str,
+        buffer_id: str,
+        *,
+        project_id: str | None = None,
+        file_path: str | None = None,
+        release_lock: bool = False,
+    ) -> Any:
         from ai_editor.sessions import buffer_api
 
         return buffer_api.save_buffer(
@@ -170,7 +246,10 @@ class SessionManager:
             session_key,
             buffer_id,
             self.ca_client,
-            repo=self._repo(buffer_id),
+            repo=self._ensure_repo(session_key, buffer_id),
+            project_id=project_id,
+            file_path=file_path,
+            release_lock=release_lock,
         )
 
     def save_as_buffer(
@@ -189,7 +268,7 @@ class SessionManager:
             self.ca_client,
             new_relative_path,
             overwrite=overwrite,
-            repo=self._repo(buffer_id),
+            repo=self._ensure_repo(session_key, buffer_id),
         )
 
     def reload_buffer(self, session_key: str, buffer_id: str) -> Any:
@@ -201,7 +280,7 @@ class SessionManager:
             buffer_id,
             self.ca_client,
             self.formatter_registry,
-            repo=self._repo(buffer_id),
+            repo=self._ensure_repo(session_key, buffer_id),
         )
 
     def get_buffer_state(self, session_key: str, buffer_id: str) -> Any:
@@ -239,6 +318,22 @@ class SessionManager:
             tree=ctx["tree"],
             formatter_name=ctx["formatter_name"],
             success=True,
+        )
+
+    def get_buffer_file(
+        self,
+        session_key: str,
+        buffer_id: str,
+        *,
+        lock: bool = True,
+    ) -> Any:
+        from ai_editor.sessions import buffer_api
+
+        return buffer_api.get_buffer_file_content(
+            self.base_dir,
+            session_key,
+            buffer_id,
+            lock=lock,
         )
 
     def write_all(self, session_key: str, force: bool = False) -> Any:
@@ -293,11 +388,13 @@ class SessionManager:
             return OperationResult(success=False, message="buffer not found")
         formatter = ctx["formatter"]
         document = ctx["tree"]
+        from ai_editor.sessions.buffer_mutation import _source_text, execute_mutation
+
+        source_before = _source_text(formatter, document)
         try:
             new_document = formatter.mutate_batch(document, operations)
         except Exception as exc:  # noqa: BLE001
             return OperationResult(success=False, message=str(exc))
-        from ai_editor.sessions.buffer_mutation import execute_mutation
         from ai_editor.sessions.session_dir import read_session_settings
 
         session_dir = Path(self.base_dir) / session_key
@@ -316,9 +413,10 @@ class SessionManager:
             new_document,
             "mutate_batch",
             f"{len(operations)} ops",
-            self._repo(buffer_id),
+            self._ensure_repo(session_key, buffer_id),
             readonly_session=readonly_session,
             readonly_buffer=readonly_buffer,
+            source_before=source_before,
         )
         if not result.get("success", True):
             return OperationResult(success=False, message=result.get("message", "mutation failed"))
@@ -336,7 +434,7 @@ class SessionManager:
             Path(self.base_dir) / session_key,
             buffer_id,
             ctx["formatter"],
-            self._repo(buffer_id),
+            self._ensure_repo(session_key, buffer_id),
             steps=steps,
         )
 
@@ -350,7 +448,7 @@ class SessionManager:
             Path(self.base_dir) / session_key,
             buffer_id,
             ctx["formatter"],
-            self._repo(buffer_id),
+            self._ensure_repo(session_key, buffer_id),
             steps=steps,
         )
 
@@ -370,7 +468,7 @@ class SessionManager:
             buffer_id,
             address,
             self.formatter_registry,
-            repo=self._repo(buffer_id),
+            repo=self._ensure_repo(session_key, buffer_id),
         )
 
     def paste_fragment(
@@ -385,7 +483,7 @@ class SessionManager:
             address,
             mode,
             self.formatter_registry,
-            repo=self._repo(buffer_id),
+            repo=self._ensure_repo(session_key, buffer_id),
         )
 
     def find(
@@ -415,9 +513,30 @@ class SessionManager:
         self, buffer_id: str | None = None, formatter: str | None = None
     ) -> Any:
         if formatter:
-            fmt = self.formatter_registry.get(formatter)
+            cls = self.formatter_registry.get_by_name(formatter)
+            if cls is None:
+                from ai_editor.contracts import ErrorCode, OperationResult
+
+                return OperationResult(
+                    success=False,
+                    error_code=ErrorCode.FORMATTER_NOT_FOUND,
+                    message=formatter,
+                )
+            fmt = cls()
         elif buffer_id:
             raise ValueError("formatter required when buffer_id omitted in this stub")
         else:
-            fmt = self.formatter_registry.get("text")
-        return {"commands": fmt.list_commands()}
+            cls = self.formatter_registry.get_by_name("text")
+            fmt = cls() if cls is not None else None
+        if fmt is None:
+            from ai_editor.contracts import ErrorCode, OperationResult
+
+            return OperationResult(
+                success=False,
+                error_code=ErrorCode.FORMATTER_NOT_FOUND,
+                message="text",
+            )
+        catalog = fmt.list_commands()
+        from dataclasses import asdict
+
+        return {"success": True, "commands": asdict(catalog)}

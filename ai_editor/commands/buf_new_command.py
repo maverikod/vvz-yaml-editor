@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.buf_new_metadata import get_buf_new_metadata
 from ai_editor.commands.buf_new_schema import get_buf_new_schema
 from ai_editor import api
 
 
-class BufNewCommand(Command):
+class BufNewCommand(EditorSessionCommand):
     """MCP command: buf_new."""
 
     name = "buf_new"

@@ -14,8 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from code_analysis_client import CodeAnalysisAsyncClient
-from code_analysis_client.exceptions import ClientValidationError
-from code_analysis_client.file_session import _unwrap as unwrap_command_response
+from code_analysis_client.responses import unwrap_command_result
 
 
 class _AsyncRunner:
@@ -113,9 +112,57 @@ class CodeAnalysisClient:
         """Delete a CA client session."""
         return self._run(self._fs.delete_session(session_id, force=force))
 
+    def assert_session_exists(self, ca_session_id: str) -> None:
+        """Verify the CA session is registered on the analysis server."""
+        self._run(self._fs.assert_session_exists(ca_session_id))
+
+    def create_subordinate_session(
+        self,
+        parent_session_id: str,
+        comment: str,
+        *,
+        server_uuid: str | None = None,
+    ) -> dict[str, Any]:
+        """Register parent session on a subordinate server (subordinate_session_create)."""
+        return self._run(
+            self._fs.create_subordinate_session(
+                parent_session_id,
+                comment,
+                server_uuid=server_uuid,
+            )
+        )
+
+    def delete_subordinate_session(
+        self,
+        parent_session_id: str,
+        server_uuid: str,
+    ) -> dict[str, Any]:
+        """Remove subordinate server link (subordinate_session_delete)."""
+        return self._run(
+            self._fs.delete_subordinate_session(
+                parent_session_id,
+                server_uuid,
+            )
+        )
+
     # ------------------------------------------------------------------
     # File content I/O
     # ------------------------------------------------------------------
+
+    def resolve_file_id(self, project_id: str, relative_path: str) -> str:
+        """Resolve indexed ``files.id`` from project_id and project-relative path."""
+        norm = str(relative_path or "").strip().replace("\\", "/")
+        if not norm:
+            raise ValueError("relative_path is required")
+        for row in self.list_project_files(project_id):
+            rel = str(row.get("relative_path") or row.get("path") or "").replace(
+                "\\", "/"
+            )
+            if rel == norm:
+                fid = row.get("file_id") or row.get("id")
+                if fid:
+                    return str(fid)
+        raise ValueError(f"file not indexed: {relative_path}")
 
     def download_content(
         self,
@@ -124,42 +171,38 @@ class CodeAnalysisClient:
         readonly: bool = False,
         *,
         ca_session_id: str,
-    ) -> tuple[bytes, str | None]:
+    ) -> tuple[bytes, str]:
         """Download file content via transfer protocol.
 
-        When ``readonly`` is False, an advisory lock is acquired during download
-        (``lock_mode=full``). The caller must not call :meth:`lock_file` again
-        for the same open flow.
+        When ``readonly`` is False, an advisory lock is acquired during download.
+        The caller must not call :meth:`lock_file` again for the same open flow.
 
         Args:
             project_id: UUID of the project.
             file_path: Project-relative path to the file.
             readonly: If True, download without acquiring a lock.
-            ca_session_id: Registered CA session id (from :meth:`create_session`).
+            ca_session_id: Registered CA session id holding locks/transfers.
 
         Returns:
-            Tuple of (content_bytes, file_id). file_id may be None if the server
-            omits it; resolve via :meth:`list_project_files` when needed.
+            Tuple of (content_bytes, file_id).
         """
         if not ca_session_id:
             raise ValueError("ca_session_id is required for download_content")
 
-        async def _download() -> tuple[bytes, str | None]:
+        file_id = self.resolve_file_id(project_id, file_path)
+
+        async def _download() -> tuple[bytes, str]:
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 dest = tmp.name
             try:
-                begin, _receipt = await self._fs.download_file_locked(
+                begin, _receipt = await self._fs.download(
                     ca_session_id,
                     dest,
-                    project_id=project_id,
-                    file_path=file_path,
-                    lock_mode="none" if readonly else "full",
+                    file_id,
+                    lock=not readonly,
                 )
                 content = Path(dest).read_bytes()
-                file_id = begin.get("file_id")
-                if file_id is not None:
-                    file_id = str(file_id)
-                return content, file_id
+                return content, str(begin["file_id"])
             finally:
                 Path(dest).unlink(missing_ok=True)
 
@@ -173,35 +216,60 @@ class CodeAnalysisClient:
         *,
         ca_session_id: str,
         file_path: str | None = None,
-    ) -> None:
-        """Upload file content without releasing the file lock.
+        unlock: bool = False,
+    ) -> str:
+        """Upload file content; optionally release the file lock on CA.
+
+        Uses ``upload_new`` for new paths (``file_id`` is None) and ``upload`` for
+        existing indexed files.
 
         Args:
             project_id: UUID of the project.
-            file_id: UUID of the file on the CA server, or None when unknown.
+            file_id: UUID of the file on the CA server, or None for new files.
             content: Raw bytes to write.
             ca_session_id: Registered CA session id holding the lock.
             file_path: Project-relative path; required when file_id is None.
+            unlock: When True, pass unlock_after_write=True to CA (release lock).
+
+        Returns:
+            CA ``files.id`` from the save payload.
         """
+        from ai_editor.sessions.project_paths import normalize_project_relative_path
+
         if not ca_session_id:
             raise ValueError("ca_session_id is required for upload_content")
-        if file_id is None and not file_path:
+
+        fid = str(file_id or "").strip() or None
+        norm_path: str | None = None
+        if file_path:
+            norm_path = normalize_project_relative_path(file_path)
+        if fid is None and not norm_path:
             raise ValueError("file_path is required when file_id is None")
 
-        filename = Path(file_path).name if file_path else "payload.bin"
+        filename = Path(norm_path).name if norm_path else "payload.bin"
 
-        async def _upload() -> None:
-            await self._fs.upload_file_and_unlock(
+        async def _upload() -> str:
+            if fid is None:
+                assert norm_path is not None
+                return await self._fs.upload_new(
+                    ca_session_id,
+                    content,
+                    project_id,
+                    norm_path,
+                    filename=filename,
+                    unlock=unlock,
+                )
+            saved = await self._fs.upload(
                 ca_session_id,
                 content,
-                project_id=project_id,
-                file_id=file_id,
-                file_path=file_path if file_id is None else None,
+                fid,
+                project_id=project_id or None,
                 filename=filename,
-                unlock_after_write=False,
+                unlock=unlock,
             )
+            return str(saved["file_id"])
 
-        self._run(_upload())
+        return self._run(_upload())
 
     # ------------------------------------------------------------------
     # Lock management
@@ -251,7 +319,7 @@ class CodeAnalysisClient:
                 "list_project_files", {"project_id": project_id}
             )
         )
-        data = unwrap_command_response(payload)
+        data = unwrap_command_result(payload)
         files = data.get("files", [])
         return files if isinstance(files, list) else []
 
@@ -271,7 +339,7 @@ class CodeAnalysisClient:
                 {"project_id": project_id, "file_path": file_path},
             )
         )
-        data = unwrap_command_response(payload)
+        data = unwrap_command_result(payload)
         versions = data.get("versions", [])
         return versions if isinstance(versions, list) else []
 
@@ -292,7 +360,7 @@ class CodeAnalysisClient:
                 },
             )
         )
-        unwrap_command_response(payload)
+        unwrap_command_result(payload)
 
     def close(self) -> None:
         """Close the underlying async client and background loop."""

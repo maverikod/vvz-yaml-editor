@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.search_find_metadata import get_search_find_metadata
 from ai_editor.commands.search_find_schema import get_search_find_schema
 from ai_editor import api
 
 
-class SearchFindCommand(Command):
+class SearchFindCommand(EditorSessionCommand):
     """MCP command: search_find."""
 
     name = "search_find"

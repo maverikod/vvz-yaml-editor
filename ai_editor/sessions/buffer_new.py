@@ -9,7 +9,7 @@ from ai_editor.contracts import Diagnostic, ErrorCode
 from ai_editor.editor_core.registry import FormatterRegistry
 from ai_editor.editor_core.writer import Writer
 from ai_editor.formatters.sidecar import persist_tree_sidecar, session_sidecar_path
-from ai_editor.sessions.session_dir import add_buffer_to_settings
+from ai_editor.sessions.session_dir import add_buffer_to_settings, buffer_file_path
 from ai_editor.sessions.session_git import commit_buffer, create_buffer_branch, history_diagnostic
 
 
@@ -34,7 +34,13 @@ def create_new_buffer(
     formatter_registry: FormatterRegistry,
     repo: Any,
 ) -> dict[str, Any]:
-    """Create local unsaved buffer; modified=True from start."""
+    """Create local unsaved buffer; modified=True when initial content is provided."""
+    if not str(initial_content or "").strip():
+        return {
+            "success": False,
+            "error_code": ErrorCode.BUFFER_INVALID,
+            "message": "initial content is required",
+        }
     diagnostics: list[Diagnostic] = []
     cls = formatter_registry.get_by_name(formatter_name)
     if cls is None:
@@ -53,7 +59,7 @@ def create_new_buffer(
             "message": str(exc),
         }
     buffer_id = str(uuid.uuid4())
-    buf_path = session_dir / f"{buffer_id}.txt"
+    buf_path = buffer_file_path(session_dir, buffer_id, ".txt")
     source = _source_text(formatter, tree)
     persist_tree_sidecar(
         session_sidecar_path(session_dir, buffer_id),
@@ -64,7 +70,10 @@ def create_new_buffer(
     Writer().write_buf(source, buf_path)
     create_buffer_branch(repo, buffer_id, buf_path)
     try:
-        commit_buffer(repo, buffer_id, buf_path, f"new: {display_name or 'untitled'}")
+        commit_buffer(
+            repo, buffer_id, buf_path, f"new: {display_name or 'untitled'}",
+            session_dir=session_dir,
+        )
     except Exception as exc:
         diagnostics.append(history_diagnostic(exc))
     buf_dict = {

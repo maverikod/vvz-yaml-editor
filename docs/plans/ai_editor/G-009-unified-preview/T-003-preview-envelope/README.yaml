@@ -1,0 +1,30 @@
+step_id: T-003
+parent_global_step: G-009
+name: PreviewEnvelope, PreviewNavigator, build_preview on AbstractFormatter
+status: draft
+description: >
+  Implement PreviewEnvelope (C-071) dataclass/serialisation and PreviewNavigator
+  (C-072) with collapse policy, node_ref drilldown, and NQ-008 no-self-content-child.
+  Add build_preview() to AbstractFormatter as command-layer entry; render_skeleton
+  delegates to or supplements build_preview for legacy callers only.
+concepts:
+- C-071
+- C-072
+- C-075
+- C-021
+inputs:
+- name: T-002 DocumentGraph
+  type: tactical_dependency
+  description: Preview operates on unified graph.
+- name: SkeletonOptions
+  type: ai_editor.formatters.base
+  description: Existing options mapped to preview collapse thresholds.
+outputs:
+- name: ai_editor/formatters/preview.py
+  type: file
+  description: PreviewEnvelope, PreviewFocus, PreviewBlock, PreviewNavigator.
+- name: ai_editor/formatters/base.py
+  type: file
+  description: build_preview() method; shared collapse and annotation helpers.
+atomic_steps: []
+cascade_note: draft 2026-05-23

@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.session_close_metadata import get_session_close_metadata
 from ai_editor.commands.session_close_schema import get_session_close_schema
 from ai_editor import api
 
 
-class SessionCloseCommand(Command):
+class SessionCloseCommand(EditorSessionCommand):
     """MCP command: session_close."""
 
     name = "session_close"

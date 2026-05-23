@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.buf_save_as_metadata import get_buf_save_as_metadata
 from ai_editor.commands.buf_save_as_schema import get_buf_save_as_schema
 from ai_editor import api
 
 
-class BufSaveAsCommand(Command):
+class BufSaveAsCommand(EditorSessionCommand):
     """MCP command: buf_save_as."""
 
     name = "buf_save_as"

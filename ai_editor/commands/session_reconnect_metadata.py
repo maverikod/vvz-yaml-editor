@@ -3,49 +3,43 @@ from __future__ import annotations
 
 from typing import Any, Type
 
+from ai_editor.commands._metadata_common import (
+    build_metadata,
+    error_block,
+    example_session_key,
+    return_session_descriptor,
+    session_key_param,
+)
+
 
 def get_session_reconnect_metadata(cls: Type[Any]) -> dict[str, Any]:
     """Return AI/documentation metadata for session_reconnect."""
-    return {
-        "name": cls.name,
-        "version": cls.version,
-        "description": cls.descr,
-        "category": cls.category,
-        "author": cls.author,
-        "email": cls.email,
-        "detailed_description": (
-            "Reconnect to existing session by session_key."
+    sk = example_session_key()
+    return build_metadata(
+        cls,
+        detailed_description=(
+            "Attach to an existing session directory by session_key and return its "
+            "current SessionDescriptor (open buffers and diagnostics)."
         ),
-        "parameters": {
-"session_key": {"type": "string", "description": "UUID4 session identifier."}
-    },
-        "return_value": {
-            "success": {
-                "description": "Operation succeeded.",
-                "data": "{result fields from api layer}",
-            },
-            "error": {
-                "description": "Operation failed.",
-                "code": "ErrorCode string",
-                "message": "Human-readable message",
-            },
-        },
-        "usage_examples": [
+        parameters={"session_key": session_key_param()},
+        return_value=return_session_descriptor(),
+        usage_examples=[
             {
-                "description": "Typical session_reconnect invocation",
-                "command": {},
-                "explanation": "Returns success envelope with result data.",
+                "description": "Reconnect after MCP server restart",
+                "command": {"session_key": sk},
+                "explanation": "Restores in-memory session state from disk and returns open_buffers.",
             },
         ],
-        "error_cases": {
-            "OPERATION_FAILED": {
-                "description": "Underlying api call returned success=False.",
-                "message": "{message from OperationResult}",
-                "solution": "Check session_key and buffer_id; verify session is open.",
-            },
+        error_cases={
+            "SESSION_NOT_FOUND": error_block(
+                "SESSION_NOT_FOUND",
+                "Session not found: {session_key}",
+                "Call session_connect to create a new session or verify the session_key.",
+                description="The session directory does not exist or was already closed.",
+            ),
         },
-        "best_practices": [
-            "Call init_api() before executing commands (handled by main.py startup).",
-            "Use dry_run=True on destructive commands to preview changes.",
+        best_practices=[
+            "Prefer reconnect over connect when recovering a known session_key.",
+            "Verify open_buffers before assuming buffers survived a crash.",
         ],
-    }
+    )

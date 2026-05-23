@@ -3,49 +3,77 @@ from __future__ import annotations
 
 from typing import Any, Type
 
+from ai_editor.commands._metadata_common import (
+    buffer_id_param,
+    build_metadata,
+    error_block,
+    example_buffer_id,
+    example_session_key,
+    session_key_param,
+)
+
 
 def get_file_get_metadata(cls: Type[Any]) -> dict[str, Any]:
     """Return AI/documentation metadata for file_get."""
-    return {
-        "name": cls.name,
-        "version": cls.version,
-        "description": cls.descr,
-        "category": cls.category,
-        "author": cls.author,
-        "email": cls.email,
-        "detailed_description": (
-            "File command file_get via api.get_buffer_state."
+    sk = example_session_key()
+    bid = example_buffer_id()
+    return build_metadata(
+        cls,
+        detailed_description=(
+            "Read the local buffer file for an open buffer (no CA server call). "
+            "Returns content, relative_path, file_type, and modified flag. "
+            "lock=true (default) acquires a shared advisory flock during the read."
         ),
-        "parameters": {
-"session_key": {"type": "string", "description": "UUID4 session identifier."}
-    },
-        "return_value": {
+        parameters={
+            "session_key": session_key_param(),
+            "buffer_id": buffer_id_param(),
+            "lock": {
+                "type": "boolean",
+                "description": "Shared advisory lock while reading the buf file.",
+                "required": False,
+                "default": True,
+            },
+        },
+        return_value={
             "success": {
-                "description": "Operation succeeded.",
-                "data": "{result fields from api layer}",
-            },
-            "error": {
-                "description": "Operation failed.",
-                "code": "ErrorCode string",
-                "message": "Human-readable message",
+                "description": "True when content was read.",
+                "data": {
+                    "content": "Full buffer file text.",
+                    "relative_path": "Bound project path or null for local-only buffers.",
+                    "file_type": "local or remote.",
+                    "modified": "Whether the buffer has unsaved local changes.",
+                },
+                "example": {
+                    "success": True,
+                    "content": "hello\n",
+                    "relative_path": "src/main.py",
+                    "file_type": "remote",
+                    "modified": False,
+                },
             },
         },
-        "usage_examples": [
+        usage_examples=[
             {
-                "description": "Typical file_get invocation",
-                "command": {},
-                "explanation": "Returns success envelope with result data.",
+                "description": "Read buffer content with default shared lock",
+                "command": {"session_key": sk, "buffer_id": bid},
+                "explanation": "Returns content and modified flag from the local buf file.",
+            },
+            {
+                "description": "Read without locking",
+                "command": {"session_key": sk, "buffer_id": bid, "lock": False},
+                "explanation": "Same payload without acquiring flock on the buf file.",
             },
         ],
-        "error_cases": {
-            "OPERATION_FAILED": {
-                "description": "Underlying api call returned success=False.",
-                "message": "{message from OperationResult}",
-                "solution": "Check session_key and buffer_id; verify session is open.",
-            },
+        error_cases={
+            "BUFFER_NOT_FOUND": error_block(
+                "BUFFER_NOT_FOUND",
+                "Buffer not found: {buffer_id}",
+                "Use session_status to list open buffer_id values.",
+                description="Unknown buffer_id or missing buf file on disk.",
+            ),
         },
-        "best_practices": [
-            "Call init_api() before executing commands (handled by main.py startup).",
-            "Use dry_run=True on destructive commands to preview changes.",
+        best_practices=[
+            "Use buf_get_state for skeleton preview and formatter metadata.",
+            "Use file_get when you need the raw buffer file content.",
         ],
-    }
+    )

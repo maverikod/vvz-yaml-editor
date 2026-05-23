@@ -59,6 +59,7 @@ def run_save_pipeline(
     commit_message: str = "",
     *,
     ca_session_id: str = "",
+    unlock: bool = False,
 ) -> OperationResult:
     """Run the full save pipeline for a buffer.
 
@@ -94,16 +95,29 @@ def run_save_pipeline(
                     for d in export_result.get("diagnostics", [])
                 ],
             )
-        written_path: Path = export_result["path"]
-        content = written_path.read_bytes()
-        ca_client.upload_content(
+        if "path" in export_result:
+            content = Path(export_result["path"]).read_bytes()
+        elif "content" in export_result:
+            content = str(export_result["content"]).encode("utf-8")
+        else:
+            return OperationResult(
+                success=False,
+                error_code=ErrorCode.WRITE_FAILED,
+                message="formatter export returned no path or content",
+            )
+        saved_id = ca_client.upload_content(
             project_id,
             file_id,
             content,
             ca_session_id=ca_session_id,
             file_path=relative_path,
+            unlock=unlock,
         )
-        return OperationResult(success=True, message=f"Saved {relative_path}")
+        return OperationResult(
+            success=True,
+            message=f"Saved {relative_path}",
+            file_id=saved_id,
+        )
     except Exception as exc:
         return OperationResult(
             success=False,
@@ -161,31 +175,34 @@ def run_save_as_pipeline(
                 error_code=ErrorCode.FORMAT_VALIDATION_FAILED,
                 message=export_result.get("message", "Formatter export failed"),
             )
-        written_path: Path = export_result["path"]
-        content = written_path.read_bytes()
+        if "path" in export_result:
+            content = Path(export_result["path"]).read_bytes()
+        elif "content" in export_result:
+            content = str(export_result["content"]).encode("utf-8")
+        else:
+            return OperationResult(
+                success=False,
+                error_code=ErrorCode.WRITE_FAILED,
+                message="formatter export returned no path or content",
+            )
         target_file_id = file_id
         if target_file_id is None:
             for row in ca_client.list_project_files(project_id):
                 if row.get("relative_path") == new_relative_path:
                     target_file_id = row.get("file_id") or row.get("id")
                     break
-        if target_file_id is not None:
-            ca_client.upload_content(
-                project_id,
-                target_file_id,
-                content,
-                ca_session_id=ca_session_id,
-                file_path=new_relative_path,
-            )
-            return OperationResult(success=True, message=f"Saved as {new_relative_path}")
-        ca_client.upload_content(
+        saved_id = ca_client.upload_content(
             project_id,
-            None,
+            target_file_id,
             content,
             ca_session_id=ca_session_id,
             file_path=new_relative_path,
         )
-        return OperationResult(success=True, message=f"Saved as {new_relative_path}")
+        return OperationResult(
+            success=True,
+            message=f"Saved as {new_relative_path}",
+            file_id=saved_id,
+        )
     except Exception as exc:
         return OperationResult(
             success=False,

@@ -7,6 +7,7 @@ from typing import Any
 from ai_editor.contracts import Diagnostic, ErrorCode, WriteAllResult
 from ai_editor.editor_core.ca_client import CodeAnalysisClient
 from ai_editor.editor_core.save_pipeline import run_validate
+from ai_editor.sessions.ca_session import work_ca_session_id
 from ai_editor.sessions.session_dir import read_session_settings, update_buffer_in_settings
 from ai_editor.sessions.session_git import commit_buffer, history_diagnostic
 
@@ -59,11 +60,11 @@ def write_all(
         content = _source_text(formatter, document).encode("utf-8")
         rel = buf["relative_path"]
         try:
-            ca_client.upload_content(
+            saved_id = ca_client.upload_content(
                 buf["project_id"],
                 buf.get("file_id"),
                 content,
-                ca_session_id=settings.get("ca_session_id", ""),
+                ca_session_id=work_ca_session_id(settings),
                 file_path=rel,
             )
         except Exception as exc:
@@ -72,11 +73,16 @@ def write_all(
         buf_path = Path(buf["buf_file_path"])
         try:
             commit_buffer(
-                repo, buffer_id, buf_path, f"write_all: {buf.get('filename', rel)}"
+                repo,
+                buffer_id,
+                buf_path,
+                f"write_all: {buf.get('filename', rel)}",
+                session_dir=session_dir,
             )
         except Exception as exc:
             diagnostics.append(history_diagnostic(exc))
-        update_buffer_in_settings(session_dir, buffer_id, {"modified": False})
+        write_fields: dict[str, Any] = {"modified": False, "file_id": saved_id}
+        update_buffer_in_settings(session_dir, buffer_id, write_fields)
         written.append(buffer_id)
     return WriteAllResult(
         success=len(failed) == 0,

@@ -8,8 +8,9 @@ from typing import Any
 
 from ai_editor.contracts import ErrorCode, OperationResult
 from ai_editor.editor_core.ca_client import CodeAnalysisClient
+from ai_editor.sessions.ca_session import release_editor_subordinate
 from ai_editor.sessions.session_dir import read_session_settings, remove_buffer_from_settings
-from ai_editor.sessions.session_git import delete_buffer_branch
+from ai_editor.sessions.session_git import delete_buffer_branch, destroy_session_git
 
 logger = logging.getLogger(__name__)
 
@@ -115,5 +116,7 @@ def close_session(
                     message="unsent remote files",
                 )
     _release_locks(ca_client, settings.get("open_buffers", []))
+    release_editor_subordinate(ca_client, settings)
+    destroy_session_git(path)
     shutil.rmtree(path, ignore_errors=True)
     return OperationResult(success=True, message="session closed")

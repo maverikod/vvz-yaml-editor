@@ -1,0 +1,144 @@
+step_id: G-009
+name: Unified DocumentNode graph and CA-aligned preview envelope
+status: draft
+description: >
+  Corrective global step closing implementation drift from G-003. Formalises
+  formatter as three parts — Reader (C-076), Classifier (C-073), Exporter (C-078)
+  — over one DocumentGraph (C-074) of DocumentNode (C-070). Base class owns
+  structural insert (parent + position first/last/before/after/index), static
+  stable_id (C-031) via StableIdTransfer (C-079) for re-parse formats, PreviewEnvelope
+  (C-071) with CA parity (C-075). Eliminates TreeNode/CSTTree split and string-only
+  command preview.
+concepts:
+- C-070
+- C-071
+- C-072
+- C-073
+- C-074
+- C-075
+- C-076
+- C-078
+- C-079
+- C-080
+- C-081
+- C-082
+- C-083
+- C-084
+- C-085
+- C-021
+- C-031
+- C-063
+- C-064
+- C-032
+- C-038
+relations:
+- from_concept: C-021
+  to_concept: C-074
+  type: owns
+- from_concept: C-074
+  to_concept: C-070
+  type: owns
+- from_concept: C-021
+  to_concept: C-072
+  type: owns
+- from_concept: C-072
+  to_concept: C-071
+  type: produces
+- from_concept: C-073
+  to_concept: C-070
+  type: uses
+- from_concept: C-070
+  to_concept: C-064
+  type: extends
+- from_concept: C-074
+  to_concept: C-063
+  type: extends
+- from_concept: C-075
+  to_concept: C-071
+  type: depends_on
+- from_concept: C-038
+  to_concept: C-071
+  type: produces
+- from_concept: C-021
+  to_concept: C-076
+  type: uses
+- from_concept: C-021
+  to_concept: C-073
+  type: uses
+- from_concept: C-021
+  to_concept: C-078
+  type: uses
+- from_concept: C-029
+  to_concept: C-079
+  type: uses
+- from_concept: C-021
+  to_concept: C-031
+  type: owns
+- from_concept: C-080
+  to_concept: C-074
+  type: owns
+source_ranges:
+- start: 1793
+  end: 2210
+depends_on:
+- G-003
+- G-005
+- G-006
+- G-007
+tactical_steps:
+- T-001
+- T-002
+- T-003
+- T-004
+- T-005
+- T-006
+- T-007
+- T-008
+- T-009
+- T-010
+- T-011
+executor_brief:
+  formatter_triad:
+    reader: parse + node_from_source; source -> un-ID'd nodes (C-076)
+    classifier: node_kind registry + parent-child validation (C-073)
+    exporter: render + node_to_source; graph -> source (C-078)
+  base_class_owns:
+  - DocumentGraph (C-074) lifecycle
+  - TreeFileAuthority (C-080): tree file on disk with stable_ids; native export separate
+  - stable_id assign-once at ingest (C-031); persisted in tree file body
+  - every mutation write_tree_file + git commit; Exporter NOT on mutate path
+  - structural insert at parent + position (first/last/before/after/index)
+  - StableIdTransfer (C-079) in-memory only for re-parse ops; ids never in native file
+  command_semantics:
+    open: lock=True -> writable path; lock=False -> readonly forced (no lock => RO)
+    mutate: write_tree_file + git commit; allowed in buffer RO; blocked by session.readonly only
+    write: NativeExport; preview→.pending; approve=True commit; approve=False delete temp
+    export_diff: ExportDiffPreview (C-085); file_export_diff / buf_export_diff; RO allowed
+    send: FileRelay; BUFFER_READONLY if buffer.readonly or session.readonly
+    close: BufferClose (C-083) delete tree + native; unlock if locked
+  preview_owns:
+  - build_preview(document, node_ref=None) -> PreviewEnvelope
+  - command layer returns PreviewEnvelope dict not bare string
+  - NQ-008 no-self-content-child in blocks list
+  migration_rules:
+  - stable_ids in tree file on disk; never in native source on disk
+  - mutate path write_tree_file + git commit; export path Exporter.render only
+  - ingest assign ids once; edit loads tree file not re-parse native each time
+  - CST StableIdTransfer transient in-memory only
+  - sidecar/tree UUIDs preserved on migration
+  owns_paths:
+  - ai_editor/formatters/
+  - ai_editor/sessions/buffer_open.py
+  - ai_editor/sessions/buffer_api.py
+  - ai_editor/commands/file_open_*
+  - ai_editor/commands/buf_get_state_*
+  - docs/plans/ai_editor/viewer_features.yaml
+  - tests/formatters/
+  - tests/sessions/
+  parity_ref:
+  - code_analysis universal_file_preview handlers
+  - code_analysis docs/plans/ai_editor/viewer_features.yaml
+  - ai_editor docs/plans/ai_editor/viewer_features.yaml (local gap tracker)
+cascade_note: >
+  HRS G-009 write/send/close semantics 2026-05-23; MRS C-070..C-083; cycle_1/cycle_2
+  pending; tactical draft; T-010 added; no atomic steps.

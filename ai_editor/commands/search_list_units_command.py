@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp_proxy_adapter.commands.base import Command, CommandResult
+from mcp_proxy_adapter.commands.base import CommandResult
+
+from ai_editor.commands._command_base import EditorSessionCommand
 
 from ai_editor.commands.search_list_units_metadata import get_search_list_units_metadata
 from ai_editor.commands.search_list_units_schema import get_search_list_units_schema
 from ai_editor import api
 
 
-class SearchListUnitsCommand(Command):
+class SearchListUnitsCommand(EditorSessionCommand):
     """MCP command: search_list_units."""
 
     name = "search_list_units"
