@@ -1,7 +1,7 @@
 step_id: T-002
 parent_global_step: G-001
 name: ErrorCode enum
-status: draft
+status: frozen
 description: "Create ErrorCode(str, Enum) with all typed error codes for every subsystem.
   Must exist before any other contract. No business logic. Single file.\n"
 concepts:

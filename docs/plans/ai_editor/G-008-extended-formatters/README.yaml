@@ -37,7 +37,7 @@ relations:
   type: uses
 source_ranges:
 - start: 1467
-  end: 1792
+  end: 1960
 depends_on:
 - G-001
 - G-002
@@ -83,4 +83,5 @@ executor_brief:
 cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; md/xml/html
   converter-only subclasses cascade rechecked; I1c source_ranges audited 
   2026-05-21; FUTURE PLAN - not scheduled until G-001..G-007 done; source_ranges
-  updated 2026-05-22
+  updated 2026-05-22; source_ranges end 1792->1960 (covers {a01t} hooks 
+  registration order) 2026-05-23

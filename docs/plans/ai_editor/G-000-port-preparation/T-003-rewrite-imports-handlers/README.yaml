@@ -22,5 +22,5 @@ outputs:
   name: ai_editor/ported/file_handlers/*.py (audited/modified)
   type: file_set
 parent_global_step: G-000
-status: draft
+status: frozen
 step_id: T-003

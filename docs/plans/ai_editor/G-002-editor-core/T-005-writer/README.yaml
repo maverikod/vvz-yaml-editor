@@ -1,7 +1,7 @@
 step_id: T-005
 parent_global_step: G-002
 name: writer.py — write_buf and write_result atomic write paths
-status: needs_review
+status: frozen
 description: Writer write_result for local artifacts; project files via 
   WritePipeline in formatter base.
 concepts:

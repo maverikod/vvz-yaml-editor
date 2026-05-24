@@ -1,7 +1,7 @@
 step_id: T-001
 parent_global_step: G-000
 name: Write shim modules (project, result, git)
-status: draft
+status: frozen
 description: 'Create three thin shim modules that replace code-analysis-server and
   mcp_proxy_adapter infrastructure so that ai_editor/ported/ is importable standalone.
   Modules created: ai_editor/result.py — SuccessResult/ErrorResult factories; ai_editor/project.py

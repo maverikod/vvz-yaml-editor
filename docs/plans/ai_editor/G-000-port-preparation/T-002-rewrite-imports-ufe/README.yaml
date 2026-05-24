@@ -35,5 +35,5 @@ outputs:
   name: ai_editor/ported/universal_file_edit/*.py (modified)
   type: file_set
 parent_global_step: G-000
-status: draft
+status: frozen
 step_id: T-002

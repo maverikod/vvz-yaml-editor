@@ -1,7 +1,7 @@
 step_id: T-011
 parent_global_step: G-003
 name: CSTFormatter — XPath query engine (Lark LALR)
-status: needs_review
+status: frozen
 description: Implement the XPath-like query engine for CSTFormatter (C-029). 
   Creates a Lark LALR grammar parser (parser.py), an index builder over CSTTree 
   (C-030) producing NodeInfo/Match dataclasses (index_builder.py), and a query 

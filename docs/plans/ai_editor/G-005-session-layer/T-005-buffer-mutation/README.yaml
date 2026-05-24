@@ -1,7 +1,7 @@
 step_id: T-005
 parent_global_step: G-005
 name: Buffer mutation — mandatory write_buf and git commit after every change
-status: needs_review
+status: frozen
 description: "Every mutation via base-class tree ops. Sets modified=True (SourceOfTruth
   -> tree Sidecar). Writes session-side Sidecar after mutation + buf file + git commit.\n\
   Invariant: buf write (Writer.write_buf) is a mandatory atomic part of every mutation

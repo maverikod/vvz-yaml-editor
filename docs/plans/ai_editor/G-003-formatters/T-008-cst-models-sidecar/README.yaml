@@ -1,7 +1,7 @@
 step_id: T-008
 parent_global_step: G-003
 name: CSTFormatter — CSTTree model, stable_id, TreeNodeMetadata, sidecar
-status: needs_review
+status: frozen
 description: 'CSTTree (C-030) specialisation of generic Tree (C-063): tree_id runtime
   UUID, module libcst.Module, metadata_map node_id -> TreeNodeMetadata, node_map node_id
   -> libcst.CSTNode, parent_map node_id -> parent_node_id, node_id_aliases dict previous_obj_to_id

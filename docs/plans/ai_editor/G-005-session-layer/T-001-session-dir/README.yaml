@@ -17,6 +17,7 @@ description: "Create session directory management functions and ses_settings.jso
 concepts:
 - C-039
 - C-042
+- C-086
 inputs:
 - name: G-001 contracts
   type: ai_editor.contracts
@@ -24,7 +25,10 @@ inputs:
 outputs:
 - name: ai_editor/sessions/session_dir.py
   type: file
-  description: "create_session_dir(base_dir, session_key, readonly) -> Path. read_session_settings(session_dir)
+  description: "create_session_dir(base_dir, session_key, readonly) -> Path. resolve_session_dir(base_dir,
+    session_key) -> Path — validates session_key, directory, ses_settings.session_key
+    match; raises SESSION_NOT_FOUND on mismatch (C-086). resolve_buffer(session_dir,
+    buffer_id) -> buf_dict — raises BUFFER_NOT_FOUND for foreign buffer_id. read_session_settings(session_dir)
     -> dict. write_session_settings(session_dir, settings) -> None (atomic). add_buffer_to_settings(session_dir,
     buf_dict) -> None. remove_buffer_from_settings(session_dir, buffer_id) -> None.
     update_buffer_in_settings(session_dir, buffer_id, updates) -> None.\n"

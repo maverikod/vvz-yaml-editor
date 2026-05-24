@@ -1,8 +1,9 @@
 step_id: T-007
 parent_global_step: G-003
 name: YamlFormatter — compatibility wrappers
-status: needs_review
-description: Legacy YAML command wrappers delegating to base-class tree ops with stable_id addresses.
+status: frozen
+description: Legacy YAML command wrappers delegating to base-class tree ops with
+  stable_id addresses.
 concepts:
 - C-026
 - C-021
@@ -19,9 +20,8 @@ inputs:
 outputs:
 - name: ai_editor/formatters/yaml/compat.py
   type: file
-  description: 'Twelve wrapper functions. Emergency functions include alarming names and log WARNING on every call. Module docstring warns against new use.
-
-    '
+  description: "Twelve wrapper functions. Emergency functions include alarming names
+    and log WARNING on every call. Module docstring warns against new use.\n"
 atomic_steps:
 - A-001
 cascade_note: changed — formatter paradigm cascade 2026-05-21

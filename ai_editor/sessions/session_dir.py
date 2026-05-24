@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ai_editor.contracts import ErrorCode
 from ai_editor.sessions.session_git import ensure_session_git
 
 SETTINGS_NAME = "ses_settings.json"
@@ -72,6 +73,40 @@ def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
         os.close(fd)
         raise
     os.replace(tmp, path)
+
+
+def resolve_session_dir(base_dir: str | Path, session_key: str) -> Path:
+    """Resolve and validate an existing session directory.
+
+    Args:
+        base_dir: Parent directory for all sessions.
+        session_key: Canonical session identifier (directory basename).
+
+    Returns:
+        Path to the validated session directory.
+
+    Raises:
+        ValueError: With ErrorCode.SESSION_NOT_FOUND when session_key is
+            invalid, the directory is missing, or ses_settings.json does not
+            match session_key.
+    """
+    key = str(session_key or "")
+    if not key or "/" in key or "\\" in key or ".." in key:
+        raise ValueError(ErrorCode.SESSION_NOT_FOUND.value)
+
+    session_dir = Path(base_dir) / key
+    if not session_dir.is_dir():
+        raise ValueError(ErrorCode.SESSION_NOT_FOUND.value)
+
+    try:
+        settings = read_session_settings(session_dir)
+    except Exception:
+        raise ValueError(ErrorCode.SESSION_NOT_FOUND.value) from None
+
+    if settings.get("session_key") != key:
+        raise ValueError(ErrorCode.SESSION_NOT_FOUND.value)
+
+    return session_dir
 
 
 def create_session_dir(

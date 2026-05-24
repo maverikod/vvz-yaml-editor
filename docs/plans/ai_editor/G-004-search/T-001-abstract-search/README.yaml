@@ -1,24 +1,27 @@
 step_id: T-001
 parent_global_step: G-004
 name: AbstractSearch and SearchMatch
-status: needs_review
-description: Create AbstractSearch ABC and SearchMatch dataclass. Search operates on formatter Tree via base iter_units/match_unit. SearchMatch.address is node stable_id for all formats.
+status: frozen
+description: Create AbstractSearch ABC and SearchMatch dataclass. Search 
+  operates on formatter Tree via base iter_units/match_unit. SearchMatch.address
+  is node stable_id for all formats.
 concepts:
 - C-035
 - C-036
 inputs:
 - name: G-001 contracts
   type: ai_editor.contracts
-  description: ErrorCode (SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE) from ai_editor.contracts.
+  description: ErrorCode (SEARCH_NO_MATCH, SEARCH_NOT_UNIQUE) from 
+    ai_editor.contracts.
 outputs:
 - name: ai_editor/search/base.py
   type: file
-  description: SearchMatch dataclass and AbstractSearch ABC with three abstractmethods.
+  description: SearchMatch dataclass and AbstractSearch ABC with three 
+    abstractmethods.
 - name: ai_editor/search/__init__.py
   type: file
   description: Exports SearchMatch and AbstractSearch.
 atomic_steps:
 - A-001
 - A-002
-
 cascade_note: changed — unified tree search; stable_id addresses

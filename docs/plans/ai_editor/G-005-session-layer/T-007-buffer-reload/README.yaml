@@ -1,7 +1,7 @@
 step_id: T-007
 parent_global_step: G-005
 name: Buffer reload — re-download from CA server and reset buf file
-status: needs_review
+status: frozen
 description: 'Reload remote buffer: re-fetch, open_tree rebuilds Tree+Sidecar, modified=False.'
 concepts:
 - C-010
@@ -24,10 +24,8 @@ inputs:
 outputs:
 - name: ai_editor/sessions/buffer_reload.py
   type: file
-  description: 'reload_buffer(session_dir, session_key, buffer_id, ca_client, formatter_registry, repo) -> dict with view, diagnostics, optional error_code.
-
-    '
+  description: "reload_buffer(session_dir, session_key, buffer_id, ca_client, formatter_registry,
+    repo) -> dict with view, diagnostics, optional error_code.\n"
 atomic_steps:
 - A-001
-
 cascade_note: changed — formatter paradigm cascade 2026-05-21

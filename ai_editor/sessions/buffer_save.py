@@ -43,6 +43,12 @@ def save_buffer(
             error_code=ErrorCode.BUFFER_NOT_FOUND,
             message=buffer_id,
         )
+    if settings.get("readonly") or buf.get("readonly"):
+        return OperationResult(
+            success=False,
+            error_code=ErrorCode.BUFFER_READONLY,
+            message="readonly",
+        )
     bind_updates: dict[str, Any] = {}
     pid = str(buf.get("project_id") or project_id or "").strip()
     rel_raw = str(buf.get("relative_path") or file_path or "").strip()

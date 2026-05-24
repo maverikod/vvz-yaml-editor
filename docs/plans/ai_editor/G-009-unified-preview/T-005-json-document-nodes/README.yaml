@@ -3,14 +3,14 @@ parent_global_step: G-009
 name: JSON DocumentNode kinds including objectProp
 status: draft
 description: >
-  Refactor JsonFormatter parse/render to emit DocumentNode kinds root, object,
-  objectProp, array, primitive. Each object key is an objectProp node with key
-  scalar child and value subtree. Preview uses JSON Pointer prefixes in focus.text
-  and objectProp summaries in blocks.
+  Refactor JsonFormatter Reader/Exporter to DocumentNode kinds root, object,
+  objectProp, array, primitive. Migrate FormatterMutationBackend (C-087) path
+  mutations onto DocumentGraph. Preview uses JSON Pointer prefixes and objectProp blocks.
 concepts:
 - C-070
 - C-073
 - C-028
+- C-087
 inputs:
 - name: T-003 build_preview
   type: tactical_dependency
@@ -21,6 +21,6 @@ inputs:
 outputs:
 - name: ai_editor/formatters/json/
   type: directory
-  description: DocumentNode parse/render; objectProp kind mandatory.
+  description: DocumentNode triad + json MutationBackend on DocumentGraph.
 atomic_steps: []
 cascade_note: draft 2026-05-23

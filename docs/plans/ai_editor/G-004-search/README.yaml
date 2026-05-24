@@ -1,7 +1,6 @@
 step_id: G-004
 name: Universal search
 status: frozen
-cascade_note: "AS green pass 2026-05-21: verify_atomic_steps + verify_a8_cross_ts 0 findings"
 description: Search interface over the unified formatter Tree. Calls base-class 
   iter_units, match_unit, compare_units on the in-memory tree. 
   SearchMatch.address is node stable_id for all formatters. Does not open/write 
@@ -28,7 +27,7 @@ relations:
   type: consumes
 source_ranges:
 - start: 976
-  end: 1040
+  end: 1178
 depends_on:
 - G-001
 - G-002
@@ -60,4 +59,5 @@ executor_brief:
   explicit_non_scope: does not open/write files; session_key diagnostic only
 cascade_note: cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; search runs
   over unified tree with stable_id addresses; I1c source_ranges audited 
-  2026-05-21
+  2026-05-21; source_ranges end 1040->1178 (covers {a00w..a00z} search section) 
+  2026-05-23

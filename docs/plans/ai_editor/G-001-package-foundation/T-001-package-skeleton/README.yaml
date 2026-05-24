@@ -1,7 +1,7 @@
 step_id: T-001
 parent_global_step: G-001
 name: Package skeleton — pyproject.toml, __init__.py, py.typed
-status: draft
+status: frozen
 description: "Create the minimal installable Python package skeleton for ai_editor.
   After this step the package can be installed with pip and imported. All runtime
   dependencies declared. CLI entry point registered but not implemented. Zero business

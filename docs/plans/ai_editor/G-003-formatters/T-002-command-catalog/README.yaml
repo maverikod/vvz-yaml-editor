@@ -1,7 +1,7 @@
 step_id: T-002
 parent_global_step: G-003
 name: FormatterCommandCatalog and FormatterCommandMetadata
-status: needs_review
+status: frozen
 description: FormatterCommandCatalog listing base-class and format-specific 
   commands.
 concepts:

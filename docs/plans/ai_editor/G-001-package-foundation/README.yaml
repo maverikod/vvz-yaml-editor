@@ -15,6 +15,7 @@ concepts:
 - C-007
 - C-008
 - C-009
+- C-020
 relations:
 - from_concept: C-001
   to_concept: C-003
@@ -39,6 +40,8 @@ source_ranges:
   end: 99
 - start: 1767
   end: 1846
+- end: 2500
+  start: 2435
 depends_on: []
 tactical_steps:
 - T-001
@@ -46,4 +49,5 @@ tactical_steps:
 - T-003
 - T-004
 - T-005
-cascade_note: unchanged; I1c source_ranges audited 2026-05-21
+cascade_note: 'cycle_1 + cycle_2 triple-autonomy verified 2026-05-21; t6-fix: C-020
+  (BufferAddress) added to concepts 2026-05-23 — created by T-005 descriptor-contracts'

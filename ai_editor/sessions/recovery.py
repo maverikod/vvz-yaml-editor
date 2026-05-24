@@ -6,9 +6,12 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from ai_editor.contracts import ErrorCode
 from ai_editor.editor_core.ca_client import CodeAnalysisClient
-from ai_editor.sessions.session_dir import SETTINGS_NAME, read_session_settings
+from ai_editor.sessions.session_dir import (
+    SETTINGS_NAME,
+    read_session_settings,
+    resolve_session_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +66,5 @@ def startup_sweep(base_dir: str | Path, ca_client: CodeAnalysisClient) -> None:
 
 def reconnect_session(base_dir: str | Path, session_key: str) -> dict[str, Any]:
     """Load ses_settings for existing session directory."""
-    session_dir = Path(base_dir) / session_key
-    if not session_dir.is_dir():
-        raise ValueError(ErrorCode.SESSION_NOT_FOUND.value)
+    session_dir = resolve_session_dir(base_dir, session_key)
     return read_session_settings(session_dir)

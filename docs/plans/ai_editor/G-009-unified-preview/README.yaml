@@ -5,10 +5,10 @@ description: >
   Corrective global step closing implementation drift from G-003. Formalises
   formatter as three parts — Reader (C-076), Classifier (C-073), Exporter (C-078)
   — over one DocumentGraph (C-074) of DocumentNode (C-070). Base class owns
-  structural insert (parent + position first/last/before/after/index), static
-  stable_id (C-031) via StableIdTransfer (C-079) for re-parse formats, PreviewEnvelope
-  (C-071) with CA parity (C-075). Eliminates TreeNode/CSTTree split and string-only
-  command preview.
+  mutation API and orchestration; format-owned FormatterMutationBackend (C-087)
+  applies changes per syntax. static stable_id (C-031) via StableIdTransfer (C-079)
+  for re-parse formats, PreviewEnvelope (C-071) with CA parity (C-075). Eliminates
+  TreeNode/CSTTree split and string-only command preview.
 concepts:
 - C-070
 - C-071
@@ -25,12 +25,15 @@ concepts:
 - C-083
 - C-084
 - C-085
+- C-087
 - C-021
+- C-029
 - C-031
 - C-063
 - C-064
 - C-032
 - C-038
+- C-069
 relations:
 - from_concept: C-021
   to_concept: C-074
@@ -56,9 +59,6 @@ relations:
 - from_concept: C-075
   to_concept: C-071
   type: depends_on
-- from_concept: C-038
-  to_concept: C-071
-  type: produces
 - from_concept: C-021
   to_concept: C-076
   type: uses
@@ -77,9 +77,57 @@ relations:
 - from_concept: C-080
   to_concept: C-074
   type: owns
+- from_concept: C-021
+  to_concept: C-087
+  type: uses
+- from_concept: C-087
+  to_concept: C-074
+  type: uses
+- from_concept: C-038
+  to_concept: C-080
+  type: uses
+- from_concept: C-038
+  to_concept: C-081
+  type: uses
+- from_concept: C-038
+  to_concept: C-082
+  type: uses
+- from_concept: C-038
+  to_concept: C-083
+  type: uses
+- from_concept: C-081
+  to_concept: C-078
+  type: uses
+- from_concept: C-081
+  to_concept: C-074
+  type: consumes
+- from_concept: C-081
+  to_concept: C-084
+  type: produces
+- from_concept: C-082
+  to_concept: C-081
+  type: depends_on
+- from_concept: C-085
+  to_concept: C-084
+  type: produces
+- from_concept: C-085
+  to_concept: C-078
+  type: uses
+- from_concept: C-076
+  to_concept: C-074
+  type: produces
+- from_concept: C-078
+  to_concept: C-074
+  type: consumes
+- from_concept: C-079
+  to_concept: C-031
+  type: uses
+- from_concept: C-032
+  to_concept: C-080
+  type: implements
 source_ranges:
-- start: 1793
-  end: 2210
+- start: 1961
+  end: 2434
 depends_on:
 - G-003
 - G-005
@@ -107,8 +155,15 @@ executor_brief:
   - TreeFileAuthority (C-080): tree file on disk with stable_ids; native export separate
   - stable_id assign-once at ingest (C-031); persisted in tree file body
   - every mutation write_tree_file + git commit; Exporter NOT on mutate path
+  - uniform mutation API; delegates apply to FormatterMutationBackend (C-087)
   - structural insert at parent + position (first/last/before/after/index)
   - StableIdTransfer (C-079) in-memory only for re-parse ops; ids never in native file
+  formatter_mutation_backends:
+  - 'python: libcst tree_modifier + tree_modifier_ops; mutable_cst batch; C-079 on re-parse'
+  - 'yaml: ruamel structural path mutations'
+  - 'json: dict/list JQ-style path mutations'
+  - 'text: line-array insert/replace_range'
+  - 'markdown: block/heading ops when G-008 backend present'
   command_semantics:
     open: lock=True -> writable path; lock=False -> readonly forced (no lock => RO)
     mutate: write_tree_file + git commit; allowed in buffer RO; blocked by session.readonly only
@@ -140,5 +195,5 @@ executor_brief:
   - code_analysis docs/plans/ai_editor/viewer_features.yaml
   - ai_editor docs/plans/ai_editor/viewer_features.yaml (local gap tracker)
 cascade_note: >
-  HRS G-009 write/send/close semantics 2026-05-23; MRS C-070..C-083; cycle_1/cycle_2
-  pending; tactical draft; T-010 added; no atomic steps.
+  HRS G-009 mutation backends + write/send/close 2026-05-23; MRS C-070..C-087;
+  cycle_1 pass 2026-05-23; cycle_2 pending; tactical draft; no atomic steps.

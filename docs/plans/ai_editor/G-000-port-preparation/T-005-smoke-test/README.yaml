@@ -24,5 +24,5 @@ outputs:
   name: tests/test_g000_smoke.py
   type: file
 parent_global_step: G-000
-status: draft
+status: frozen
 step_id: T-005

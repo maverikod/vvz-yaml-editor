@@ -4,8 +4,8 @@ name: DocumentGraph, tree file persistence, and mutation commit path
 status: draft
 description: >
   DocumentGraph (C-074) with TreeFileAuthority (C-080): ingest assigns stable_id
-  once and write_tree_file; every mutation write_tree_file + git commit without
-  Exporter. load_tree_file on edit. Structural insert at parent + position.
+  once and write_tree_file; apply_op delegates to FormatterMutationBackend (C-087);
+  every mutation write_tree_file + git commit without Exporter. load_tree_file on edit.
   Refactor buffer_mutation to persist tree not native re-export. Unified ingest;
   forbid CSTTree fork.
 concepts:
@@ -15,6 +15,8 @@ concepts:
 - C-031
 - C-032
 - C-038
+- C-087
+- C-021
 inputs:
 - name: T-001 triad hooks and DocumentNode
   type: tactical_dependency

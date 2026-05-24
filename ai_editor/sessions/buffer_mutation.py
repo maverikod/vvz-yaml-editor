@@ -42,7 +42,7 @@ def execute_mutation(
     source_before: str | None = None,
 ) -> dict[str, Any]:
     """Apply mutation: write buf, session sidecar, ses_settings, git commit."""
-    if readonly_session or readonly_buffer:
+    if readonly_session:
         return {
             "success": False,
             "error_code": ErrorCode.BUFFER_READONLY,

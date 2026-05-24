@@ -24,7 +24,7 @@ Line ranges are an emergency fallback only.
 
 ## Architecture: three independent layers
 
-```
+{a001} Session
 Session
   └─ owns: session directory, session git (single), buf files, clipboard, session attributes
        │
@@ -42,7 +42,7 @@ Sessions coordinate buffers and own session git history and clipboard.
 
 ### Session directory isolation (binding)
 
-Each session is a **separate directory** on disk. Session artifacts never share
+{a002} Each session is a **separate directory** on disk. Session artifacts never share
 paths and never mix between sessions.
 
 ```
@@ -111,7 +111,7 @@ There is no project git. The CA server manages its own versioning (backup + comm
 
 ## G-001 — Package foundation
 
-Owns: `pyproject.toml`, `ai_editor/__init__.py`, `ai_editor/contracts/`, `ai_editor/py.typed`.
+{a003} Owns: `pyproject.toml`, `ai_editor/__init__.py`, `ai_editor/contracts/`, `ai_editor/py.typed`.
 
 Shared contracts used by all subsystems:
 
@@ -146,7 +146,7 @@ Runtime dependencies (`pyproject.toml`):
 
 ## Code analysis server connection
 
-All file access goes through the code analysis server API.
+{a004} All file access goes through the code analysis server API.
 `ai_editor` never reads or writes project files directly from disk.
 
 Auth modes:
@@ -157,7 +157,7 @@ Passwords and tokens **never** stored in `config.json` — only env var name ref
 
 ### File API — key commands
 
-| Operation | Command | Required params |
+{a005} | Operation | Command | Required params |
 |---|---|---|
 | Download file (chunks) | `project_file_transfer_download_begin` | `project_id`, `file_path`, `compression` |
 | Backup history | `list_backup_versions` | `project_id`, `file_path` |
@@ -167,7 +167,7 @@ Passwords and tokens **never** stored in `config.json` — only env var name ref
 | File lock acquire / release | `session_open_file` / `session_close_file` | `session_id` (=ca_session_id), `project_id`, `file_id` |
 
 ### Download flow
-
+{a006}
 ```
 1. project_file_transfer_download_begin(
      project_id, file_path, compression='identity',
@@ -179,7 +179,7 @@ Passwords and tokens **never** stored in `config.json` — only env var name ref
 ```
 
 ### Upload flow
-
+{a007}
 ```
 1. transfer_upload_begin(filename, size_bytes, checksum_value, compression='identity')
    → { transfer_id }
@@ -193,12 +193,12 @@ Passwords and tokens **never** stored in `config.json` — only env var name ref
 
 ### `project_id` in buffer
 
-Each buffer stores `project_id` + `file_path` (relative). This pair is sufficient for all CA server operations.
+{a008} Each buffer stores `project_id` + `file_path` (relative). This pair is sufficient for all CA server operations.
 `file_id` (UUID from `files` table) stored when known; returned by `download_begin`. May be `None` if file not yet indexed — lock still acquired by path.
 
 ### Sessions survive restart
 
-After restart, `ai_editor` recovers sessions from directories on disk.
+{a009} After restart, `ai_editor` recovers sessions from directories on disk.
 
 **startup_sweep policy B:**
 ```
@@ -220,11 +220,11 @@ No TTL. No time-based deletion. Only orphaned dirs (missing/corrupt ses_settings
 
 ## G-002 — Editor core and buffer registry
 
-Owns: `ai_editor/editor_core/`, `ai_editor/config/`, `ai_editor/writer.py`, `tests/editor_core/`.
+{a00a} Owns: `ai_editor/editor_core/`, `ai_editor/config/`, `ai_editor/writer.py`, `tests/editor_core/`.
 
 ### Buffer model
 
-One buffer = one open document. Buffer is bound to a file and a formatter at open time.
+{a00b} One buffer = one open document. Buffer is bound to a file and a formatter at open time.
 Both never change for the lifetime of the buffer.
 
 ```
@@ -247,7 +247,7 @@ buffer fields:
 ```
 
 ### AbstractBuffer public contract
-
+{a00c}
 ```
 open(session_key, project_id, file_path, formatter=auto,
   open_as_text=False, lock=True) -> buffer_id
@@ -265,7 +265,7 @@ write_all(session_key, force=False) -> WriteAllResult
 ```
 
 ### BufferState
-
+{a00d}
 ```
 BufferState:
   buffer_id      str
@@ -277,7 +277,7 @@ BufferState:
 ```
 
 ### FormatterRegistry
-
+{a00e}
 ```
 FormatterRegistry:
   register(formatter_name, extensions, formatter_class)
@@ -291,7 +291,7 @@ Registration happens in HooksRegister (G-006) at startup — not at import time.
 
 ### Open rules
 
-Remote buffer open (`file_open`) — **lock and writability are coupled:**
+{a00f} Remote buffer open (`file_open`) — **lock and writability are coupled:**
 
 ```
 lock=True  (default for edit intent):
@@ -315,7 +315,7 @@ always acquires CA lock first. `BUFFER_LOCKED` if another CA session holds the f
 
 ### Advisory lock (CA server)
 
-All file locking is managed exclusively via the CA server API under an **external CA session**
+{a00g} All file locking is managed exclusively via the CA server API under an **external CA session**
 (`ca_session_id`). The CA session is the user session (e.g. the chat): created at user login,
 **outside ai_editor**, and shared with other consumers (terminal sessions, etc.). ai_editor never
 calls `session_create` or `session_delete` and does NOT own the CA session lifecycle.
@@ -391,7 +391,7 @@ acquired the lock has crashed.
 
 ### save pipeline (write / export — NOT send)
 
-Every write/export compares **baseline native** (source at open or last successful
+{a00h} Every write/export compares **baseline native** (source at open or last successful
 write) against **candidate native** (Exporter.render from current tree). Write
 proceeds only when there are changes AND caller confirms.
 
@@ -436,7 +436,7 @@ Legacy `save(close=True)` decomposes to: write (steps 1–4) + optional file_sen
 `validate(buffer_id)` calls `formatter.validate_document` only, no write.
 
 ### BufferAddress
-
+{a00i}
 ```
 BufferAddress:
   buffer_id   str
@@ -449,7 +449,7 @@ Editor core never parses address content.
 
 ### writer.py
 
-Two write paths:
+{a00j} Two write paths:
 
 - `write_tree_file(graph, path)` — atomic write of serialised DocumentGraph to
   `<buffer_id>.tree` (or `.cst`). After every tree mutation and on ingest.
@@ -464,7 +464,7 @@ Never write project paths directly from mutation path.
 
 ### Config
 
-Config read from adapter's `config.json`, sections `ai_editor` and `code_analysis_server`.
+{a00k} Config read from adapter's `config.json`, sections `ai_editor` and `code_analysis_server`.
 `ai_editor` does not create its own config file.
 
 `ai_editor` config section fields:
@@ -491,11 +491,11 @@ Config reader: `SimpleConfig.load()` from adapter. `ai_editor` does not implemen
 
 ## G-003 — AbstractFormatter and formatter backends (Text, YAML, JSON, CST)
 
-Owns: `ai_editor/formatters/`, `ai_editor/schemas/`, `tests/formatters/`.
+{a00l} Owns: `ai_editor/formatters/`, `ai_editor/schemas/`, `tests/formatters/`.
 
 ### AbstractFormatter required contract
 
-AbstractFormatter is the **base class for every format**. It owns the tree and
+{a00m} AbstractFormatter is the **base class for every format**. It owns the tree and
 all operations over the tree. Subclasses own ONLY the conversion between the
 tree representation and the concrete file format. The editor works with the
 tree, not with the format: all structural editing is done by the base class.
@@ -610,7 +610,7 @@ The base class (via the session/buffer layer) does NOT:
 
 ### InvalidOnOpen mode
 
-If a file fails to parse at open time (any format — JSON, YAML, .py, etc.),
+{a00n} If a file fails to parse at open time (any format — JSON, YAML, .py, etc.),
 the buffer enters **InvalidOnOpen mode** instead of returning an error:
 
 ```
@@ -645,7 +645,7 @@ InvalidOnOpen (plain text always parses).
 
 ### render_skeleton
 
-`render_skeleton(document, options=None) -> str` — compact structural overview for model-facing display.
+{a00o} `render_skeleton(document, options=None) -> str` — compact structural overview for model-facing display.
 NOT `render()`. Used by: `BufferState.preview`, `get_state` response, session open/new return value.
 
 `SkeletonOptions` dataclass:
@@ -663,7 +663,7 @@ Shared rendering rules (YAML + JSON):
 - Hint fields promoted after collapse marker.
 
 ### Validation three-level chain
-
+{a00p}
 ```
 Formatter: formatter.validate_document(doc)
 Buffer:    buffer.validate(buffer_id)      → calls formatter.validate_document
@@ -673,7 +673,7 @@ Session:   session.write_all()             → calls buffer.validate per buffer
 Validation always precedes write. Write rejected on any validation failure.
 
 ### FormatterCommandCatalog
-
+{a00q}
 ```
 FormatterCommandCatalog:
   formatter_name, formatter_version
@@ -689,7 +689,7 @@ FormatterCommandMetadata:
   examples: list
 ```
 
-### FormatterUnit
+{a00r}
 
 ```
 address       Any   — opaque; matches BufferAddress.address semantics
@@ -699,7 +699,7 @@ metadata      dict
 ```
 
 ### Text formatter
-
+{a00s}
 ```
 document model: list[str]
 address model:  int (line index) | tuple[int,int] (inclusive range) | None (whole doc)
@@ -716,7 +716,7 @@ windowed_preview(offset, limit) -> str:
 Registered extensions: .txt .log .rst .ini .cfg .toml
 ```
 ### YAML formatter
-
+{a00t}
 ```
 document model: ruamel.yaml CommentedMap / CommentedSeq (round-trip)
 address model:  structural YAML path string
@@ -773,7 +773,7 @@ yaml_move          → formatter.cut_fragment + formatter.paste_fragment
 Registered extensions: `.yaml`, `.yml`
 
 ### JSON formatter
-
+{a00u}
 ```
 document model: dict | list | scalar (stdlib json, Python natives)
 address model:  JQ-style dot-path string
@@ -790,7 +790,7 @@ Registered extensions: .json
 ```
 ### CST formatter (.py files)
 
-Owns: `ai_editor/formatters/cst/`. Built-in formatter, NOT ForeignFormatter.
+{a00v} Owns: `ai_editor/formatters/cst/`. Built-in formatter, NOT ForeignFormatter.
 Adapted from `cst-code/` source snapshot. Registered for `.py`, name `cst`.
 
 #### Document model: CSTTree
@@ -1111,14 +1111,14 @@ Do NOT take:
 
 ## G-004 — Universal search (AbstractSearch)
 
-Owns: `ai_editor/search/`, `tests/search/`.
+{a00w} Owns: `ai_editor/search/`, `tests/search/`.
 
 Search is an interface layer on top of the formatter.
 Does not open or write files. Takes a query, returns formatter blocks
 with formatter-specific addresses and previews.
 
 ### AbstractSearch contract
-
+{a00x}
 ```
 find(session_key, buffer_id, query, scope=None) -> list[SearchMatch]
 find_one(session_key, buffer_id, query, scope=None) -> SearchMatch | error
@@ -1128,7 +1128,7 @@ list_units(session_key, buffer_id, scope=None) -> list[SearchMatch]
 Calls on formatter: `iter_units`, `match_unit`, `compare_units`.
 
 ### SearchMatch
-
+{a00y}
 ```
 SearchMatch:
   buffer_id(str), formatter(str), address(Any), preview(str),
@@ -1143,7 +1143,7 @@ Address by formatter:
 Returned addresses are directly usable in `BufferAddress` for copy/cut/paste.
 
 ### Query model
-
+{a00z}
 ```
 base fields: kind, value, options
 text kinds:  contains_text, regex
@@ -1178,7 +1178,7 @@ Query examples:
 
 ## G-005 (plan) — Session layer: infrastructure, buffer lifecycle, clipboard, recovery
 
-Owns: `ai_editor/sessions/`, `tests/sessions/`.
+{a010} Owns: `ai_editor/sessions/`, `tests/sessions/`.
 
 A session is a directory on disk. It exists as long as its directory exists.
 No TTL. No auto-deletion. **Sessions do not share files** — see architecture
@@ -1186,7 +1186,7 @@ section "Session directory isolation".
 
 ### Session directory isolation (enforcement)
 
-Every session-layer entry point calls `resolve_session_dir(base_dir, session_key)`:
+{a011} Every session-layer entry point calls `resolve_session_dir(base_dir, session_key)`:
 ```
 1. Reject session_key containing '/', '\\', '..', or empty → SESSION_NOT_FOUND
 2. session_dir = base_dir / session_key; must be existing directory
@@ -1205,7 +1205,7 @@ Every buffer operation calls `resolve_buffer(session_dir, buffer_id)`:
 
 ### Session create (`session_connect`) — directory then git
 
-Binding order when a **new** session is created (command `session_connect` /
+{a012} Binding order when a **new** session is created (command `session_connect` /
 API `connect()`):
 
 ```
@@ -1223,7 +1223,7 @@ Rules:
 - Reconnect to existing session: skip mkdir; ensure git exists (lazy repair if missing).
 - `session_key` in every API call must match the directory basename exactly.
 
-### Session directory layout
+{a013}
 ```
 <sessions_base_dir>/<session_key>/
   ses_settings.json       — session attributes and open buffer list
@@ -1247,13 +1247,13 @@ open_buffers   list[BufferDescriptor extended with: file_type, readonly, locked,
 
 ### Session git
 
-Non-bare repo. One branch per buffer `buf/<buffer_id>`. Commit on every mutation.
+{a014} Non-bare repo. One branch per buffer `buf/<buffer_id>`. Commit on every mutation.
 Clipboard cut/copy also produce commits. Deleted with session directory.
 Undo/redo implemented via branch commits + `redo_stack` in ses_settings.
 
 ### Buffer lifecycle
 
-**open (file from CA server):**
+{a015} **open (file from CA server):**
 ```
 1. Determine formatter by extension (FormatterRegistry).
 2. If lock=True (writable): session_open_file + download → locked=True, readonly=False.
@@ -1346,7 +1346,7 @@ Readonly buffers excluded from modified check.
 ```
 
 ### Undo / redo
-
+{a016}
 ```
 undo(session_key, buffer_id, steps=1):
   Walk back commit.parents. Push current SHA to redo_stack.
@@ -1363,7 +1363,7 @@ New mutation clears redo_stack atomically.
 
 ### Clipboard
 
-Session-scoped. Stored in `<session_dir>/clipboard.json` as `{formatter, body}`.
+{a017} Session-scoped. Stored in `<session_dir>/clipboard.json` as `{formatter, body}`.
 
 ```
 copy: copy_fragment -> to_string -> clipboard.json -> git commit.
@@ -1389,7 +1389,7 @@ Default policy: `snapshot`.
 Cross-session paste not supported. Clipboard deleted with session directory.
 
 ### write_all
-
+{a018}
 ```
 write_all(session_key, force=False) -> WriteAllResult
 For each open buffer where readonly=False and modified=True:
@@ -1401,7 +1401,7 @@ Result: success=True only if all eligible buffers exported.
 Separate batch send (if needed) is explicit file_send per buffer after write_all.
 
 ### Session public API
-
+{a019}
 ```
 connect(readonly=False) -> SessionDescriptor
 reconnect(session_key) -> SessionDescriptor
@@ -1413,12 +1413,12 @@ session_status(session_key) -> SessionDescriptor
 
 ## G-006 (plan) — Command layer and public interfaces
 
-Owns: `ai_editor/commands/`, `ai_editor/hooks_register.py`,
+{a01a} Owns: `ai_editor/commands/`, `ai_editor/hooks_register.py`,
 `ai_editor/api.py`, `ai_editor/interfaces/cli.py`, `tests/commands/`, `tests/interfaces/`.
 
 ### Command registration
 
-All commands follow `docs/metadatastd.md`. Three files per command:
+{a01b} All commands follow `docs/metadatastd.md`. Three files per command:
 ```
 ai_editor/commands/<name>_command.py    — Command subclass
 ai_editor/commands/<name>_schema.py    — get_schema() -> dict (JSON Schema)
@@ -1469,7 +1469,7 @@ Registered in `hooks_register.py` via `register_custom_commands_hook(_register)`
 `mcp_proxy_adapter` auto-generates JSON-RPC, OpenAPI, and MCP tool surface.
 Do not implement HTTP routes or API handlers manually.
 ### Command groups
-
+{a01c}
 ```
 Session:    session_connect, session_reconnect, session_close, session_status
 File:       file_open, file_close, file_get, file_send, file_create, file_export_diff
@@ -1483,7 +1483,7 @@ YAML:       yaml_get_command, yaml_update_command, yaml_validate_plan_task
 ```
 
 ### validate_file
-
+{a01d}
 ```
 validate_file(file_path=None, buffer_id=None, project_id=None,
               formatter=auto, schema=None) -> ValidationResult
@@ -1496,17 +1496,17 @@ validate_file(file_path=None, buffer_id=None, project_id=None,
 
 ### api.py
 
-Thin synchronous wrappers over the session layer. Consumed by CLI and integration tests.
+{a01e} Thin synchronous wrappers over the session layer. Consumed by CLI and integration tests.
 All session/buffer/search/edit operations delegated to session layer.
 
 ### CLI
 
-Thin diagnostic wrapper over `api.py`. Target: `ai_editor.interfaces.cli:main`.
+{a01f} Thin diagnostic wrapper over `api.py`. Target: `ai_editor.interfaces.cli:main`.
 Subcommands: `connect`, `disconnect`, `open`, `find`, `copy`, `paste`, `save`, `undo`, `redo`, `validate-file`.
 
 ### Config components (owned by ai_editor)
 
-`AiEditorConfig` (`ai_editor/config/config_section.py`)
+{a01g} `AiEditorConfig` (`ai_editor/config/config_section.py`)
 — dataclass for the `ai_editor` section of `config.json`.
 — provides `from_dict()` and `from_config_json()` class methods.
 
@@ -1558,15 +1558,15 @@ inside the adapter's config. Reader: `SimpleConfig.load()` from adapter.
 
 ## G-007 (plan) — mcp_proxy_adapter integration
 
-Owns: `ai_editor/main.py`, `scripts/aiedmgr`, `config.json` (runtime, not committed).
+{a01h} Owns: `ai_editor/main.py`, `scripts/aiedmgr`, `config.json` (runtime, not committed).
 
 ### Principle
 
-`mcp_proxy_adapter` generates the entire external API surface automatically.
+{a01i} `mcp_proxy_adapter` generates the entire external API surface automatically.
 **ai_editor never implements HTTP routes, API handlers, or JSON-RPC manually.**
 
 ### Startup sequence (main.py)
-
+{a01j}
 ```
 1. SimpleConfig(config_path).load()                   # adapter config reader
 2. AiEditorConfigValidator().validate(model.raw)      # abort if errors
@@ -1578,7 +1578,7 @@ Owns: `ai_editor/main.py`, `scripts/aiedmgr`, `config.json` (runtime, not commit
 
 ### Proxy auto-registration
 
-Controlled by `registration` section in `config.json`:
+{a01k} Controlled by `registration` section in `config.json`:
 - `auto_on_startup=true`: register at startup, start heartbeat.
 - `auto_on_shutdown=true`: unregister on stop.
 - `instance_uuid`: UUID4 identifying this server instance on the proxy.
@@ -1586,7 +1586,7 @@ Controlled by `registration` section in `config.json`:
 
 ### Service manager (aiedmgr)
 
-Console script in `.venv`:
+{a01l} Console script in `.venv`:
 ```
 aiedmgr start            — validate config, start in background, write PID
 aiedmgr stop             — SIGTERM, wait 30s, SIGKILL
@@ -1601,7 +1601,7 @@ Config from `--config` arg or env `AI_EDITOR_CONFIG`.
 Status check: `os.kill(pid, 0)`.
 ### mcp_proxy_adapter imports used by ai_editor
 
-| Import path | Used for |
+{a01m} | Import path | Used for |
 |---|---|
 | `...core.config.simple_config` | `SimpleConfig`, `SimpleConfigModel`, `SSLConfig` |
 | `...core.config.simple_config_generator` | `SimpleConfigGenerator` (base for AiEditorConfigGenerator) |
@@ -1614,7 +1614,7 @@ Status check: `os.kill(pid, 0)`.
 | `...core.server_adapter` | `UnifiedServerRunner` |
 
 ### pyproject.toml runtime dependencies
-
+{a01n}
 ```toml
 dependencies = [
   "mcp-proxy-adapter",    # SimpleConfig, Command, create_app, UnifiedServerRunner,
@@ -1634,7 +1634,7 @@ dependencies = [
 
 ## G-008 (plan) — Extended formatter backends and cross-formatter conversion matrix
 
-Owns: `ai_editor/formatters/xml/`, `ai_editor/formatters/html/`,
+{a01o} Owns: `ai_editor/formatters/xml/`, `ai_editor/formatters/html/`,
 `ai_editor/formatters/markdown/`, `ai_editor/formatters/conversion/`,
 `tests/formatters/xml/`, `tests/formatters/html/`, `tests/formatters/markdown/`,
 `tests/formatters/conversion/`.
@@ -1646,7 +1646,7 @@ conversion matrix that enables clipboard paste between different formats.
 
 ### G-008 Part 1 — Markdown formatter
 
-Markdown is promoted from a text-fallback (`.md` registered to TextFormatter)
+{a01p} Markdown is promoted from a text-fallback (`.md` registered to TextFormatter)
 to a first-class structural formatter.
 
 **Library selection:**
@@ -1706,7 +1706,7 @@ fragment. `from_string(body)` → parse body back into `list[MdNode]`.
 
 ### G-008 Part 2 — XML formatter
 
-**Library selection:**
+{a01q} **Library selection:**
 `lxml>=5.0` — chosen as the primary library.
 
 | Library | Reason not chosen |
@@ -1756,7 +1756,7 @@ as unicode string. `from_string(body)` → `lxml.etree.fromstring`.
 
 ### G-008 Part 3 — HTML formatter
 
-**Library selection:**
+{a01r} **Library selection:**
 `beautifulsoup4>=4.12` with `lxml` parser — chosen for HTML-specific handling.
 
 | Library | Reason not chosen |
@@ -1806,7 +1806,7 @@ to string). `from_string(body)` → `BeautifulSoup(body, 'lxml').body.next`.
 
 ### G-008 Part 4 — Cross-formatter conversion matrix
 
-The conversion matrix defines which clipboard paste operations are permitted
+{a01s} The conversion matrix defines which clipboard paste operations are permitted
 between different source and target formatters, and how the conversion is performed.
 
 **Core principle:** when source formatter ≠ target formatter, the clipboard layer
@@ -1934,7 +1934,7 @@ on malformed HTML → XML), the clipboard layer catches it and returns
 
 ### G-008 Part 5 — Formatter registration updates
 
-Registration order in `hooks_register.py` (updated):
+{a01t} Registration order in `hooks_register.py` (updated):
 ```
 1. text:     .txt .log .rst .ini .cfg .toml   (no longer .md .markdown)
 2. yaml:     .yaml .yml
@@ -1960,7 +1960,7 @@ Updated `pyproject.toml` dependencies (additions only):
 
 ## G-009 — Unified DocumentNode graph and CA-aligned preview envelope
 
-Owns: `ai_editor/formatters/` (refactor), `ai_editor/sessions/` (preview wiring),
+{a01u} Owns: `ai_editor/formatters/` (refactor), `ai_editor/sessions/` (preview wiring),
 `tests/formatters/`, `tests/sessions/`, `docs/plans/ai_editor/viewer_features.yaml`.
 
 Corrective global step: closes the gap between G-003 design (one Tree, one preview
@@ -1970,7 +1970,7 @@ clipboard, or command registration semantics.
 
 ### Formatter three-part architecture
 
-Every formatter backend is exactly three cooperating parts plus a shared base.
+{a01v} Every formatter backend is exactly three cooperating parts plus a shared base.
 The base class owns the in-memory graph, stable identifiers, structural mutations,
 preview navigation, and sidecar persistence. Subclasses supply conversion only.
 
@@ -2020,9 +2020,47 @@ export(graph):                            # write command only
 Subclass implements Reader + Classifier hooks + Exporter hooks only.
 Base never parses syntax; subclass never insert/delete/move or assign stable_id.
 
+### Format-owned mutation backends (binding)
+
+{a01w} AbstractFormatter exposes the **uniform mutation API** (insert, delete, move,
+replace_node, mutate_batch, copy/cut/paste). stable_id assignment, graph linking,
+rollback, and `write_tree_file` persistence are **base-owned**.
+
+**Applying** a mutation on the native document model is **format-owned code** —
+not Reader/Exporter hooks. Each formatter backend supplies a dedicated mutation
+implementation for its syntax and in-memory representation:
+
+```
+Python (.py):  libcst modify_tree — tree_modifier + tree_modifier_ops;
+               optional mutable_cst batch path; StableIdTransfer on re-parse
+YAML (.yaml):  ruamel CommentedMap/CommentedSeq — structural path addressing
+JSON (.json):  dict/list — JQ-style path addressing
+Text (.txt):   line-array insert / replace_range
+Markdown (.md): block/heading tree ops (G-008 backend when present)
+```
+
+Orchestration (all formats):
+
+```
+base.apply_op(graph, op):
+  resolve stable_id -> DocumentNode in DocumentGraph
+  delegate content/structure change to format MutationBackend
+  on insert/replace: Reader.node_from_source(content) + Classifier tag
+  post_mutation_validation: parse round-trip + tree invariants
+  write_tree_file(graph) + git commit   # mutate path; Exporter NOT called
+```
+
+Invariants:
+- Reader/Exporter/Classifier hooks never perform structural graph ops.
+- Mutation backend never assigns stable_id; base assigns on insert, preserves on
+  replace/move/delete integrity rules (C-031).
+- Exactly one MutationBackend per `formatter_name`; no shared cross-format module.
+- G-003 per-format mutation modules remain authoritative until migrated onto
+  DocumentGraph in G-009 tactical steps.
+
 ### Tree file — session working copy (binding)
 
-Native project file and session tree file are **different artifacts** with
+{a01x} Native project file and session tree file are **different artifacts** with
 different roles. stable_id markers live in the **tree file on disk**, never in
 committed native source.
 
@@ -2074,7 +2112,7 @@ re-exporting native content to `.buf`.
 
 ### Structural insert protocol (base class, all formats)
 
-Uniform address model: `stable_id` (UUID4). Insert target: parent stable_id +
+{a01y} Uniform address model: `stable_id` (UUID4). Insert target: parent stable_id +
 position token:
 
 ```
@@ -2095,7 +2133,7 @@ block conversion.
 
 ### stable_id — static identity in tree file (base class)
 
-**Invariant:** stable_id is assigned once at first ingest indexing and never
+{a01z} **Invariant:** stable_id is assigned once at first ingest indexing and never
 reassigned. IDs are persisted **in the tree file on disk** and in-memory
 DocumentNode. They do **not** appear in native source on disk.
 
@@ -2130,7 +2168,7 @@ replace_node preserves target stable_id; only subtree content changes.
 
 ### Design intent
 
-Every supported format is a **typed node graph**, not a format-specific second
+{a020} Every supported format is a **typed node graph**, not a format-specific second
 document model. Python CST is one **node_kind vocabulary** among several; libcst
 is the parse/render backend for `.py`, not a separate structural paradigm.
 
@@ -2141,7 +2179,7 @@ format-specific `node_kind` values from **FormatterClassifier** registry.
 
 ### DocumentNode
 
-Single node type for all formats. Replaces the split where generic buffers used
+{a021} Single node type for all formats. Replaces the split where generic buffers used
 `TreeNode` while Python buffers loaded `CSTTree`.
 
 ```
@@ -2167,7 +2205,7 @@ Invariants (base class enforced):
 
 ### FormatterClassifier (node_kind registry)
 
-Per-format catalog of allowed `node_kind` values and parent-child rules (Part 2).
+{a022} Per-format catalog of allowed `node_kind` values and parent-child rules (Part 2).
 
 ```
 Python (.py):  Module, FunctionDef, ClassDef, If, For, While, Try, With,
@@ -2190,7 +2228,7 @@ Forbidden: call Exporter on every mutation (native re-export is export-only).
 
 ### PreviewEnvelope (replaces string-only model API preview)
 
-Model-facing preview is a structured envelope aligned 1:1 with code-analysis-server
+{a023} Model-facing preview is a structured envelope aligned 1:1 with code-analysis-server
 `universal_file_preview` semantics (focus + blocks + drilldown). Internal
 `render_skeleton(...) -> str` may remain as a debug/legacy helper but **must not**
 be the sole preview returned by buffer/session commands.
@@ -2247,7 +2285,7 @@ Per-format preview behaviour (binding):
   wraps sliding window in `focus.text` with line numbers.
 
 ### AbstractFormatter preview contract (updated)
-
+{a024}
 ```
 build_preview(document, node_ref=None, options=None) -> PreviewEnvelope
 get_unit(document, address) -> FormatterUnit   # address = stable_id; unchanged
@@ -2263,7 +2301,7 @@ Forbidden: parallel CSTTree fork. Native export on **write** only; send is relay
 
 ### Buffer command semantics (write / send / close / mutate)
 
-G-009 defines authoritative semantics for the tree-era buffer model. Supersedes
+{a025} G-009 defines authoritative semantics for the tree-era buffer model. Supersedes
 G-005 buffer lifecycle steps where they conflate mutation, export, and relay.
 
 **Session artifacts per open buffer:**
@@ -2347,7 +2385,7 @@ Readonly buffers: close freely; no lock; tree + native removed.
 
 ### Export diff before write (binding)
 
-Any **write/export** and the standalone diff command share one comparison:
+{a026} Any **write/export** and the standalone diff command share one comparison:
 
 ```
 baseline_native  — bytes at file_open ingest (CA download) or after last confirmed write
@@ -2379,7 +2417,7 @@ New buffer: baseline empty or equals `initial_content` until first write updates
 
 ### Migration constraints
 
-- Refactor in place under `ai_editor/formatters/`; no new parallel `cst/` document
+{a027} - Refactor in place under `ai_editor/formatters/`; no new parallel `cst/` document
   class hierarchy alongside DocumentGraph.
 - Existing stable_id sidecar JSON remains valid; loader migrates records to
   DocumentNode without changing UUIDs.
@@ -2391,7 +2429,7 @@ New buffer: baseline empty or equals `initial_content` until first write updates
 
 ### viewer_features.yaml (ai_editor plan)
 
-Project-local tracker for preview parity gaps and CA cross-checks. Updated as
+{a028} Project-local tracker for preview parity gaps and CA cross-checks. Updated as
 G-009 implementation progresses. Binding for G-009 coverage; references CA live
 file for upstream gaps (elif/else drilldown, etc.).
 
@@ -2399,7 +2437,7 @@ file for upstream gaps (elif/else drilldown, etc.).
 
 ## Error model
 
-All typed error codes for `ErrorCode` enum:
+{a029} All typed error codes for `ErrorCode` enum:
 
 ```
 # Session

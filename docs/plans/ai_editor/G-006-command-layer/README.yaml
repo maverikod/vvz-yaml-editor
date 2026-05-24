@@ -1,9 +1,11 @@
 step_id: G-006
 name: Command layer and public interfaces
 status: frozen
-description: 'Defines all EditorCommand units following metadatastd.md, the HooksRegister that wires commands and formatters at startup, the ApiFacade thin wrapper over the session layer, and the CLI diagnostic interface. ai_editor never implements HTTP routes or JSON-RPC handlers manually — mcp_proxy_adapter auto-generates the entire external API surface from command schemas and metadata.
-
-  '
+description: "Defines all EditorCommand units following metadatastd.md, the HooksRegister
+  that wires commands and formatters at startup, the ApiFacade thin wrapper over the
+  session layer, and the CLI diagnostic interface. ai_editor never implements HTTP
+  routes or JSON-RPC handlers manually — mcp_proxy_adapter auto-generates the entire
+  external API surface from command schemas and metadata.\n"
 concepts:
 - C-045
 - C-046
@@ -32,8 +34,8 @@ relations:
   to_concept: C-047
   type: uses
 source_ranges:
-- start: 1221
-  end: 1363
+- start: 1414
+  end: 1505
 depends_on:
 - G-001
 - G-002
@@ -52,4 +54,82 @@ tactical_steps:
 - T-009
 - T-010
 - T-011
-cascade_note: unchanged; I1c source_ranges audited 2026-05-21
+executor_brief:
+  owns_paths:
+  - ai_editor/commands/
+  - ai_editor/hooks_register.py
+  - ai_editor/api.py
+  - ai_editor/interfaces/cli.py
+  - tests/commands/
+  - tests/interfaces/
+  command_layout:
+    per_command:
+    - ai_editor/commands/<name>_command.py — Command subclass
+    - ai_editor/commands/<name>_schema.py — get_schema() -> dict (JSON Schema)
+    - ai_editor/commands/<name>_metadata.py — metadata() -> dict
+    class_shape:
+    - name, version, descr, category, author, email attributes
+    - get_schema() from schema module; metadata() from metadata module
+    - validate_params calls super() first, then semantic validation
+    - destructive commands include dry_run in schema
+    - queue commands use use_queue=True + register_auto_import_module in hooks
+    metadata_required_fields:
+    - name, version, description, category, author, email
+    - detailed_description, parameters, return_value, usage_examples, 
+      error_cases, best_practices
+    registration: hooks_register.py via register_custom_commands_hook(_register)
+    surface: mcp_proxy_adapter auto-generates JSON-RPC, OpenAPI, MCP — no manual
+      HTTP routes or API handlers
+  command_groups:
+    Session: session_connect, session_reconnect, session_close, session_status
+    File: file_open, file_close, file_get, file_send, file_create, 
+      file_export_diff
+    Buffer: buf_new, buf_save_as, buf_reload, buf_get_state, buf_write_all, 
+      buf_mutate_batch, buf_export_diff
+    History: undo, redo
+    Edit: copy, cut, paste
+    Search: find, find_one, list_units
+    Validation: validate, validate_file, formatter_commands
+    YAML: yaml_get_command, yaml_update_command, yaml_validate_plan_task
+  validate_file:
+    signature: validate_file(file_path=None, buffer_id=None, project_id=None, 
+      formatter=auto, schema=None) -> ValidationResult
+    buffer_id: formatter.validate_document on in-memory document
+    file_path: project_id required; ca_client.download_file -> parse -> 
+      validate_document
+    formatter_auto: .yaml/.yml->yaml, .py->cst, .json->json, else->text
+    side_effects: does not write files; does not change modified state
+  api_facade:
+    module: ai_editor/api.py
+    role: thin synchronous wrappers over session layer via SessionManager
+    consumers: CLI and integration tests
+    delegates: all session/buffer/search/edit operations to session layer
+    session_manager:
+      module: ai_editor/session_manager.py
+      role: session lifecycle and command-dispatch coordination; holds base_dir,
+        ca_client, formatter_registry, repo_map; delegates domain ops to G-005 
+        session layer
+    api_init:
+      module: ai_editor/api_init.py
+      init_api: config/registry wiring (AiEditorConfig, 
+        CodeAnalysisServerConfig, FormatterRegistry); builds CA client and 
+        SessionManager; facade access via get_session_manager()
+  formatter_registration_scope:
+    g006_registers: text, yaml, json, cst formatters in hooks_register.py (G-003
+      scope)
+    g008_deferred: markdown, xml, html formatters and ConversionRegistry 
+      registration — same deferral pattern as conversion_registry below
+  cli_bootstrap:
+    init: CLI calls init_api once before subcommand dispatch
+    wiring: config validation and FormatterRegistry passed to init_api from 
+      api_init
+  cli:
+    module: ai_editor/interfaces/cli.py
+    entry: ai_editor.interfaces.cli:main
+    subcommands: connect, disconnect, open, find, copy, paste, save, undo, redo,
+      validate-file
+    role: thin diagnostic wrapper over api.py
+  conversion_registry:
+    status: G-008 deferred — ConversionRules registration in hooks_register.py 
+      out of scope for this step
+cascade_note: 'cycle_2 re-pass 2026-05-23: c5-c9 GREEN; no findings; re-pass closed'

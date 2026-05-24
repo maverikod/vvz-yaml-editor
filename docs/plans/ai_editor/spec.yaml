@@ -3,23 +3,23 @@ meta:
   source_spec: docs/plans/ai_editor/source_spec.md
   standard: plan_standard_machine.yaml v1.0
   note: "Original tz G-006 (CST) merged into G-003 (Formatters).\nOriginal tz G-008
-    (Session) + buffer lifecycle merged into G-005.\nPlan global steps G-001..G-009.\nG-008
-    adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\n\
-    the cross-formatter ConversionRegistry (clipboard paste matrix).\nG-009
-    unifies DocumentNode graph and CA-aligned PreviewEnvelope (corrective).\nC-025
-    TextFormatter registered extensions updated: .md .markdown\nremoved (now owned
-    by C-052 MarkdownFormatter).\n\
+    (Session) + buffer lifecycle merged into G-005.\nPlan global steps G-001..G-009.\n\
+    G-008 adds MarkdownFormatter, XmlFormatter, HtmlFormatter, and\nthe cross-formatter
+    ConversionRegistry (clipboard paste matrix).\nG-009 unifies DocumentNode graph
+    and CA-aligned PreviewEnvelope (corrective).\nC-087 FormatterMutationBackend:
+    per-format mutation code delegated by AbstractFormatter.\nC-025 TextFormatter
+    registered extensions updated: .md .markdown\nremoved (now owned by C-052 MarkdownFormatter).\n\
     \nNON-BINDING LINES (excluded from G-step coverage):\n  - 1-16:   HTML-comment
-    header with plan standard notes (preamble).\n  - 65-67, 100-102, 155, 176-178,
-    380-381, 974-975, 998-1003, 1041-1042, 1179-1181, 1218-1220, 1323-1325, 1363-1364,
-    1399-1401, 1439-1440, 1725-1727, 1765-1766, 2006-2084 (quirks appendix; HRS marks
-    non-binding):\n            section dividers ('---' and blank lines between G-NNN
-    sections).\nThese ranges are intentionally not covered by any G-step.\n\nNON-BINDING
-    (additional): blank lines and '---' dividers between ### subsections;\n  line
-    before quirks appendix (HTML non-binding marker).\n  quirks appendix (HRS explicit
-    non-binding).\nGS-ONLY CONCEPTS (excluded from I1c HRS line union):\n\
-    \  C-058 PortedCodeBase, C-059 StandaloneAdapter, C-060 ImportRewrite, C-061 TextGroupReadiness\n\
-    \  — defined in G-000 only; no binding HRS text.\n"
+    header with plan standard notes (preamble).\n  - 155, 176-178, 380-381, 974-975,
+    1041-1042, 1179-1181, 1218-1220, 1363-1364, 1399-1401, 1439-1440, 1725-1727, 1765-1766,
+    2492-2570 (quirks appendix; HRS marks non-binding):\n            section dividers
+    ('---' and blank lines between G-NNN sections).\nThese ranges are intentionally
+    not covered by any G-step.\n\nNON-BINDING (additional): blank lines and '---'
+    dividers between ### subsections;\n  line before quirks appendix (HTML non-binding
+    marker).\n  quirks appendix (HRS explicit non-binding).\nGS-ONLY CONCEPTS (excluded
+    from I1c HRS line union):\n  C-058 PortedCodeBase, C-059 StandaloneAdapter, C-060
+    ImportRewrite, C-061 TextGroupReadiness\n  — defined in G-000 only; no binding
+    HRS text.\n"
 concepts:
 - concept_id: C-001
   name: ResultEnvelope
@@ -31,13 +31,8 @@ concepts:
   - message: str
   - details: dict
   - diagnostics: list[Diagnostic]
-  source_ranges:
-  - start: 68
-    end: 74
-  - start: 85
-    end: 89
-  - start: 91
-    end: 99
+  source_labels:
+  - '{a002}'
 - concept_id: C-002
   name: ErrorCode
   definition: "Centralised enum of all typed error codes used across every subsystem.\n\
@@ -59,11 +54,10 @@ concepts:
     - Write
     - History
   - all_values_unique: true
-  source_ranges:
-  - start: 75
-    end: 75
-  - start: 1767
-    end: 1816
+  source_labels:
+  - '{a002}'
+  - '{a01r}'
+  - '{a01s}'
 - concept_id: C-003
   name: Diagnostic
   definition: "Structured diagnostic message produced by validation or error handling,\n\
@@ -73,9 +67,8 @@ concepts:
   - message: str
   - path: str | None
   - details: dict
-  source_ranges:
-  - start: 76
-    end: 76
+  source_labels:
+  - '{a002}'
 - concept_id: C-004
   name: ValidationResult
   definition: "Result of a validation operation: success flag and list of Diagnostic
@@ -83,9 +76,8 @@ concepts:
   properties:
   - success: bool
   - diagnostics: list[Diagnostic]
-  source_ranges:
-  - start: 77
-    end: 77
+  source_labels:
+  - '{a002}'
 - concept_id: C-005
   name: OperationResult
   definition: "Result of a mutating operation: success flag, optional typed error
@@ -95,9 +87,8 @@ concepts:
   - error_code: str | None
   - message: str
   - diagnostics: list[Diagnostic]
-  source_ranges:
-  - start: 78
-    end: 78
+  source_labels:
+  - '{a002}'
 - concept_id: C-006
   name: WriteAllResult
   definition: "Result of a bulk-save operation listing written, failed, and skipped\n\
@@ -108,9 +99,8 @@ concepts:
   - failed_buffers: list[dict]
   - skipped_buffers: list[str]
   - diagnostics: list[Diagnostic]
-  source_ranges:
-  - start: 79
-    end: 79
+  source_labels:
+  - '{a002}'
 - concept_id: C-007
   name: SessionKey
   definition: "UUID4 string that uniquely and permanently identifies one session.\n\
@@ -118,9 +108,8 @@ concepts:
   properties:
   - type: str (UUID4)
   - reuse: never
-  source_ranges:
-  - start: 80
-    end: 80
+  source_labels:
+  - '{a002}'
 - concept_id: C-008
   name: SessionDescriptor
   definition: "Point-in-time snapshot of session state returned by connect/status\n\
@@ -129,9 +118,8 @@ concepts:
   - session_key: SessionKey
   - open_buffers: list[BufferDescriptor]
   - diagnostics: list[Diagnostic]
-  source_ranges:
-  - start: 81
-    end: 81
+  source_labels:
+  - '{a002}'
 - concept_id: C-009
   name: BufferDescriptor
   definition: "Point-in-time snapshot of buffer metadata included in SessionDescriptor.\n"
@@ -145,9 +133,8 @@ concepts:
   - modified: bool
   - readonly: bool
   - buf_file_path: str
-  source_ranges:
-  - start: 82
-    end: 82
+  source_labels:
+  - '{a002}'
 - concept_id: C-020
   name: BufferAddress
   definition: "Opaque pair of buffer_id and formatter-specific address. Invariant:\n\
@@ -155,11 +142,9 @@ concepts:
   properties:
   - buffer_id: str
   - address: Any
-  source_ranges:
-  - start: 83
-    end: 83
-  - start: 333
-    end: 343
+  source_labels:
+  - '{a002}'
+  - '{a00g}'
 - concept_id: C-010
   name: Buffer
   definition: "Binding of exactly one file (or unsaved content) to exactly one formatter\n\
@@ -173,24 +158,28 @@ concepts:
   - relative_path: str | None
   - formatter: str
   - modified: bool
-  - locked: bool - CA file lock held under ca_session_id; True only on writable remote open
-  - readonly: bool - immutable after open; forced True when locked=False (remote).
-      Blocks write (NativeExport) and file_send (FileRelay) only; local mutations allowed.
-  - lock_readonly_invariant: 'remote: locked=False => readonly=True; writable requires lock'
+  - locked: bool - CA file lock held under ca_session_id; True only on writable 
+      remote open
+  - readonly: bool - immutable after open; forced True when locked=False 
+      (remote). Blocks write (NativeExport) and file_send (FileRelay) only; 
+      local mutations allowed.
+  - lock_readonly_invariant: 'remote: locked=False => readonly=True; writable requires
+      lock'
   - buf_file_path: str
-  source_ranges:
-  - start: 150
-    end: 153
-  - start: 179
-    end: 200
-  - start: 202
-    end: 216
-  - start: 243
-    end: 250
-  - start: 318
-    end: 331
-  - start: 1075
-    end: 1151
+  source_labels:
+  - '{a004}'
+  - '{a006}'
+  - '{a007}'
+  - '{a008}'
+  - '{a009}'
+  - '{a00b}'
+  - '{a00c}'
+  - '{a00g}'
+  - '{a00v}'
+  - '{a00w}'
+  - '{a00x}'
+  - '{a00y}'
+  - '{a00z}'
 - concept_id: C-011
   name: BufferState
   definition: "Snapshot of buffer's current state returned by get_state, including
@@ -202,9 +191,10 @@ concepts:
   - modified: bool
   - readonly: bool
   - relative_path: str | None
-  source_ranges:
-  - start: 218
-    end: 228
+  source_labels:
+  - '{a009}'
+  - '{a00a}'
+  - '{a00b}'
 - concept_id: C-012
   name: FormatterRegistry
   definition: "Singleton registry mapping file extensions and formatter names to formatter\n\
@@ -214,9 +204,8 @@ concepts:
   - get_by_extension: get_by_extension(ext) -> formatter_class | None
   - get_by_name: get_by_name(name) -> formatter_class | None
   - list_formatters: list_formatters() -> list[str]
-  source_ranges:
-  - start: 230
-    end: 241
+  source_labels:
+  - '{a00b}'
 - concept_id: C-013
   name: CodeAnalysisClient
   definition: "Single gateway for all project file I/O via the CA server API. Invariant:\n\
@@ -240,11 +229,10 @@ concepts:
   - restore_backup_file: (project_id, file_path, backup_uuid) -> void
   - list_file_locks: (ca_session_id, project_id) -> list; wraps 
       session_list_file_locks (pre-check before acquiring)
-  source_ranges:
-  - start: 103
-    end: 148
-  - start: 150
-    end: 153
+  source_labels:
+  - '{a002}'
+  - '{a003}'
+  - '{a004}'
 - concept_id: C-014
   name: FileLock
   definition: "Server-side cooperative file lock, keyed by (ca_session_id, project_id,
@@ -268,9 +256,11 @@ concepts:
   - isolation_precheck: session_list_file_locks(ca_session_id, project_id) 
       consulted before acquire; if held by a different CA session -> 
       BUFFER_LOCKED, no content fetched
-  source_ranges:
-  - start: 252
-    end: 316
+  source_labels:
+  - '{a00c}'
+  - '{a00d}'
+  - '{a00e}'
+  - '{a00f}'
 - concept_id: C-015
   name: Writer
   definition: "Local disk write utilities with two distinct responsibilities: write_buf\n\
@@ -281,11 +271,8 @@ concepts:
   - write_result: write_result(content, path) -> backup + atomic write + 
       read-back
   - project_files: written only via CodeAnalysisClient.upload_file
-  source_ranges:
-  - start: 318
-    end: 331
-  - start: 345
-    end: 353
+  source_labels:
+  - '{a00g}'
 - concept_id: C-016
   name: AiEditorConfig
   definition: "Configuration section 'ai_editor' in config.json providing formatter\n\
@@ -294,13 +281,10 @@ concepts:
   - small_file_threshold: str
   - small_file_formatter: str
   - sessions_base_dir: str
-  source_ranges:
-  - start: 355
-    end: 365
-  - start: 1313
-    end: 1322
-  - start: 1326
-    end: 1363
+  source_labels:
+  - '{a00g}'
+  - '{a015}'
+  - '{a016}'
 - concept_id: C-017
   name: CodeAnalysisServerConfig
   definition: "Configuration section 'code_analysis_server' in config.json for CA
@@ -312,13 +296,10 @@ concepts:
   - ssl: SSLConfig | None
   - auth_use_token: bool
   - auth_token_env: str | None
-  source_ranges:
-  - start: 365
-    end: 368
-  - start: 1313
-    end: 1322
-  - start: 1326
-    end: 1363
+  source_labels:
+  - '{a00g}'
+  - '{a015}'
+  - '{a016}'
 - concept_id: C-018
   name: AiEditorConfigValidator
   definition: "Validator that extends adapter BaseValidator; validates ai_editor and\n\
@@ -327,15 +308,10 @@ concepts:
   - extends: BaseValidator (mcp_proxy_adapter)
   - calls_super: SimpleConfigValidator first
   - validates: ai_editor section + code_analysis_server section
-  source_ranges:
-  - start: 373
-    end: 374
-  - start: 376
-    end: 378
-  - start: 1313
-    end: 1322
-  - start: 1326
-    end: 1363
+  source_labels:
+  - '{a00g}'
+  - '{a015}'
+  - '{a016}'
 - concept_id: C-019
   name: AiEditorConfigGenerator
   definition: "Config generator that extends adapter SimpleConfigGenerator; calls
@@ -345,23 +321,25 @@ concepts:
   - extends: SimpleConfigGenerator (mcp_proxy_adapter)
   - calls_super: generates base adapter config first
   - appends: ai_editor section + code_analysis_server section
-  source_ranges:
-  - start: 370
-    end: 371
-  - start: 376
-    end: 378
-  - start: 1313
-    end: 1322
-  - start: 1326
-    end: 1363
+  source_labels:
+  - '{a00g}'
+  - '{a015}'
+  - '{a016}'
 - concept_id: C-021
   name: AbstractFormatter
-  definition: 'Base class for every format. Owns the in-memory Tree, all structural
-    operations over it, stable_id identity, Sidecar production, and write orchestration.
-    Subclasses implement conversion hooks only. Invariant: formatters must not know
-    about sessions, session_key, buf files, git, or buffer registry.'
+  definition: 'Base class for every format. Owns DocumentGraph (C-074), stable_id
+    identity (C-031), structural mutation orchestration, build_preview navigation,
+    and write_tree_file persistence. Subclasses implement Reader/Classifier/Exporter
+    conversion hooks only; content/structure mutations delegate to FormatterMutationBackend
+    (C-087). Invariant: formatters must not know about sessions, session_key, buf
+    files, git, or buffer registry.'
   properties:
-  - 'base_owned_lifecycle: [open_tree, export, render_skeleton]'
+  - 'formatter_triad: Reader (C-076) + Classifier (C-073) + Exporter (C-078)'
+  - 'base_owned_lifecycle: [ingest, mutate, export, build_preview]'
+  - 'build_preview: build_preview(document, node_ref=None) -> PreviewEnvelope via
+    PreviewNavigator (C-072)'
+  - 'render_skeleton: legacy string overview only; delegates to or supplements build_preview
+    for legacy callers'
   - 'base_owned_navigation: [normalize_address, get_unit, iter_units, match_unit,
     compare_units, diagnostics]'
   - 'base_owned_mutations: insert(parent, position, content); delete; move; replace_node
@@ -378,22 +356,26 @@ concepts:
   - 'base_owned_identity: stable_id assigned/preserved by base; subclasses forbidden'
   - 'subclass_forbidden: [assign/read stable_id, any structural mutation]'
   - 'subclass_hooks: [parse, render, node_from_source, node_to_source, linters]'
+  - 'mutation_delegation: base.apply_op delegates content/structure change to FormatterMutationBackend
+    (C-087) per formatter_name; Reader/Exporter/Classifier hooks never mutate graph'
   - 'base_owned_write: step-0 pre-write validation (PRE_WRITE_VALIDATION_FAILED on
     error); export -> diff preview -> temp file -> subclass linters -> atomic rename;
     abort on lint error'
   - 'list_commands: list_commands() -> FormatterCommandCatalog'
   - 'formatter_name: str'
-  source_ranges:
-  - start: 382
-    end: 500
-  - end: 535
-    start: 501
-  - start: 518
-    end: 533
-  - start: 535
-    end: 552
-  - start: 554
-    end: 562
+  source_labels:
+  - '{a00g}'
+  - '{a00h}'
+  - '{a00i}'
+  - '{a00j}'
+  - '{a00k}'
+  - '{a00l}'
+  - '{a00m}'
+  - '{a01u}'
+  - '{a01v}'
+  - '{a01w}'
+  - '{a01x}'
+  - '{a01y}'
 - concept_id: C-022
   name: FormatterCommandCatalog
   definition: "Structured catalogue of all standard and formatter-specific commands
@@ -404,9 +386,8 @@ concepts:
   - standard_commands: list[FormatterCommandMetadata]
   - specific_commands: list[FormatterCommandMetadata]
   - openapi_schemas: dict
-  source_ranges:
-  - start: 571
-    end: 586
+  source_labels:
+  - '{a00m}'
 - concept_id: C-023
   name: FormatterUnit
   definition: Addressable unit within the formatter Tree for navigation and 
@@ -417,9 +398,8 @@ concepts:
   - 'unit_kind: str'
   - 'display_text: str'
   - 'metadata: dict'
-  source_ranges:
-  - start: 588
-    end: 595
+  source_labels:
+  - '{a00m}'
 - concept_id: C-024
   name: SkeletonOptions
   definition: "Configuration for render_skeleton controlling depth, hint fields, collapse\n\
@@ -430,18 +410,17 @@ concepts:
   - collapse_threshold: int = 3
   - string_preview_len: int = 60
   - offset: int = 0
-  source_ranges:
-  - start: 536
-    end: 554
+  source_labels:
+  - '{a00m}'
 - concept_id: C-025
   name: TextFormatter
   definition: Converter-only subclass for plain text files. Document model is a 
-    two-level paragraph/line tree (not list[str]). Structure, navigation, 
-    mutation, and identity are owned by AbstractFormatter base.
+    three-level document/paragraph/line tree (not list[str]). Structure, 
+    navigation, mutation, and identity are owned by AbstractFormatter base.
   properties:
-  - 'document_model: root -> paragraph -> line'
+  - 'document_model: document -> paragraph -> line'
   - 'paragraph_rule: split by blank line(s); no blanks => whole file is one paragraph'
-  - 'node_kinds: [paragraph, line]'
+  - 'node_kinds: [document, paragraph, line]'
   - 'address: stable_id'
   - 'subclass_hooks: parse, render, node_from_source, node_to_source'
   - 'linters: none'
@@ -449,24 +428,23 @@ concepts:
     numbers; always available including InvalidOnOpen mode'
   - 'registered_extensions: [.txt, .log, .rst, .ini, .cfg, .toml]'
   - 'note: .md and .markdown owned by MarkdownFormatter (C-052)'
-  source_ranges:
-  - start: 591
-    end: 607
+  source_labels:
+  - '{a00m}'
 - concept_id: C-026
   name: YamlFormatter
   definition: Converter-only subclass for YAML using ruamel.yaml round-trip. 
     Structure, navigation, mutation, and identity owned by base class.
   properties:
   - 'document_model: mapping | sequence | scalar tree nodes'
-  - 'node_kinds: [mapping, sequence, scalar]'
+  - 'node_kinds: [mapping, sequence, scalar, mappingItem]'
   - 'address: stable_id'
   - 'subclass_hooks: parse (ruamel round-trip), render, node_from_source, node_to_source'
   - 'linters: [yaml_parse, jsonschema_optional, plan_task_v1_semantic]'
   - 'roundtrip_invariant: render(parse(x)) preserves comments, key order, formatting'
   - 'registered_extensions: [.yaml, .yml]'
-  source_ranges:
-  - start: 612
-    end: 637
+  source_labels:
+  - '{a00m}'
+  - '{a00n}'
 - concept_id: C-027
   name: PlanTaskV1
   definition: "Semantic validation schema for plan task YAML files. Validates format,\n\
@@ -485,24 +463,23 @@ concepts:
     - ready_for_implementation
     - blocked
   - commands_names: unique within document
-  source_ranges:
-  - start: 554
-    end: 563
+  source_labels:
+  - '{a00m}'
 - concept_id: C-028
   name: JsonFormatter
   definition: Converter-only subclass for JSON. Structure, navigation, mutation,
     and identity owned by base class. No comment preservation.
   properties:
-  - 'document_model: mapping | sequence | scalar tree nodes'
-  - 'node_kinds: [mapping, sequence, scalar]'
+  - 'document_model: root | object | objectProp | array | primitive tree nodes'
+  - 'node_kinds: [root, object, objectProp, array, primitive]'
   - 'address: stable_id'
   - 'subclass_hooks: parse (stdlib json), render, node_from_source, node_to_source'
   - 'linters: [json_parse, jsonschema_optional]'
   - 'note: key order = Python dict insertion order'
   - 'registered_extensions: [.json]'
-  source_ranges:
-  - start: 638
-    end: 654
+  source_labels:
+  - '{a00n}'
+  - '{a00o}'
 - concept_id: C-029
   name: CSTFormatter
   definition: Specialisation of AbstractFormatter for Python (.py) using libcst.
@@ -510,15 +487,15 @@ concepts:
     ops remain in base class. Default view is declarative skeleton.
   properties:
   - 'document_model: CSTTree (extends generic Tree)'
+  - 'migration_target: DocumentGraph (C-074); legacy CSTTree until G-009'
   - 'address: stable_id (UUID4)'
   - 'subclass_hooks: parse (libcst), render, node_from_source, node_to_source, linters'
   - 'storing_ids_in_source: forbidden'
   - 'registered_extensions: [.py]'
-  source_ranges:
-  - start: 655
-    end: 659
-  - start: 786
-    end: 973
+  source_labels:
+  - '{a00o}'
+  - '{a00u}'
+  - '{a00v}'
 - concept_id: C-030
   name: CSTTree
   definition: 'CST specialisation of Tree: in-memory Python CST with libcst.Module,
@@ -532,25 +509,28 @@ concepts:
   - 'parent_map: node_id -> parent_node_id'
   - 'node_id_aliases: previous_obj_to_id snapshot'
   - 'root_node_id: stable_id of module root'
-  source_ranges:
-  - start: 660
-    end: 673
+  source_labels:
+  - '{a00o}'
+  - '{a00p}'
 - concept_id: C-031
   name: StableId
-  definition: 'UUID4 node identity assigned once by AbstractFormatter base class at
-    tree build for every format. Never reassigned on replace_node; maintained through
-    structural ops. Subclasses never assign, read, or depend on stable_ids. For CST,
-    transient # @node-id embedding during mutation is stripped before any write.'
+  definition: 'UUID4 node identity assigned once at ingest via assign_stable_ids and
+    persisted in tree file serialisation on disk and in-memory DocumentNode. IDs do
+    not appear in native source on disk. Transient # @node-id markers for in-memory
+    re-parse within one operation are governed by C-079 (StableIdTransfer); markers
+    are stripped before native export/write, not before tree-file persist.'
   properties:
   - 'type: UUID4 str'
-  - 'owner: AbstractFormatter base class'
-  - 'assigned_at: first tree index build (open_tree)'
-  - 'persists_through: replace_node (same id), insert/delete/move integrity'
+  - 'assigned_once_at: ingest via assign_stable_ids'
+  - 'persisted_in: tree file serialised node map on disk (C-080 authority)'
+  - 'absent_from: native source file on disk'
+  - 'survives: replace_node, move/reparent; lost on structural delete of node'
+  - 'insert_creates: new UUID4 only'
+  - 'transient_markers: see C-079; in-memory re-parse aid only'
   - 'forbidden_for_subclass: assign, read, depend on stable_id'
-  - 'cst_transient_embedding: # @node-id stripped before write/render/sidecar'
-  source_ranges:
-  - start: 675
-    end: 703
+  source_labels:
+  - '{a01y}'
+  - '{a01z}'
 - concept_id: C-032
   name: Sidecar
   definition: Persisted tree file for every format. Session-side after every 
@@ -564,13 +544,18 @@ concepts:
   - 'cst_session_side: <session_dir>/<buffer_id>.cst'
   - 'cst_project_side: <py_dir>/.cst/<py_stem>.tree'
   - 'cst_header: CST_TREE_V1 sha256=<source> tree_sha256=<tree>'
+  - 'serialisation: JSON or format-specific DocumentGraph body including stable_id
+    per node'
   - 'load_validation: checksum mismatch -> rebuild from source'
   - 'write: atomic via tempfile + os.replace'
-  source_ranges:
-  - start: 468
-    end: 501
-  - start: 705
-    end: 720
+  source_labels:
+  - '{a00k}'
+  - '{a00l}'
+  - '{a00m}'
+  - '{a00s}'
+  - '{a00t}'
+  - '{a01w}'
+  - '{a01x}'
 - concept_id: C-033
   name: DeclarativeSkeleton
   definition: "Default view of a .py buffer: structural overview of visible nodes
@@ -588,9 +573,13 @@ concepts:
     - attribute
     - variable
   - body_placeholder: '# Implementation hidden; request node by stable_id'
-  source_ranges:
-  - start: 662
-    end: 767
+  source_labels:
+  - '{a00o}'
+  - '{a00p}'
+  - '{a00q}'
+  - '{a00r}'
+  - '{a00s}'
+  - '{a00t}'
 - concept_id: C-034
   name: DocstringMeta
   definition: "Structured docstring stored in TreeNodeMetadata, migrating with the
@@ -604,9 +593,9 @@ concepts:
     - docstring_body
   - style: Google-style
   - applied: automatically on save
-  source_ranges:
-  - start: 768
-    end: 785
+  source_labels:
+  - '{a00t}'
+  - '{a00u}'
 - concept_id: C-035
   name: AbstractSearch
   definition: "Interface for searching within a formatter's document model. Does not
@@ -617,9 +606,8 @@ concepts:
   - find_one: find_one(session_key, buffer_id, query, scope) -> SearchMatch | 
       error
   - list_units: list_units(session_key, buffer_id, scope) -> list[SearchMatch]
-  source_ranges:
-  - start: 976
-    end: 992
+  source_labels:
+  - '{a00v}'
 - concept_id: C-036
   name: SearchMatch
   definition: "Single search result carrying a formatter-specific address, a text
@@ -632,11 +620,8 @@ concepts:
   - unit_kind: str
   - metadata: dict
   - 'address_model: node stable_id for all formatters (unified tree navigation)'
-  source_ranges:
-  - start: 994
-    end: 997
-  - start: 1004
-    end: 1007
+  source_labels:
+  - '{a00v}'
 - concept_id: C-037
   name: SearchQuery
   definition: "Typed search query with kind, value, and options fields.\nFormatter-specific
@@ -655,9 +640,8 @@ concepts:
   - cst_kinds:
     - xpath
     - stable_id
-  source_ranges:
-  - start: 1009
-    end: 1040
+  source_labels:
+  - '{a00v}'
 - concept_id: C-038
   name: Session
   definition: "Collection of open buffers sharing a session directory, session git
@@ -680,62 +664,62 @@ concepts:
   - coordinates: multiple Buffers
   - uses:
     - CASession (external; ca_session_id)
-  source_ranges:
-  - start: 17
-    end: 41
-  - start: 51
-    end: 64
-  - start: 1043
-    end: 1048
-  - start: 1075
-    end: 1151
-  - start: 1196
-    end: 1208
-  - start: 1210
-    end: 1217
+  source_labels:
+  - '{a001}'
+  - '{a002}'
+  - '{a00v}'
+  - '{a00w}'
+  - '{a00x}'
+  - '{a00y}'
+  - '{a00z}'
+  - '{a011}'
+  - '{a012}'
 - concept_id: C-039
   name: SessionDirectory
-  definition: Root directory of one session on local disk; exclusive container for
-    all session artifacts; no cross-session path sharing.
+  definition: Root directory of one session on local disk; exclusive container 
+    for all session artifacts; no cross-session path sharing.
   properties:
   - 'path: <sessions_base_dir>/<session_key>/'
   - 'directory_name_equals_session_key: true — folder basename IS session id'
   - 'create_order: mkdir session dir -> ses_settings.json -> init git/ inside dir'
-  - 'isolation: one session_key maps to exactly one directory; no overlap between sessions'
+  - 'isolation: one session_key maps to exactly one directory; no overlap between
+    sessions'
   - 'access_gate: API resolves session_dir from session_key; foreign key denied'
-  - 'ses_settings.session_key must match directory name'
+  - ses_settings.session_key must match directory name
   - contains:
     - ses_settings.json
     - git/
     - buffer tree/native/baseline/pending files
     - clipboard.json
   - lifetime: until explicit close_session or startup_sweep orphan cleanup
-  source_ranges:
-  - start: 43
-    end: 95
-  - start: 1050
-    end: 1058
-  - start: 1143
-    end: 1180
+  source_labels:
+  - '{a001}'
+  - '{a002}'
+  - '{a00v}'
+  - '{a00y}'
+  - '{a00z}'
 - concept_id: C-086
   name: SessionIsolation
-  definition: Invariant that session artifacts are confined to one session directory
-    per session_key; cross-session access via wrong session_key is forbidden.
+  definition: Invariant that session artifacts are confined to one session 
+    directory per session_key; cross-session access via wrong session_key is 
+    forbidden.
   properties:
   - 'resolve_session_dir: validates path, directory, ses_settings.session_key match'
   - 'resolve_buffer: buffer_id scoped to session open_buffers list'
   - 'no_shared_artifacts: tree, git, clipboard, native files never cross sessions'
-  - 'errors: SESSION_NOT_FOUND for wrong/missing session; BUFFER_NOT_FOUND for foreign buffer_id'
+  - 'errors: SESSION_NOT_FOUND for wrong/missing session; BUFFER_NOT_FOUND for foreign
+    buffer_id'
   - 'path_traversal: rejected on session_key'
-  source_ranges:
-  - start: 43
-    end: 95
-  - start: 1143
-    end: 1180
+  source_labels:
+  - '{a001}'
+  - '{a002}'
+  - '{a00y}'
+  - '{a00z}'
 - concept_id: C-040
   name: SessionGit
-  definition: Non-bare git repository inside the session directory. Initialized by
-    session_connect AFTER session directory creation. One branch per open buffer.
+  definition: Non-bare git repository inside the session directory. Initialized 
+    by session_connect AFTER session directory creation. One branch per open 
+    buffer.
   properties:
   - 'path: <session_dir>/git/'
   - 'init_trigger: session_connect on new session; step 4 after mkdir + ses_settings'
@@ -744,13 +728,11 @@ concepts:
   - commit_trigger: every mutation + clipboard cut/copy
   - undo_redo: implemented via branch commits and redo_stack in ses_settings
   - deleted: with session directory on close
-  source_ranges:
-  - start: 43
-    end: 54
-  - start: 1069
-    end: 1073
-  - start: 1153
-    end: 1167
+  source_labels:
+  - '{a001}'
+  - '{a002}'
+  - '{a00v}'
+  - '{a00z}'
 - concept_id: C-041
   name: Clipboard
   definition: "Session-scoped clipboard holding the last copied or cut fragment. When\n\
@@ -763,11 +745,10 @@ concepts:
   - cut: mutates document, sets modified=True
   - paste: checks formatter match; consults ConversionRegistry on mismatch
   - cross_session_paste: not supported
-  source_ranges:
-  - start: 1169
-    end: 1178
-  - start: 1182
-    end: 1194
+  source_labels:
+  - '{a00z}'
+  - '{a010}'
+  - '{a011}'
 - concept_id: C-042
   name: SessionAttributes
   definition: "Persistent session state stored in ses_settings.json, including\nsession_key,
@@ -781,9 +762,8 @@ concepts:
     - 'open_buffers (per buffer: file_type, readonly, locked, modified, saved)'
     - redo_stack per buffer
     - ca_session_id (session-level; external CA/user session id)
-  source_ranges:
-  - start: 1060
-    end: 1067
+  source_labels:
+  - '{a00v}'
 - concept_id: C-043
   name: BufferFile
   definition: "Local copy of a file's content in the session directory, written by\n\
@@ -793,9 +773,8 @@ concepts:
   - path: <session_dir>/<buffer_id>.<ext>
   - written_by: write_buf
   - content: full source, not skeleton
-  source_ranges:
-  - start: 51
-    end: 64
+  source_labels:
+  - '{a002}'
 - concept_id: C-044
   name: StartupSweep
   definition: "Recovery procedure on ai_editor startup that releases stale file locks
@@ -808,9 +787,9 @@ concepts:
   - orphan_cleanup: delete dirs with missing or corrupt ses_settings.json
   - ttl: none; no time-based deletion
   - policy: B — orphaned dirs deleted; dirs with valid ses_settings preserved
-  source_ranges:
-  - start: 156
-    end: 173
+  source_labels:
+  - '{a008}'
+  - '{a009}'
 - concept_id: C-045
   name: EditorCommand
   definition: "Command unit following metadatastd.md: three-file structure\n(command/schema/metadata),
@@ -824,13 +803,10 @@ concepts:
   - base_class: Command (mcp_proxy_adapter.commands.base)
   - validate_params: calls super() first
   - destructive_commands: include dry_run parameter
-  source_ranges:
-  - start: 1221
-    end: 1224
-  - start: 1226
-    end: 1289
-  - start: 1291
-    end: 1301
+  source_labels:
+  - '{a01a}'
+  - '{a01b}'
+  - '{a01c}'
 - concept_id: C-046
   name: HooksRegister
   definition: "Module hooks_register.py that registers all EditorCommands and all\n\
@@ -843,9 +819,8 @@ concepts:
       CSTFormatter, MarkdownFormatter, XmlFormatter, HtmlFormatter
   - registers_conversions: all ConversionRules in ConversionRegistry
   - pattern: register_custom_commands_hook(_register)
-  source_ranges:
-  - start: 1741
-    end: 1765
+  source_labels:
+  - '{a01b}'
 - concept_id: C-047
   name: ApiFacade
   definition: "ai_editor/api.py providing thin synchronous wrapper functions over
@@ -874,9 +849,10 @@ concepts:
     - find_one
     - validate
     - validate_file
-  source_ranges:
-  - start: 1303
-    end: 1306
+  source_labels:
+  - '{a01c}'
+  - '{a01d}'
+  - '{a01e}'
 - concept_id: C-048
   name: CLI
   definition: "Thin diagnostic wrapper ai_editor/interfaces/cli.py over ApiFacade.\n\
@@ -894,9 +870,9 @@ concepts:
     - redo
     - validate-file
   - purpose: diagnostic / development tool
-  source_ranges:
-  - start: 1308
-    end: 1311
+  source_labels:
+  - '{a01e}'
+  - '{a01f}'
 - concept_id: C-049
   name: StartupSequence
   definition: "Ordered initialisation in main.py: load config, validate, build ASGI
@@ -909,13 +885,12 @@ concepts:
     - register_custom_commands_hook
     - UnifiedServerRunner.run_server
   - no_manual_http_routes: adapter generates entire API surface
-  source_ranges:
-  - start: 1365
-    end: 1384
-  - start: 1408
-    end: 1420
-  - start: 1422
-    end: 1439
+  source_labels:
+  - '{a016}'
+  - '{a017}'
+  - '{a019}'
+  - '{a01a}'
+  - '{a01b}'
 - concept_id: C-050
   name: ProxyRegistration
   definition: "Automatic registration of the ai_editor server instance on mcp-proxy
@@ -926,9 +901,9 @@ concepts:
   - retry: 5 attempts with exponential backoff
   - unreachable_proxy: server still starts; API available without proxy
   - instance_uuid: UUID4 in config.json
-  source_ranges:
-  - start: 1385
-    end: 1392
+  source_labels:
+  - '{a017}'
+  - '{a018}'
 - concept_id: C-051
   name: ServiceManager
   definition: scripts/aiedmgr console script for process lifecycle management.
@@ -943,11 +918,9 @@ concepts:
   - log_file: logs/ai_editor.log
   - stop_sequence: SIGTERM wait 30s SIGKILL
   - start_validates_config: AiEditorConfigValidator called before launch
-  source_ranges:
-  - start: 1393
-    end: 1398
-  - start: 1402
-    end: 1407
+  source_labels:
+  - '{a018}'
+  - '{a019}'
 - concept_id: C-052
   name: MarkdownFormatter
   definition: "Formatter for Markdown files (.md, .markdown) using mistune>=3.0 AST.\n\
@@ -968,11 +941,13 @@ concepts:
     - insert_after
     - replace_block
     - replace_range
-  source_ranges:
-  - start: 1441
-    end: 1451
-  - start: 1453
-    end: 1511
+  source_labels:
+  - '{a01b}'
+  - '{a01c}'
+  - '{a01d}'
+  - '{a01e}'
+  - '{a01f}'
+  - '{a01g}'
 - concept_id: C-053
   name: MdNode
   definition: "Document model node for MarkdownFormatter wrapping a mistune AST node\n\
@@ -986,9 +961,13 @@ concepts:
   - children: list[MdNode]
   - attrs: dict
   - source_pos: tuple[int,int] | None
-  source_ranges:
-  - start: 1453
-    end: 1511
+  source_labels:
+  - '{a01b}'
+  - '{a01c}'
+  - '{a01d}'
+  - '{a01e}'
+  - '{a01f}'
+  - '{a01g}'
 - concept_id: C-054
   name: XmlFormatter
   definition: "Formatter for XML files (.xml, .xsd, .xsl, .xslt, .svg) using lxml>=5.0.\n\
@@ -1011,9 +990,9 @@ concepts:
     - insert_after
     - replace_block
   - validate_document: well-formedness always; optional XSD if schema provided
-  source_ranges:
-  - start: 1513
-    end: 1561
+  source_labels:
+  - '{a01g}'
+  - '{a01h}'
 - concept_id: C-055
   name: HtmlFormatter
   definition: "Formatter for HTML files (.html, .htm, .xhtml) using beautifulsoup4>=4.12\n\
@@ -1034,9 +1013,13 @@ concepts:
     - insert_after
     - replace_block
   - validate_document: HTML5 structural check
-  source_ranges:
-  - start: 1563
-    end: 1611
+  source_labels:
+  - '{a01h}'
+  - '{a01i}'
+  - '{a01j}'
+  - '{a01k}'
+  - '{a01l}'
+  - '{a01m}'
 - concept_id: C-056
   name: ConversionRegistry
   definition: "Registry of cross-formatter conversion rules enabling clipboard paste\n\
@@ -1050,13 +1033,13 @@ concepts:
       fragment
   - list_conversions: list_conversions() -> list[ConversionRule]
   - on_conversion_error: catch all exceptions, return CLIPBOARD_FORMAT_MISMATCH
-  source_ranges:
-  - start: 1441
-    end: 1451
-  - start: 1613
-    end: 1724
-  - start: 1728
-    end: 1739
+  source_labels:
+  - '{a01b}'
+  - '{a01m}'
+  - '{a01n}'
+  - '{a01o}'
+  - '{a01p}'
+  - '{a01q}'
 - concept_id: C-057
   name: ConversionRule
   definition: "Single entry in ConversionRegistry describing how to convert a fragment\n\
@@ -1067,11 +1050,12 @@ concepts:
   - converter: Callable
   - lossy: bool
   - description: str
-  source_ranges:
-  - start: 1613
-    end: 1724
-  - start: 1728
-    end: 1739
+  source_labels:
+  - '{a01m}'
+  - '{a01n}'
+  - '{a01o}'
+  - '{a01p}'
+  - '{a01q}'
 - concept_id: C-058
   definition: Set of files copied verbatim from code-analysis-server into 
     ai_editor/ported/ as the starting point for Scenario B adaptation.
@@ -1083,7 +1067,7 @@ concepts:
   - copied without business logic changes
   - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
     union)'
-  source_ranges: []
+  source_labels: []
 - concept_id: C-059
   definition: Set of thin shim modules replacing code-analysis-server 
     infrastructure dependencies so PortedCodeBase runs without DB or 
@@ -1096,7 +1080,7 @@ concepts:
   - import rewrite replaces all code_analysis.* paths
   - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
     union)'
-  source_ranges: []
+  source_labels: []
 - concept_id: C-060
   definition: Mechanical transformation of import statements in PortedCodeBase 
     files replacing code_analysis and mcp_proxy_adapter namespaces with 
@@ -1108,7 +1092,7 @@ concepts:
   - ValidationError replaced with ValueError
   - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
     union)'
-  source_ranges: []
+  source_labels: []
 - concept_id: C-061
   definition: Invariant state where ai_editor/ported/ is importable standalone 
     and the text format group is fully functional without code-analysis-server 
@@ -1119,7 +1103,7 @@ concepts:
   - verified by import test and text group smoke test
   - 'gs_only: true — G-000 port-prep; no binding HRS tezis (excluded from I1c HRS
     union)'
-  source_ranges: []
+  source_labels: []
 - concept_id: C-062
   definition: "External user/login session on the CA server (e.g. the chat session),
     identified by\nca_session_id. Created OUTSIDE ai_editor at user login and shared
@@ -1141,9 +1125,11 @@ concepts:
     - session_close_file (unlock)
     - session_list_file_locks (isolation pre-check)
   - shared_with: terminal sessions and other CA-server consumers
-  source_ranges:
-  - start: 252
-    end: 316
+  source_labels:
+  - '{a00c}'
+  - '{a00d}'
+  - '{a00e}'
+  - '{a00f}'
 - concept_id: C-063
   name: Tree
   definition: In-memory node tree owned by AbstractFormatter base; produced by 
@@ -1152,9 +1138,8 @@ concepts:
   - 'owner: AbstractFormatter base class'
   - 'root: TreeNode'
   - 'lifecycle: created at open_tree; updated by base structural ops'
-  source_ranges:
-  - start: 536
-    end: 554
+  source_labels:
+  - '{a00m}'
 - concept_id: C-064
   name: TreeNode
   definition: 'Single node in the generic Tree: stable_id, node_kind, line range,
@@ -1167,21 +1152,21 @@ concepts:
   - 'display_text: str'
   - 'metadata: dict'
   - 'children: list[TreeNode]'
-  source_ranges:
-  - start: 536
-    end: 554
+  source_labels:
+  - '{a00m}'
 - concept_id: C-066
   name: SourceOfTruth
-  definition: 'Rule governing which artifact is authoritative: source file at open;
-    tree file once buffer.modified is True.'
+  definition: 'Rule governing which artifact is authoritative: native source read
+    once at ingest; session tree file is source of truth for all editing after ingest.'
   properties:
-  - 'at_open: source file'
-  - 'after_first_mutation: tree file (sidecar)'
-  - 'condition: buffer.modified == True'
+  - 'at_ingest: native source read once via Reader.parse'
+  - 'after_ingest: session tree file (.tree) authoritative for editing'
+  - 'native_written: only on explicit export (write / write_all)'
   - 'applies_to: all formats'
-  source_ranges:
-  - start: 556
-    end: 562
+  source_labels:
+  - '{a015}'
+  - '{a01w}'
+  - '{a01x}'
 - concept_id: C-067
   name: AutoCreateTree
   definition: Automatic tree build when preview finds no tree file, and 
@@ -1189,9 +1174,8 @@ concepts:
   properties:
   - 'on_preview_missing_tree: build tree then operate'
   - 'after_ca_fetch: build tree immediately'
-  source_ranges:
-  - start: 564
-    end: 569
+  - 'hrs_binding_pending: true'
+  source_labels: []
 - concept_id: C-068
   name: WritePipeline
   definition: 'Base-class write orchestration: export via subclass render, diff preview,
@@ -1203,9 +1187,14 @@ concepts:
     -> PRE_WRITE_VALIDATION_FAILED immediately, no diff shown'
   - 'on_lint_error: abort, discard temp, return content+errors'
   - 'uniform_for: all formats'
-  source_ranges:
-  - start: 386
-    end: 500
+  source_labels:
+  - '{a00g}'
+  - '{a00h}'
+  - '{a00i}'
+  - '{a00j}'
+  - '{a00k}'
+  - '{a00l}'
+  - '{a00m}'
 - concept_id: C-069
   definition: Degraded buffer mode when a file fails to parse at open time. 
     format_group falls back to text regardless of extension; is_invalid=True; 
@@ -1222,13 +1211,13 @@ concepts:
   - 'recovery: on successful commit format_group restored, is_invalid cleared, recovered_format_group
     returned'
   - 'windowed_preview: always available for navigation in text mode'
-  source_ranges:
-  - end: 535
-    start: 501
+  source_labels:
+  - '{a00m}'
 - concept_id: C-070
   name: DocumentNode
-  definition: Unified typed node for all formatter backends; single graph element
-    replacing the split between generic TreeNode and CSTTree implementation paths.
+  definition: Unified typed node for all formatter backends; single graph 
+    element replacing the split between generic TreeNode and CSTTree 
+    implementation paths.
   properties:
   - 'stable_id: UUID4 base-assigned address'
   - 'node_ref: str navigation key for preview drilldown'
@@ -1239,36 +1228,36 @@ concepts:
   - 'metadata: dict format-specific attrs'
   - 'children: list[DocumentNode]'
   - 'source_span: optional render round-trip span'
-  source_ranges:
-  - start: 1810
-    end: 1848
+  source_labels:
+  - '{a020}'
+  - '{a021}'
 - concept_id: C-071
   name: PreviewEnvelope
-  definition: Structured model-facing preview response with focus text, blocks list,
-    and navigation metadata; replaces bare string preview in command API surface.
+  definition: Structured model-facing preview response with focus text, blocks 
+    list, and navigation metadata; replaces bare string preview in command API 
+    surface.
   properties:
   - 'focus: annotated text + node_ref + line span'
   - 'blocks: list of child summaries for drilldown'
   - 'navigation: drilldown_param, collapsed, total_blocks'
   - 'format_meta: formatter_name, format_group'
-  source_ranges:
-  - start: 1850
-    end: 1895
+  source_labels:
+  - '{a022}'
+  - '{a023}'
 - concept_id: C-072
   name: PreviewNavigator
-  definition: Collapse policy and node_ref drilldown producing PreviewEnvelope views
-    for large files without token burn.
+  definition: Collapse policy and node_ref drilldown producing PreviewEnvelope 
+    views for large files without token burn.
   properties:
-  - 'build_preview(document, node_ref=None) -> PreviewEnvelope'
+  - build_preview(document, node_ref=None) -> PreviewEnvelope
   - 'small_file: full annotated focus + blocks'
   - 'large_file: blocks-only root; drilldown narrows scope'
   - 'NQ-008: no-self-content-child enforced'
-  source_ranges:
-  - start: 1897
-    end: 1910
+  source_labels:
+  - '{a023}'
 - concept_id: C-073
   name: FormatterClassifier
-  definition: Part 2 of formatter backend; per-format node_kind catalog and
+  definition: Part 2 of formatter backend; per-format node_kind catalog and 
     parent-child validation rules applied when Reader builds DocumentNode trees.
   properties:
   - 'python: libcst type names as kinds'
@@ -1277,65 +1266,65 @@ concepts:
   - 'text: document, paragraph, line'
   - 'markdown: document, heading, paragraph, code_block, list, list_item'
   - 'validate_parent_child: enforced on read and after block insert'
-  source_ranges:
-  - start: 1920
-    end: 1935
+  source_labels:
+  - '{a021}'
+  - '{a022}'
 - concept_id: C-074
   name: DocumentGraph
-  definition: Single in-memory node graph owned by AbstractFormatter; root is DocumentNode;
-    loaded from and persisted to session tree file on disk after every mutation.
+  definition: Single in-memory node graph owned by AbstractFormatter; root is 
+    DocumentNode; loaded from and persisted to session tree file on disk after 
+    every mutation.
   properties:
   - 'owner: AbstractFormatter base class'
   - 'root: DocumentNode'
   - 'session_tree_file: <session_dir>/<buffer_id>.tree (or .cst for Python)'
   - 'ingest: native read once; assign_stable_ids once; write_tree_file'
   - 'edit: load tree file; mutate; write_tree_file + git commit each change'
-  - 'export: Exporter.render only on explicit save/send'
-  source_ranges:
-  - start: 1805
-    end: 1808
-  - start: 1847
-    end: 1895
-  - start: 1995
-    end: 2010
+  - 'mutate: base.apply_op delegates content/structure change to FormatterMutationBackend
+    (C-087)'
+  - 'export: Exporter.render only on explicit file_write / write_all'
+  source_labels:
+  - '{a01v}'
+  - '{a01w}'
+  - '{a01x}'
+  - '{a01z}'
+  - '{a020}'
 - concept_id: C-075
   name: CAPreviewParity
-  definition: Invariant that ai_editor PreviewEnvelope field semantics match
-    code-analysis-server universal_file_preview for the same file bytes and node_ref.
+  definition: Invariant that ai_editor PreviewEnvelope field semantics match 
+    code-analysis-server universal_file_preview for the same file bytes and 
+    node_ref.
   properties:
   - 'cross_check_ref: code_analysis docs/plans/ai_editor/viewer_features.yaml'
   - 'local_tracker: ai_editor docs/plans/ai_editor/viewer_features.yaml'
-  source_ranges:
-  - start: 1912
-    end: 1914
+  source_labels:
+  - '{a023}'
 - concept_id: C-076
   name: FormatterReader
-  definition: Part 1 of formatter backend; transforms source bytes into un-ID'd
+  definition: Part 1 of formatter backend; transforms source bytes into un-ID'd 
     DocumentNode structure via parse() and node_from_source().
   properties:
-  - 'parse(raw_content) -> tree nodes without stable_id'
-  - 'node_from_source(raw_block) -> node without stable_id'
-  - 'never assigns stable_id or structural ops'
-  source_ranges:
-  - start: 1803
-    end: 1818
+  - parse(raw_content) -> tree nodes without stable_id
+  - node_from_source(raw_block) -> node without stable_id
+  - never assigns stable_id or structural ops
+  source_labels:
+  - '{a01v}'
 - concept_id: C-078
   name: FormatterExporter
-  definition: Part 3 of formatter backend; transforms DocumentGraph back to source
-    via render() and node_to_source().
+  definition: Part 3 of formatter backend; transforms DocumentGraph back to 
+    source via render() and node_to_source().
   properties:
-  - 'render(tree) -> raw_content'
-  - 'node_to_source(node) -> raw_block'
-  - 'no persistent stable_id markers in committed output'
-  source_ranges:
-  - start: 1820
-    end: 1830
-  - start: 1832
-    end: 1845
+  - render(tree) -> raw_content
+  - node_to_source(node) -> raw_block
+  - no persistent stable_id markers in committed output
+  source_labels:
+  - '{a01v}'
+  - '{a01w}'
 - concept_id: C-079
   name: StableIdTransfer
-  definition: In-memory embed-extract aid for re-parse mutations within one operation;
-    ids authoritative in tree file on disk, never in native source export.
+  definition: In-memory embed-extract aid for re-parse mutations within one 
+    operation; ids authoritative in tree file on disk, never in native source 
+    export.
   properties:
   - 'embed: graph stable_id -> transient parse string markers'
   - 'mutate: backend on transient string only'
@@ -1343,87 +1332,120 @@ concepts:
   - 'python_transient_marker: # @node-id: <uuid4> in memory only'
   - 'tree_file_persistence: stable_id in serialised tree body on disk'
   - 'native_export: never contains markers'
-  source_ranges:
-  - start: 1920
-    end: 1945
+  source_labels:
+  - '{a01z}'
 - concept_id: C-080
   name: TreeFileAuthority
-  definition: Session tree file is working copy during edit; stable_ids live in tree
-    file on disk; native file read at ingest, written only on export; undo via git
-    snapshots of tree file.
+  definition: Session tree file is working copy during edit; stable_ids live in 
+    tree file on disk; native file read at ingest, written only on export; undo 
+    via git snapshots of tree file.
   properties:
   - 'tree_file: session_dir/<buffer_id>.tree or .cst'
   - 'assign_ids_once: at ingest/reload only'
   - 'mutation_persist: write_tree_file + git commit after every change'
-  - 'export_separate: Exporter.render on file_send/save/write_all only'
+  - 'export_separate: Exporter.render on file_write / write_all only; file_send is
+    relay'
   - 'native_source: no stable_id markers on disk'
-  source_ranges:
-  - start: 1847
-    end: 1895
+  source_labels:
+  - '{a01w}'
+  - '{a01x}'
 - concept_id: C-081
   name: NativeExport
-  definition: Write command exports DocumentGraph to native session file via Exporter;
-    gated by ExportDiff against baseline; identical skips write; changes require confirm.
+  definition: Write command exports DocumentGraph to native session file via 
+    Exporter; gated by ExportDiff against baseline; identical skips write; 
+    changes require confirm.
   properties:
   - 'commands: file_write, buf_write_all'
-  - 'approve_param: None=preview (.pending temp+diff); True=commit; False=reject delete temp'
+  - 'approve_param: None=preview (.pending temp+diff); True=commit; False=reject delete
+    temp'
   - 'reject: delete .pending; no baseline/modified/tree changes'
   - 'identical: no temp; skip write; modified=False'
   - 'does_not: file_send, tree mutation'
-  source_ranges:
-  - start: 351
-    end: 378
-  - start: 2239
-    end: 2275
+  source_labels:
+  - '{a025}'
 - concept_id: C-084
   name: ExportDiffResult
-  definition: Structured comparison of baseline native bytes vs candidate export from tree;
-    returned by file_export_diff and by file_write when confirm=False.
+  definition: Structured comparison of baseline native bytes vs candidate export
+    from tree; returned by file_export_diff and by file_write when 
+    confirm=False.
   properties:
   - 'identical: bool'
   - 'has_changes: bool'
   - 'unified_diff: str'
   - 'hunks: list of op/start_line/end_line/preview'
   - 'baseline_sha256, candidate_sha256: str'
-  source_ranges:
-  - start: 2239
-    end: 2275
+  - 'baseline_line_count: int'
+  - 'candidate_line_count: int'
+  source_labels:
+  - '{a026}'
 - concept_id: C-085
   name: ExportDiffPreview
-  definition: Standalone API command computing export diff without write; allowed in RO.
+  definition: Standalone API command computing export diff without write; 
+    allowed in RO.
   properties:
   - 'commands: file_export_diff, buf_export_diff'
-  - 'no side effects on disk or modified flag'
+  - no side effects on disk or modified flag
   - 'uses: baseline_native + Exporter.render candidate'
-  source_ranges:
-  - start: 368
-    end: 373
-  - start: 2239
-    end: 2275
+  source_labels:
+  - '{a026}'
 - concept_id: C-082
   name: FileRelay
-  definition: file_send relays native session file bytes to CA by file_id; no tree
-    access; optional unlock; precondition modified=False.
+  definition: file_send relays native session file bytes to CA by file_id; no 
+    tree access; optional unlock; precondition modified=False.
   properties:
   - 'precondition: modified=False; native session file present'
   - 'action: read native session file; ca upload by file_id'
   - 'optional: unlock via session_close_file'
   - 'does_not: Exporter.render, write_tree_file, assign stable_id'
-  source_ranges:
-  - start: 2109
-    end: 2185
+  source_labels:
+  - '{a025}'
 - concept_id: C-083
   name: BufferClose
-  definition: file_close deletes tree file and native session file; unlocks CA lock
-    if held; removes git branch and buffer entry.
+  definition: file_close deletes tree file and native session file; unlocks CA 
+    lock if held; removes git branch and buffer entry.
   properties:
   - 'deletes: <buffer_id>.tree, <buffer_id>.<ext>, git branch'
   - 'unlock: session_close_file when locked'
   - 'modified=True without force: FILE_HAS_UNSENT_CHANGES'
-  source_ranges:
-  - start: 2109
-    end: 2185
+  source_labels:
+  - '{a025}'
+- concept_id: C-087
+  name: FormatterMutationBackend
+  definition: Format-owned code that applies structural and content changes on 
+    the native document model for one formatter; invoked by 
+    AbstractFormatter.apply_op; distinct from Reader/Exporter/Classifier hooks.
+  properties:
+  - 'one_per_formatter: exactly one backend per formatter_name'
+  - 'python: libcst tree_modifier sequential/batch; StableIdTransfer on re-parse'
+  - 'yaml: ruamel structural path mutations'
+  - 'json: dict/list JQ-style path mutations'
+  - 'text: line-array insert and replace_range'
+  - 'markdown: block/heading tree ops when G-008 backend present'
+  - 'forbidden: assign stable_id; called from Reader/Exporter/Classifier hooks'
+  - 'base_orchestrates: graph link, validation, write_tree_file, git commit'
+  source_labels:
+  - '{a01v}'
+  - '{a01w}'
+  - '{a00v}'
 relations:
+- from_concept: C-021
+  to_concept: C-087
+  type: uses
+- from_concept: C-087
+  to_concept: C-074
+  type: uses
+- from_concept: C-029
+  to_concept: C-087
+  type: implements
+- from_concept: C-026
+  to_concept: C-087
+  type: implements
+- from_concept: C-028
+  to_concept: C-087
+  type: implements
+- from_concept: C-025
+  to_concept: C-087
+  type: implements
 - from_concept: C-001
   to_concept: C-003
   type: consumes
@@ -1771,6 +1793,9 @@ relations:
   type: uses
 - from_concept: C-038
   to_concept: C-082
+  type: uses
+- from_concept: C-038
+  to_concept: C-083
   type: uses
 - from_concept: C-081
   to_concept: C-084

@@ -20,5 +20,5 @@ outputs:
   name: __init__.py files
   type: file_set
 parent_global_step: G-000
-status: draft
+status: frozen
 step_id: T-004

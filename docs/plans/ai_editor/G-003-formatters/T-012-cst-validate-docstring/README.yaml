@@ -1,8 +1,9 @@
 step_id: T-012
 parent_global_step: G-003
 name: CSTFormatter — validate_document, DocstringMeta, full integration
-status: needs_review
-description: CST linters and docstring validation; DocstringMeta in TreeNodeMetadata.
+status: frozen
+description: CST linters and docstring validation; DocstringMeta in 
+  TreeNodeMetadata.
 concepts:
 - C-029
 - C-034
@@ -29,14 +30,14 @@ inputs:
 outputs:
 - name: ai_editor/formatters/cst/formatter.py
   type: file
-  description: 'CSTFormatter(AbstractFormatter) with formatter_name="cst". parse, render, write, mutate_set, mutate_replace_block, mutate_append, mutate_delete, mutate_move, _sort_operations, _apply_operation, validate_document, to_string, from_string, match_unit, compare_units.
-
-    '
+  description: "CSTFormatter(AbstractFormatter) with formatter_name=\"cst\". parse,
+    render, write, mutate_set, mutate_replace_block, mutate_append, mutate_delete,
+    mutate_move, _sort_operations, _apply_operation, validate_document, to_string,
+    from_string, match_unit, compare_units.\n"
 - name: ai_editor/formatters/cst/docstring_meta.py
   type: file
-  description: 'DocstringMeta frozen dataclass with parse_docstring classmethod, to_dict() and from_dict() for sidecar serialization.
-
-    '
+  description: "DocstringMeta frozen dataclass with parse_docstring classmethod, to_dict()
+    and from_dict() for sidecar serialization.\n"
 atomic_steps:
 - A-001
 - A-002

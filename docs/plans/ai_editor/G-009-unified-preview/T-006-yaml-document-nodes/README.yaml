@@ -4,12 +4,13 @@ name: YAML DocumentNode kinds and preview blocks
 status: draft
 description: >
   Refactor YamlFormatter to DocumentNode kinds mapping, sequence, scalar, mappingItem.
-  Preview large-root blocks-only policy; drilldown returns annotated subtree. Preserve
-  ruamel round-trip invariants and NQ-005 start_line heuristic for annotation.
+  Migrate FormatterMutationBackend (C-087) ruamel path mutations onto DocumentGraph.
+  Preview large-root blocks-only; drilldown annotated subtree; ruamel round-trip preserved.
 concepts:
 - C-070
 - C-073
 - C-026
+- C-087
 inputs:
 - name: T-003 build_preview
   type: tactical_dependency
@@ -20,6 +21,6 @@ inputs:
 outputs:
 - name: ai_editor/formatters/yaml/
   type: directory
-  description: DocumentNode graph; mappingItem for key-value pairs.
+  description: DocumentNode triad + yaml MutationBackend on DocumentGraph.
 atomic_steps: []
 cascade_note: draft 2026-05-23

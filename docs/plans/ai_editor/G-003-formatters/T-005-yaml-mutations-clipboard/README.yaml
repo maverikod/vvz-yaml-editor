@@ -1,8 +1,10 @@
 step_id: T-005
 parent_global_step: G-003
 name: YamlFormatter — mutations and clipboard
-status: needs_review
-description: YamlFormatter integration with base-class insert/delete/move/replace_node and copy/cut/paste_fragment. All mutations via stable_id addresses on unified Tree.
+status: frozen
+description: YamlFormatter integration with base-class 
+  insert/delete/move/replace_node and copy/cut/paste_fragment. All mutations via
+  stable_id addresses on unified Tree.
 concepts:
 - C-026
 - C-021
@@ -17,17 +19,15 @@ inputs:
 outputs:
 - name: ai_editor/formatters/yaml/mutations.py
   type: file
-  description: 'Functions: yaml_mutate_set, yaml_mutate_replace_block, yaml_mutate_append, yaml_mutate_delete, yaml_mutate_move, yaml_copy_fragment, yaml_cut_fragment, yaml_paste_fragment. Imported into formatter.py and called as method impls.
-
-    '
+  description: "Functions: yaml_mutate_set, yaml_mutate_replace_block, yaml_mutate_append,
+    yaml_mutate_delete, yaml_mutate_move, yaml_copy_fragment, yaml_cut_fragment, yaml_paste_fragment.
+    Imported into formatter.py and called as method impls.\n"
 - name: ai_editor/formatters/yaml/clipboard.py
   type: file
-  description: 'serialize_fragment(fragment, formatter) -> str and deserialize_fragment(body: str, formatter) -> fragment helpers.
-
-    '
+  description: "serialize_fragment(fragment, formatter) -> str and deserialize_fragment(body:
+    str, formatter) -> fragment helpers.\n"
 atomic_steps:
 - A-001
 - A-002
 - A-003
-
 cascade_note: changed — formatter paradigm cascade 2026-05-21

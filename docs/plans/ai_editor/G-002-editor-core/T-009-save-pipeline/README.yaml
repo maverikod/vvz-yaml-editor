@@ -1,12 +1,11 @@
 step_id: T-009
 parent_global_step: G-002
 name: Save and save_as pipeline — validate, render, upload via CA client
-status: needs_review
+status: frozen
 description: 'Save pipeline delegates to formatter WritePipeline: export, temp, linters,
   atomic rename.'
 concepts:
 - C-013
-- C-014
 inputs:
 - name: G-001 contracts
   type: ai_editor.contracts

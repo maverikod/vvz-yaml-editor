@@ -1,7 +1,7 @@
 step_id: T-003
 parent_global_step: G-001
 name: Diagnostic dataclass
-status: draft
+status: frozen
 description: "Create Diagnostic frozen dataclass. Atomic unit carried inside every
   result type. Must be defined before result envelopes (T-004) which embed list[Diagnostic].
   No business logic. No ErrorCode import (uses plain str for code field).\n"
